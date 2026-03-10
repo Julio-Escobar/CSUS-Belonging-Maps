@@ -1,0 +1,6 @@
+@BelongingMaps.API_HostAddress = http://localhost:5162
+
+GET {{BelongingMaps.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
