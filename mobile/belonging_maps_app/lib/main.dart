@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'screens/welcome_screen.dart';
 
 void main() {
   runApp(const BelongingMapsApp());
@@ -16,7 +16,7 @@ class BelongingMapsApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: LoginScreen(), 
+      home: WelcomeScreen(), 
     );
   }
 }
