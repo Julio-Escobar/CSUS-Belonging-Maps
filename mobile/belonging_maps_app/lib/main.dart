@@ -16,7 +16,7 @@ class BelongingMapsApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const WelcomeScreen(),
+      home: WelcomeScreen(), 
     );
   }
 }
