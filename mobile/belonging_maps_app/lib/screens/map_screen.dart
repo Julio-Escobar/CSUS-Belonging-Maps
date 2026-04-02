@@ -7,17 +7,16 @@ class MapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: AdminDrawer(),
+    return HamburgerMenu(
+      body: Scaffold(
+        drawer: AdminDrawer(),
+        appBar: AppBar(title: const Text("Belonging Maps")),
 
-      appBar: AppBar(
-        title: const Text("Belonging Maps"),
-      ),
-
-      body: const Center(
-        child: Text(
-          'ArcGIS map will appear here',
-          style: TextStyle(fontSize: 18),
+        body: const Center(
+          child: Text(
+            'ArcGIS map will appear here',
+            style: TextStyle(fontSize: 18),
+          ),
         ),
       ),
     );
