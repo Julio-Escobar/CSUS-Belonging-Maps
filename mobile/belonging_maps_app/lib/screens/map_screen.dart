@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
+import '../widgets/hamburger_menu.dart';
 
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key});
@@ -15,7 +16,7 @@ class MapScreen extends StatelessWidget {
 
       body: const Center(
         child: Text(
-          "ArcGIS map will appear here",
+          'ArcGIS map will appear here',
           style: TextStyle(fontSize: 18),
         ),
       ),
