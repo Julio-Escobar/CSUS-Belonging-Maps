@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+//1 Second stop
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 1 second stop
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,12 +34,8 @@ class WelcomeScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                // Logo 
-                Image.asset(
-                  'assets/logo.png',
-                  width: 200,
-                  height: 200,
-                ),
+                // Logo
+                Image.asset('assets/logo.png', width: 200, height: 200),
               ],
             ),
           ),
