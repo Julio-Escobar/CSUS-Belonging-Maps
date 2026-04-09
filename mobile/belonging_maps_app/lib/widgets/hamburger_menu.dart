@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../screens/welcome_screen.dart';
+import '../screens/campus_maps_screen.dart';
+import '../screens/community_maps_directory.dart';
 
 final Color backgroundMenuColor = const Color.fromARGB(255, 25, 99, 42);
 final Color menuItemTextColor = Colors.white;
@@ -80,7 +83,13 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       title: const Text('Welcome'),
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        );
+                        _closeDrawer();
+                      },
                     ),
                     const Divider(),
                     ListTile(
@@ -88,7 +97,13 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       title: const Text('Campus Maps'),
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CampusMapsScreen()),
+                        );
+                        _closeDrawer();
+                      },
                     ),
                     const Divider(),
                     ListTile(
@@ -96,7 +111,13 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       title: const Text('Community Maps'),
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CommunityMapsDirectory()),
+                        );
+                        _closeDrawer();
+                      },
                     ),
                     const Divider(),
                     ListTile(

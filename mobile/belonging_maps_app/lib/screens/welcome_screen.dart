@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
-import 'campus_maps_screen.dart';
-import 'community_maps_directory.dart';
+import 'login_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+//1 Second stop
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 1 second stop
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,56 +36,6 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 // Logo
                 Image.asset('assets/logo.png', width: 200, height: 200),
-                const SizedBox(height: 60),
-                // Campus Map Button
-                SizedBox(
-                  width: 250,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CampusMapsScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Campus Map',
-                      style: TextStyle(
-                        color: Color(0xFF2F5F3E),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Community Map Button
-                SizedBox(
-                  width: 250,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CommunityMapsDirectory()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Community Map',
-                      style: TextStyle(
-                        color: Color(0xFF2F5F3E),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
