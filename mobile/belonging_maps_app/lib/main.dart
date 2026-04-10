@@ -9,7 +9,7 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   //TODO: Implement proper API key usage later
-  ArcGISEnvironment.apiKey = '';
+  ArcGISEnvironment.apiKey = 'AAPTamDp9qu8ydJ1fbv0x4OoxlQ..8TFGYlnY8K8e7A8wrY1PCRZs8nQlfUFjIQwH_2PqfUuOKumnhlCCDDi8dTIZISzb3q7AzRVGdL74itVMnt9WYo1EhBizY3wkwhni_k_22PquyYlQei4aEeqYdbq7jsXnoaLew-Vh2FSYJJhASiRi8g7Nm9NKCjPg1oiov3ld1YFNFsa8RPbF0eVMxnbFf64OVTWpx2uy_UYlpxO3pZKJpzNlg5cL05HphmK3Cy2uFX_CdpqM1HEbAT1_Cbz29Ps5';
   
   runApp(const BelongingMapsApp());
 }
