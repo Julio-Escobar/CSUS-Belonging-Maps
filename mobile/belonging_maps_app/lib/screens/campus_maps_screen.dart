@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/screens/somos_campus_map.dart';
 
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});
@@ -52,6 +53,10 @@ class CampusMapsScreen extends StatelessWidget {
               subtitle: 'Mapping Our Campus',
               imagePath: 'assets/somoscampusmap.png',
               onTap: () {
+                Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SomosCampusMap()),
+                        );
                 // TODO: Navigate to SOMOS map screen
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
