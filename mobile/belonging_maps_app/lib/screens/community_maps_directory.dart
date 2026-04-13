@@ -5,14 +5,13 @@ class CommunityMapsDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     //Query for screen size to control dynamic sizing of buttons
     double screenWidth = MediaQuery.sizeOf(context).width;
     double buttonWidth = screenWidth * (0.85);
-    if (buttonWidth >= 401){
+    if (buttonWidth >= 401) {
       buttonWidth = 400;
     }
-    double buttonHeight = buttonWidth/3;
+    double buttonHeight = buttonWidth / 3;
 
     //Padding between buttons
     double paddingHeight = 40;
@@ -27,12 +26,13 @@ class CommunityMapsDirectory extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Community Maps',
-        style: TextStyle(
-          color: headTextColor,
-          fontWeight: FontWeight.w700,
-          fontSize: headTextSize,
-        ),
+        title: Text(
+          'Community Maps',
+          style: TextStyle(
+            color: headTextColor,
+            fontWeight: FontWeight.w700,
+            fontSize: headTextSize,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -43,7 +43,6 @@ class CommunityMapsDirectory extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            
             //Somos text and button
             Text(
               'SOMOS Community Map',
@@ -51,7 +50,7 @@ class CommunityMapsDirectory extends StatelessWidget {
                 color: bodyTextColor,
                 fontSize: bodyTextSize,
                 fontWeight: FontWeight.w700,
-              )
+              ),
             ),
             SizedBox(
               width: buttonWidth,
@@ -59,22 +58,25 @@ class CommunityMapsDirectory extends StatelessWidget {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-              onPressed: () {
-                // TODO: Navigate to Somos community map
-              },
-              child: ClipRRect(borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                'assets/somoscommunityheader.png',
-                width: buttonWidth,
-                height: buttonHeight,
-                fit: BoxFit.cover,
-              ))
-            ),
+                ),
+                onPressed: () {
+                  // TODO: Navigate to Somos community map
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/somoscommunityheader.png',
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
             SizedBox(height: paddingHeight), //Padding
-            
             //Ummah text and button
             Text(
               'UMMAH Community Map',
@@ -82,7 +84,7 @@ class CommunityMapsDirectory extends StatelessWidget {
                 color: bodyTextColor,
                 fontSize: bodyTextSize,
                 fontWeight: FontWeight.w700,
-              )
+              ),
             ),
             SizedBox(
               width: buttonWidth,
@@ -90,22 +92,25 @@ class CommunityMapsDirectory extends StatelessWidget {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-              onPressed: () {
-                // TODO: Navigate to Ummah community map
-              },
-              child: ClipRRect(borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                'assets/ummahcommunityheader.png',
-                width: buttonWidth,
-                height: buttonHeight,
-                fit: BoxFit.cover,
-              ))
-            ),
+                ),
+                onPressed: () {
+                  // TODO: Navigate to Ummah community map
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/ummahcommunityheader.png',
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
             SizedBox(height: paddingHeight), //Padding
-
             //Ubuntu text and button
             Text(
               'UBUNTU Community Map',
@@ -113,7 +118,7 @@ class CommunityMapsDirectory extends StatelessWidget {
                 color: bodyTextColor,
                 fontSize: bodyTextSize,
                 fontWeight: FontWeight.w700,
-              )
+              ),
             ),
             SizedBox(
               width: buttonWidth,
@@ -121,19 +126,23 @@ class CommunityMapsDirectory extends StatelessWidget {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-              onPressed: () {
-                // TODO: Navigate to Ubuntu community map
-              },
-              child: ClipRRect(borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                'assets/ubuntucommunityheader.png',
-                width: buttonWidth,
-                height: buttonHeight,
-                fit: BoxFit.cover,
-              ))
-            ),
+                ),
+                onPressed: () {
+                  // TODO: Navigate to Ubuntu community map
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/ubuntucommunityheader.png',
+                    width: buttonWidth,
+                    height: buttonHeight,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 20), //Padding
           ],

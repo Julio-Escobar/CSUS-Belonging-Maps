@@ -1,7 +1,58 @@
 import 'package:flutter/material.dart';
 
-class CampusMapsScreen extends StatelessWidget {
+class CampusMapsScreen extends StatefulWidget {
   const CampusMapsScreen({super.key});
+
+  @override
+  State<CampusMapsScreen> createState() => _CampusMapsScreenState();
+}
+
+class _CampusMapsScreenState extends State<CampusMapsScreen> {
+  final TextEditingController searchController = TextEditingController();
+
+  final List<Map<String, String>> maps = [
+    {
+      'label': 'SOMOS Campus Map',
+      'subtitle': 'Mapping Our Campus',
+      'imagePath': 'assets/somoscampusmap.png',
+    },
+  ];
+
+  List<Map<String, String>> filteredMaps = [];
+
+  @override
+  void initState() {
+    super.initState();
+    filteredMaps = maps;
+  }
+
+  void filterSearch(String query) {
+    setState(() {
+      filteredMaps = maps
+          .where(
+            (map) => map['label']!.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    });
+  }
+
+  void performSearch() {
+    final query = searchController.text;
+
+    setState(() {
+      filteredMaps = maps
+          .where(
+            (map) => map['label']!.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +77,23 @@ class CampusMapsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            TextField(
+              controller: searchController,
+              onChanged: filterSearch,
+              onSubmitted: (_) => performSearch(),
+              decoration: InputDecoration(
+                hintText: "Search maps...",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: performSearch,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             const Text(
               'Explore Our Campus',
               style: TextStyle(
@@ -45,22 +113,24 @@ class CampusMapsScreen extends StatelessWidget {
                 letterSpacing: 0.2,
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredMaps.length,
+                itemBuilder: (context, index) {
+                  final map = filteredMaps[index];
 
-            _MapButton(
-              label: 'SOMOS Campus Map',
-              subtitle: 'Mapping Our Campus',
-              imagePath: 'assets/somoscampusmap.png',
-              onTap: () {
-                // TODO: Navigate to SOMOS map screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening SOMOS Campus Map...'),
-                    backgroundColor: Color(0xFF1A4A2E),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _MapButton(
+                      label: map['label']!,
+                      subtitle: map['subtitle']!,
+                      imagePath: map['imagePath']!,
+                      onTap: () {},
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -69,7 +139,7 @@ class CampusMapsScreen extends StatelessWidget {
   }
 }
 
-class _MapButton extends StatefulWidget {
+class _MapButton extends StatelessWidget {
   final String label;
   final String subtitle;
   final String imagePath;
@@ -83,137 +153,88 @@ class _MapButton extends StatefulWidget {
   });
 
   @override
-  State<_MapButton> createState() => _MapButtonState();
-}
-
-class _MapButtonState extends State<_MapButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-      lowerBound: 0.0,
-      upperBound: 1.0,
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.975).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _controller.reverse(),
-      child: AnimatedBuilder(
-        animation: _scaleAnim,
-        builder: (context, child) => Transform.scale(
-          scale: _scaleAnim.value,
-          child: child,
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 130,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A4A2E).withOpacity(0.25),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: Container(
-          width: double.infinity,
-          height: 130,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1A4A2E).withOpacity(0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(color: Colors.grey);
+                },
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  widget.imagePath,
-                  fit: BoxFit.cover,
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.55),
-                        ],
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              widget.label,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontFamily: 'Georgia',
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              widget.subtitle,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.55),
                       ],
                     ),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Georgia',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
