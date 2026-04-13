@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'map_screen.dart';
 
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});
@@ -52,15 +53,11 @@ class CampusMapsScreen extends StatelessWidget {
               subtitle: 'Mapping Our Campus',
               imagePath: 'assets/somoscampusmap.png',
               onTap: () {
-                // TODO: Navigate to SOMOS map screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening SOMOS Campus Map...'),
-                    backgroundColor: Color(0xFF1A4A2E),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const MapScreen()),
+  );
+},
             ),
           ],
         ),
