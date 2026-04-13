@@ -4,8 +4,13 @@ import 'screens/login_screen.dart';
 import 'screens/campus_maps_screen.dart';
 import 'screens/community_maps_directory.dart';
 import 'screens/map_screen.dart';
+import 'package:arcgis_maps/arcgis_maps.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  //TODO: Implement proper API key usage later
+  ArcGISEnvironment.apiKey = '';
+  
   runApp(const BelongingMapsApp());
 }
 
