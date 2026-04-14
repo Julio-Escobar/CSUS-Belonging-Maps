@@ -33,6 +33,11 @@ migrate_working_dir/
 .pub/
 /build/
 
+# ArcGIS Maps - machine-specific core files
+arcgis_maps_core/
+**/arcgis_maps_core/
+/android/app/src/main/jniLibs/
+
 # Symbolication related
 app.*.symbols
 

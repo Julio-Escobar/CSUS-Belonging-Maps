@@ -1,6 +1,5 @@
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import 'map_screen.dart';
 
 class LoginScreen extends StatelessWidget {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
 import '/widgets/hamburger_menu.dart';
 
 class WelcomeScreen extends StatefulWidget {
