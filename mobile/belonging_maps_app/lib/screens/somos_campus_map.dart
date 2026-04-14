@@ -23,6 +23,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     'Food': true,
     'Public Art Artists': true,
     'Religion': true,
+    
   };
 
   @override
