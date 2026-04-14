@@ -14,10 +14,8 @@ class SomosCampusMap extends StatefulWidget {
 class _SomosCampusMapState extends State<SomosCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
-
   Map<String, dynamic>? _selectedAttributes;
   bool _showFullInfo = false;
-  Map<String, dynamic>? _selectedAttributes;
 
   @override
   void initState() {
@@ -39,16 +37,6 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
         ),
       ),
-        latitude: 38.56091,   
-        longitude: -121.42405, 
-        scale: 10000,
-      );
-    
-    //Feature layer is how we get location pins onto the map.
-    _featureLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(Uri.parse(
-        "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0"
-      ))
     );
 
     map.operationalLayers.add(_featureLayer);
@@ -57,12 +45,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
   Future<void> _handleMapTap(Offset screenPoint) async {
     final result = await _mapController.identifyLayer(
-      _featureLayer, //May need to update this in the future when multiple layers are present.
+      _featureLayer,
       screenPoint: screenPoint,
-      tolerance: 15.0, //Determines how close a tap needs to be to location pin.
-      _featureLayer,  //May need to update this in the future when multiple layers are present.
-      screenPoint: screenPoint,
-      tolerance: 15.0, //Determines how close a tap needs to be to location pin. 
+      tolerance: 15.0,
       maximumResults: 1,
     );
 

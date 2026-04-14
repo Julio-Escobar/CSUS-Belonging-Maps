@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'screens/welcome_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/campus_maps_screen.dart';
-import 'screens/community_maps_directory.dart';
-import 'screens/map_screen.dart';
-// import 'screens/test_organization_screen.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'screens/welcome_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //TODO: Implement proper API key usage later
-  ArcGISEnvironment.apiKey = '';
+  await dotenv.load();
+  
+  final apiKey = dotenv.env['ARCGIS_API_KEY'] ?? '';
+  ArcGISEnvironment.apiKey = apiKey;
   
   runApp(const BelongingMapsApp());
 }

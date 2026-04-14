@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 // Color constants
 const Color mapInfoCardColor = Color.fromARGB(255, 47, 95, 62);
@@ -21,6 +23,7 @@ class LocationInfoCard extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onShowMore;
   final VoidCallback onShowLess;
+  final Map<String, String>? socialLinks;
 
   const LocationInfoCard({
     super.key,
@@ -37,7 +40,30 @@ class LocationInfoCard extends StatelessWidget {
     required this.onClose,
     required this.onShowMore,
     required this.onShowLess,
+    this.socialLinks,
   });
+
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      debugPrint('Could not launch $url');
+    }
+  }
+
+  IconData _getSocialIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'instagram':
+        return FontAwesomeIcons.instagram;
+      case 'facebook':
+        return FontAwesomeIcons.facebook;
+      case 'twitter':
+        return FontAwesomeIcons.twitter;
+      default:
+        return FontAwesomeIcons.link;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +96,9 @@ class LocationInfoCard extends StatelessWidget {
                   imageUrl: imageUrl,
                   onClose: onClose,
                   onShowLess: onShowLess,
+                  socialLinks: socialLinks,
+                  launchUrl: _launchUrl,
+                  getSocialIcon: _getSocialIcon,
                 )
               : _PreviewLocationInfoCard(
                   cardTitle: cardTitle,
@@ -161,6 +190,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback onClose;
   final VoidCallback onShowLess;
+  final Map<String, String>? socialLinks;
+  final Future<void> Function(String) launchUrl;
+  final IconData Function(String) getSocialIcon;
 
   const _ExpandedLocationInfoCard({
     required this.cardTitle,
@@ -174,6 +206,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
     required this.imageUrl,
     required this.onClose,
     required this.onShowLess,
+    this.socialLinks,
+    required this.launchUrl,
+    required this.getSocialIcon,
   });
 
   @override
@@ -286,6 +321,38 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
+                const SizedBox(height: 22),
+                // Social Media Links Section
+                if (socialLinks != null && socialLinks!.isNotEmpty) ...[
+                  const Text(
+                    'Follow Us',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: mapInfoPrimaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 15,
+                    runSpacing: 15,
+                    children: socialLinks!.entries.map((entry) {
+                      return GestureDetector(
+                        onTap: () => launchUrl(entry.value),
+                        child: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            getSocialIcon(entry.key),
+                            color: mapInfoCardColor,
+                            size: 28,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 22),
+                ],
                 const SizedBox(height: 18),
                 Align(
                   alignment: Alignment.centerLeft,
