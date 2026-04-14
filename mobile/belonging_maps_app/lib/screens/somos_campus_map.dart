@@ -21,6 +21,18 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     //TODO: Update BasemapStyle to client's desired base map.
     final map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
       ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: 38.56091,
+        longitude: -121.42405,
+        scale: 10000,
+      );
+
+    //Feature layer is how we get location pins onto the map.
+    _featureLayer = FeatureLayer.withFeatureTable(
+      ServiceFeatureTable.withUri(
+        Uri.parse(
+          "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
+        ),
+      ),
         latitude: 38.56091,   
         longitude: -121.42405, 
         scale: 10000,
@@ -39,6 +51,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
   Future<void> _handleMapTap(Offset screenPoint) async {
     final result = await _mapController.identifyLayer(
+      _featureLayer, //May need to update this in the future when multiple layers are present.
+      screenPoint: screenPoint,
+      tolerance: 15.0, //Determines how close a tap needs to be to location pin.
       _featureLayer,  //May need to update this in the future when multiple layers are present.
       screenPoint: screenPoint,
       tolerance: 15.0, //Determines how close a tap needs to be to location pin. 
@@ -68,6 +83,44 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   //TODO: Change field names to names of those in our client's map when we have access.
   Widget _buildCard() {
     //Assign fields here
+    String cardTitle =
+        _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 400),
+        margin: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 8,
+          color: const Color(0xFF2F5F3E),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              //Title field goes here.
+              ListTile(
+                title: Text(
+                  cardTitle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                trailing: CloseButton(
+                  color: Colors.white,
+                  onPressed: () => setState(() => _selectedAttributes = null),
+                ),
+              ),
+              const Divider(height: 1),
+
+              //All other fields will begin here
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
     String cardTitle = _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
 
     return Align(
