@@ -1,8 +1,11 @@
-source 'https://cdn.cocoapods.org/'
-
+# Uncomment this line to define a global platform for your project
 platform :ios, '17.0'
 
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+source 'https://github.com/Esri/arcgis-runtime-ios.git'
+source 'https://cdn.cocoapods.org/'
 
 project 'Runner', {
   'Debug' => :debug,
@@ -15,6 +18,7 @@ def flutter_root
   unless File.exist?(generated_xcode_build_settings_path)
     raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
   end
+
   File.foreach(generated_xcode_build_settings_path) do |line|
     matches = line.match(/FLUTTER_ROOT\=(.*)/)
     return matches[1].strip if matches
@@ -28,8 +32,11 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
-  pod 'Runtimecore', :podspec => '/Users/rwhyin/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/Runtimecore.podspec'
-  pod 'arcgis_maps_ffi', :podspec => '/Users/rwhyin/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/arcgis_maps_ffi.podspec'
+
+  # Add explicit ArcGIS pod declarations
+  arcgis_core_path = File.expand_path(File.join(Gem.user_home, '.pub-cache', 'hosted', 'pub.dev', 'arcgis_maps-200.8.0+4672', 'arcgis_maps_core', 'ios'))
+  pod 'Runtimecore', :path => File.join(arcgis_core_path, '.')
+  pod 'arcgis_maps_ffi', :path => File.join(arcgis_core_path, '.')
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -40,5 +47,14 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Add ArcGIS framework search paths
+    if target.name == 'Runner'
+      arcgis_core_path = File.expand_path(File.join(Gem.user_home, '.pub-cache', 'hosted', 'pub.dev', 'arcgis_maps-200.8.0+4672', 'arcgis_maps_core', 'ios'))
+      target.build_configurations.each do |config|
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= []
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << arcgis_core_path
+      end
+    end
   end
 end

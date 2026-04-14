@@ -56,6 +56,9 @@ class CampusMapsScreen extends StatelessWidget {
               subtitle: 'SOMOS Resources',
               imagePath: 'assets/somoscampusmap.PNG',
               onTap: () {
+                // - User clicks on a map pin
+                // - Fetch organization data from API
+                // - Show OrganizationInfoCard in BottomSheet
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SomosCampusMap()),
@@ -164,9 +167,10 @@ class _MapButtonState extends State<_MapButton>
       lowerBound: 0.0,
       upperBound: 1.0,
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.975).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.975,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -186,10 +190,8 @@ class _MapButtonState extends State<_MapButton>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnim,
-        builder: (context, child) => Transform.scale(
-          scale: _scaleAnim.value,
-          child: child,
-        ),
+        builder: (context, child) =>
+            Transform.scale(scale: _scaleAnim.value, child: child),
         child: Container(
           width: double.infinity,
           height: 130,
@@ -208,17 +210,16 @@ class _MapButtonState extends State<_MapButton>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  widget.imagePath,
-                  fit: BoxFit.cover,
-                ),
+                Image.asset(widget.imagePath, fit: BoxFit.cover),
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -245,10 +246,7 @@ class _MapButtonState extends State<_MapButton>
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
+                                  Shadow(color: Colors.black54, blurRadius: 4),
                                 ],
                               ),
                             ),
@@ -258,10 +256,7 @@ class _MapButtonState extends State<_MapButton>
                                 color: Colors.white70,
                                 fontSize: 12,
                                 shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
+                                  Shadow(color: Colors.black54, blurRadius: 4),
                                 ],
                               ),
                             ),

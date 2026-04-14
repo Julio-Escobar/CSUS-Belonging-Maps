@@ -38,7 +38,6 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return HamburgerMenu(
       body: Scaffold(
-        appBar: AppBar(title: const Text("Welcome")),
         body: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
