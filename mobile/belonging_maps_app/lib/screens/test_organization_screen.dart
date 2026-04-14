@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/organization.dart';
 import '../widgets/location_info_card.dart';
+//Revmove when real data added
 
 class TestOrganizationScreen extends StatelessWidget {
   const TestOrganizationScreen({super.key});

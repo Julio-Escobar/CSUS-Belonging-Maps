@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/screens/somos_campus_map.dart';
 
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});

@@ -1,0 +1,111 @@
+PODS:
+  - arcgis_maps (200.8.0.4672):
+    - arcgis_maps_ffi
+    - Flutter
+    - Runtimecore
+  - arcgis_maps_ffi (200.8.0.4672)
+  - device_info_plus (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - flutter_secure_storage (6.0.0):
+    - Flutter
+  - flutter_web_auth_2 (3.0.0):
+    - Flutter
+  - geolocator_apple (1.2.0):
+    - Flutter
+    - FlutterMacOS
+  - haptic_feedback (0.5.1):
+    - Flutter
+  - package_info_plus (0.4.5):
+    - Flutter
+  - Runtimecore (200.8.0.4672)
+  - sqlite3 (3.52.0):
+    - sqlite3/common (= 3.52.0)
+  - sqlite3/common (3.52.0)
+  - sqlite3/dbstatvtab (3.52.0):
+    - sqlite3/common
+  - sqlite3/fts5 (3.52.0):
+    - sqlite3/common
+  - sqlite3/math (3.52.0):
+    - sqlite3/common
+  - sqlite3/perf-threadsafe (3.52.0):
+    - sqlite3/common
+  - sqlite3/rtree (3.52.0):
+    - sqlite3/common
+  - sqlite3/session (3.52.0):
+    - sqlite3/common
+  - sqlite3_flutter_libs (0.0.1):
+    - Flutter
+    - FlutterMacOS
+    - sqlite3 (~> 3.52.0)
+    - sqlite3/dbstatvtab
+    - sqlite3/fts5
+    - sqlite3/math
+    - sqlite3/perf-threadsafe
+    - sqlite3/rtree
+    - sqlite3/session
+  - url_launcher_ios (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - arcgis_maps (from `.symlinks/plugins/arcgis_maps/ios`)
+  - "arcgis_maps_ffi (from `/Users/devgandhi/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/.`)"
+  - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
+  - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
+  - haptic_feedback (from `.symlinks/plugins/haptic_feedback/ios`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
+  - "Runtimecore (from `/Users/devgandhi/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/.`)"
+  - sqlite3_flutter_libs (from `.symlinks/plugins/sqlite3_flutter_libs/darwin`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
+
+SPEC REPOS:
+  trunk:
+    - sqlite3
+
+EXTERNAL SOURCES:
+  arcgis_maps:
+    :path: ".symlinks/plugins/arcgis_maps/ios"
+  arcgis_maps_ffi:
+    :path: "/Users/devgandhi/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/."
+  device_info_plus:
+    :path: ".symlinks/plugins/device_info_plus/ios"
+  Flutter:
+    :path: Flutter
+  flutter_secure_storage:
+    :path: ".symlinks/plugins/flutter_secure_storage/ios"
+  flutter_web_auth_2:
+    :path: ".symlinks/plugins/flutter_web_auth_2/ios"
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/darwin"
+  haptic_feedback:
+    :path: ".symlinks/plugins/haptic_feedback/ios"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
+  Runtimecore:
+    :path: "/Users/devgandhi/.pub-cache/hosted/pub.dev/arcgis_maps-200.8.0+4672/arcgis_maps_core/ios/."
+  sqlite3_flutter_libs:
+    :path: ".symlinks/plugins/sqlite3_flutter_libs/darwin"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
+
+SPEC CHECKSUMS:
+  arcgis_maps: 6d106cfb78b7b54941bb6a8d04540ce8dcfa7304
+  arcgis_maps_ffi: 4835a01eb85c53f825168e886b12cd2006bd22fe
+  device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
+  flutter_web_auth_2: 5c8d9dcd7848b5a9efb086d24e7a9adcae979c80
+  geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
+  haptic_feedback: fd1d8509833f58f164fc12122c0357fa9b2750e0
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  Runtimecore: 8dde8031e8b9423fa4876d948a65d00b6c55dfdd
+  sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921
+  sqlite3_flutter_libs: b3e120efe9a82017e5552a620f696589ed4f62ab
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
+
+PODFILE CHECKSUM: f5eeb1709de8303a3aa543318992347efa2e2256
+
+COCOAPODS: 1.16.2

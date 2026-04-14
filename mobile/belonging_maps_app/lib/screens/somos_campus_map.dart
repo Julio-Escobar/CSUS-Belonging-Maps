@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:arcgis_maps/arcgis_maps.dart';
+
+class SomosCampusMap extends StatefulWidget {
+  const SomosCampusMap({super.key});
+
+  @override
+  State<SomosCampusMap> createState() => _SomosCampusMapState();
+}
+
+class _SomosCampusMapState extends State<SomosCampusMap> {
+  late ArcGISMapViewController _mapController;
+  late FeatureLayer _featureLayer;
+  Map<String, dynamic>? _selectedAttributes;
+
+  @override
+  void initState() {
+    super.initState();
+
+    //Location is manually set to the Sac State campus.
+    //TODO: Update BasemapStyle to client's desired base map.
+    final map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
+      ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: 38.56091,
+        longitude: -121.42405,
+        scale: 10000,
+      );
+
+    //Feature layer is how we get location pins onto the map.
+    _featureLayer = FeatureLayer.withFeatureTable(
+      ServiceFeatureTable.withUri(
+        Uri.parse(
+          "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
+        ),
+      ),
+    );
+
+    map.operationalLayers.add(_featureLayer);
+    _mapController = ArcGISMapView.createController()..arcGISMap = map;
+  }
+
+  Future<void> _handleMapTap(Offset screenPoint) async {
+    final result = await _mapController.identifyLayer(
+      _featureLayer, //May need to update this in the future when multiple layers are present.
+      screenPoint: screenPoint,
+      tolerance: 15.0, //Determines how close a tap needs to be to location pin.
+      maximumResults: 1,
+    );
+
+    setState(() {
+      _selectedAttributes = result.geoElements.firstOrNull?.attributes;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          ArcGISMapView(
+            controllerProvider: () => _mapController,
+            onTap: _handleMapTap,
+          ),
+          if (_selectedAttributes != null) _buildCard(),
+        ],
+      ),
+    );
+  }
+
+  //TODO: Change field names to names of those in our client's map when we have access.
+  Widget _buildCard() {
+    //Assign fields here
+    String cardTitle =
+        _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 400),
+        margin: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 8,
+          color: const Color(0xFF2F5F3E),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              //Title field goes here.
+              ListTile(
+                title: Text(
+                  cardTitle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                trailing: CloseButton(
+                  color: Colors.white,
+                  onPressed: () => setState(() => _selectedAttributes = null),
+                ),
+              ),
+              const Divider(height: 1),
+
+              //All other fields will begin here
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
