@@ -17,11 +17,12 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   // replace this single layer with one FeatureLayer per category,
   // and hook each layer's isVisible to its corresponding toggle.
   final Map<String, bool> _categoryToggles = {
+    'Businesses': true,
+    'Community Services': true,
+    'Education': true,
     'Food': true,
-    'Art': true,
-    'Organizations': true,
-    'Student Resources': true,
-    'Housing': true,
+    'Public Art Artists': true,
+    'Religion': true,
   };
 
   @override
