@@ -56,6 +56,11 @@ class CampusMapsScreen extends StatelessWidget {
                 // - User clicks on a map pin
                 // - Fetch organization data from API
                 // - Show OrganizationInfoCard in BottomSheet
+                Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SomosCampusMap()),
+                        );
+                // TODO: Navigate to SOMOS map screen
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Map integration coming soon...'),

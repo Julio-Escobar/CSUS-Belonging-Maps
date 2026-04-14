@@ -33,6 +33,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
         ),
       ),
+        latitude: 38.56091,   
+        longitude: -121.42405, 
+        scale: 10000,
+      );
+    
+    //Feature layer is how we get location pins onto the map.
+    _featureLayer = FeatureLayer.withFeatureTable(
+      ServiceFeatureTable.withUri(Uri.parse(
+        "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0"
+      ))
     );
 
     map.operationalLayers.add(_featureLayer);
@@ -44,6 +54,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _featureLayer, //May need to update this in the future when multiple layers are present.
       screenPoint: screenPoint,
       tolerance: 15.0, //Determines how close a tap needs to be to location pin.
+      _featureLayer,  //May need to update this in the future when multiple layers are present.
+      screenPoint: screenPoint,
+      tolerance: 15.0, //Determines how close a tap needs to be to location pin. 
       maximumResults: 1,
     );
 
@@ -101,6 +114,44 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               const Divider(height: 1),
 
               //All other fields will begin here
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+    String cardTitle = _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: BoxConstraints(maxHeight: 400),
+        margin: EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 8,
+          color: Color(0xFF2F5F3E),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [//Title field goes here.
+              ListTile(
+                title: Text(
+                  cardTitle,
+                    style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color:Colors.white
+                    ),
+                    ),
+                trailing: CloseButton(
+                  color: Colors.white,
+                  onPressed: () => setState(() => _selectedAttributes = null)),
+              ),
+              Divider(height: 1),
+              
+              
+              //All other fields will begin here
+              
             ],
           ),
         ),
