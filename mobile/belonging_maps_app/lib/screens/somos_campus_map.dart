@@ -130,6 +130,25 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     final String? imageUrl =
         _selectedAttributes?['IMAGE_URL']?.toString();
 
+    // Create social media links map
+    final Map<String, String> socialLinks = {};
+    if (_selectedAttributes?['INSTAGRAM_URL'] != null) {
+      socialLinks['instagram'] = _selectedAttributes?['INSTAGRAM_URL']?.toString() ?? '';
+    }
+    if (_selectedAttributes?['FACEBOOK_URL'] != null) {
+      socialLinks['facebook'] = _selectedAttributes?['FACEBOOK_URL']?.toString() ?? '';
+    }
+    if (_selectedAttributes?['TWITTER_URL'] != null) {
+      socialLinks['twitter'] = _selectedAttributes?['TWITTER_URL']?.toString() ?? '';
+    }
+    
+    // Add demo social media links for testing (remove once real data is available)
+    if (socialLinks.isEmpty) {
+      socialLinks['instagram'] = 'https://instagram.com/somoscampus';
+      socialLinks['facebook'] = 'https://facebook.com/somoscampus';
+      socialLinks['twitter'] = 'https://twitter.com/somoscampus';
+    }
+
     return LocationInfoCard(
       cardTitle: cardTitle,
       address: address,
@@ -152,6 +171,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           _showFullInfo = false;
         });
       },
+      socialLinks: socialLinks,
     );
   }
 }
