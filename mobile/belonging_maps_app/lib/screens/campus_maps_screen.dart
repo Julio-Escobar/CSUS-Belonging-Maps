@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '/screens/somos_campus_map.dart';
+import '/screens/ummah_campus_map.dart';
+import '/screens/ubuntu_campus_map.dart';
 
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});
@@ -21,11 +24,12 @@ class CampusMapsScreen extends StatelessWidget {
         ),
         elevation: 0,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Section 1 header
             const Text(
               'Explore Our Campus',
               style: TextStyle(
@@ -49,19 +53,82 @@ class CampusMapsScreen extends StatelessWidget {
 
             _MapButton(
               label: 'SOMOS Campus Map',
-              subtitle: 'Mapping Our Campus',
-              imagePath: 'assets/somoscampusmap.png',
+              subtitle: 'SOMOS Resources',
+              imagePath: 'assets/somoscampusmap.PNG',
               onTap: () {
-                // TODO: Navigate to SOMOS map screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Opening SOMOS Campus Map...'),
-                    backgroundColor: Color(0xFF1A4A2E),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                // - User clicks on a map pin
+                // - Fetch organization data from API
+                // - Show OrganizationInfoCard in BottomSheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SomosCampusMap()),
                 );
               },
             ),
+
+            const SizedBox(height: 36),
+
+            // Section 2 header
+            const Text(
+              'Explore Campus Resources',
+              style: TextStyle(
+                fontFamily: 'Georgia',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A4A2E),
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Find resources for your community',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            _MapButton(
+              label: 'SOMOS Campus Resource Map',
+              subtitle: 'SOMOS Resources',
+              imagePath: 'assets/somoscampusmap.PNG',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SomosCampusMap()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ummah Campus Resource Map',
+              subtitle: 'Ummah Resources',
+              imagePath: 'assets/ummahcampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UmmahCampusMap()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ubuntu Campus Resource Map',
+              subtitle: 'Ubuntu Resources',
+              imagePath: 'assets/ubuntucampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UbuntuCampusMap()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -100,9 +167,10 @@ class _MapButtonState extends State<_MapButton>
       lowerBound: 0.0,
       upperBound: 1.0,
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.975).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.975,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -122,10 +190,8 @@ class _MapButtonState extends State<_MapButton>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnim,
-        builder: (context, child) => Transform.scale(
-          scale: _scaleAnim.value,
-          child: child,
-        ),
+        builder: (context, child) =>
+            Transform.scale(scale: _scaleAnim.value, child: child),
         child: Container(
           width: double.infinity,
           height: 130,
@@ -144,17 +210,16 @@ class _MapButtonState extends State<_MapButton>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  widget.imagePath,
-                  fit: BoxFit.cover,
-                ),
+                Image.asset(widget.imagePath, fit: BoxFit.cover),
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -181,10 +246,7 @@ class _MapButtonState extends State<_MapButton>
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
+                                  Shadow(color: Colors.black54, blurRadius: 4),
                                 ],
                               ),
                             ),
@@ -194,10 +256,7 @@ class _MapButtonState extends State<_MapButton>
                                 color: Colors.white70,
                                 fontSize: 12,
                                 shadows: [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                  ),
+                                  Shadow(color: Colors.black54, blurRadius: 4),
                                 ],
                               ),
                             ),

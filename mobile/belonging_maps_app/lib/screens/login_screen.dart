@@ -1,6 +1,5 @@
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import 'map_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -10,28 +9,34 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
 
   void handleLogin(BuildContext context) async {
-    bool success = await AuthService.login(
-      usernameController.text,
-      passwordController.text,
+    // Demo push direct to map
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MapScreen()),
     );
 
-    if (success) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const MapScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid credentials")));
-    }
+    // Uncomment after login authentication added
+    // bool success = await AuthService.login(
+    //   usernameController.text,
+    //   passwordController.text,
+    // );
+    //
+    // if (success) {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(builder: (_) => const MapScreen()),
+    //   );
+    // } else {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Invalid credentials"))
+    //   );
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
     return HamburgerMenu(
       body: Scaffold(
-        appBar: AppBar(title: const Text("Welcome")),
         body: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(

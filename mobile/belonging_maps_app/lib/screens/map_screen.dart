@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
 import '../widgets/hamburger_menu.dart';
+import 'somos_campus_map.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -57,112 +58,11 @@ class _CampusMapsScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredEvents = _activeCategoryFilter == null
-        ? _events
-        : _events.where((e) => e['category'] == _activeCategoryFilter).toList();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Campus Maps'),
-        actions: [
-          IconButton(
-            tooltip: 'Reset filters',
-            icon: const Icon(Icons.refresh),
-            onPressed: _resetFilters,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Map placeholder — replace with map widget later
-          Expanded(
-            flex: 3,
-            child: Container(
-              margin: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
-              child: Stack(
-                children: [
-                  // Replace these positioned buttons with real map markers.
-                  Center(child: Text('Map placeholder (replace with ArcGIS widget)', style: TextStyle(color: Colors.grey.shade700))),
-                  Positioned(
-                    left: 40,
-                    top: 40,
-                    child: IconButton(
-                      icon: const Icon(Icons.place, color: Colors.red),
-                      onPressed: () => _showEventDetails(name: _events[0]['name']!, category: _events[0]['category']!),
-                      tooltip: _events[0]['name'],
-                    ),
-                  ),
-                  Positioned(
-                    right: 60,
-                    top: 100,
-                    child: IconButton(
-                      icon: const Icon(Icons.place, color: Colors.blue),
-                      onPressed: () => _showEventDetails(name: _events[1]['name']!, category: _events[1]['category']!),
-                      tooltip: _events[1]['name'],
-                    ),
-                  ),
-                  Positioned(
-                    left: 140,
-                    bottom: 40,
-                    child: IconButton(
-                      icon: const Icon(Icons.place, color: Colors.green),
-                      onPressed: () => _showEventDetails(name: _events[2]['name']!, category: _events[2]['category']!),
-                      tooltip: _events[2]['name'],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Simple filter UI and event list for testing
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      FilterChip(
-                        label: const Text('All'),
-                        selected: _activeCategoryFilter == null,
-                        onSelected: (_) => setState(() => _activeCategoryFilter = null),
-                      ),
-                      ..._events.map((e) => e['category']).toSet().map((cat) {
-                        return FilterChip(
-                          label: Text(cat!),
-                          selected: _activeCategoryFilter == cat,
-                          onSelected: (sel) => setState(() => _activeCategoryFilter = sel ? cat : null),
-                        );
-                      }),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filteredEvents.length,
-                      itemBuilder: (_, i) {
-                        final ev = filteredEvents[i];
-                        return ListTile(
-                          title: Text(ev['name']!),
-                          subtitle: Text(ev['category']!),
-                          onTap: () => _showEventDetails(name: ev['name']!, category: ev['category']!),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return HamburgerMenu(
+      body: Scaffold(
+        drawer: AdminDrawer(),
+        appBar: AppBar(title: const Text("Belonging Maps")),
+        body: const SomosCampusMap(),
       ),
     );
   }
