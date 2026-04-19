@@ -62,7 +62,7 @@ class _CampusMapsScreenState extends State<MapScreen> {
       body: Scaffold(
         drawer: AdminDrawer(),
         appBar: AppBar(title: const Text("Belonging Maps")),
-        body: const SomosCampusMap(),
+        body: SomosCampusMap(),
       ),
     );
   }

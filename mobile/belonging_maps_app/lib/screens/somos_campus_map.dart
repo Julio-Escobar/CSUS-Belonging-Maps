@@ -5,7 +5,7 @@ import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
 
 class SomosCampusMap extends StatefulWidget {
-  const SomosCampusMap({super.key});
+  SomosCampusMap({super.key});
 
   @override
   State<SomosCampusMap> createState() => _SomosCampusMapState();
@@ -15,6 +15,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
   Map<String, dynamic>? _selectedAttributes;
+  // P130: store coordinates extracted from the tapped feature's geometry
+  double? _selectedLat;
+  double? _selectedLng;
   bool _showFullInfo = false;
 
   @override
@@ -30,7 +33,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         scale: 10000,
       );
 
-    //Feature layer is how we get location pins onto the map.
+    // Feature layer is how we get location pins onto the map.
     _featureLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
         Uri.parse(
@@ -51,8 +54,30 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       maximumResults: 1,
     );
 
+    final geoElement = result.geoElements.firstOrNull;
+    double? lat;
+    double? lng;
+    if (geoElement?.geometry is ArcGISPoint) {
+      final point = geoElement!.geometry as ArcGISPoint;
+      // Project to WGS84 (wkid 4326) if needed
+      final ArcGISPoint wgsPoint;
+      if (point.spatialReference?.wkid == 4326) {
+        wgsPoint = point;
+      } else {
+        final projected = GeometryEngine.project(
+          point,
+          outputSpatialReference: SpatialReference.wgs84,
+        );
+        wgsPoint = projected as ArcGISPoint;
+      }
+      lat = wgsPoint.y;
+      lng = wgsPoint.x;
+    }
+
     setState(() {
-      _selectedAttributes = result.geoElements.firstOrNull?.attributes;
+      _selectedAttributes = geoElement?.attributes;
+      _selectedLat = lat;
+      _selectedLng = lng;
       _showFullInfo = false;
     });
   }
@@ -72,6 +97,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   void _clearSelection() {
     setState(() {
       _selectedAttributes = null;
+      _selectedLat = null;
+      _selectedLng = null;
       _showFullInfo = false;
     });
   }
@@ -111,38 +138,51 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     final String type = _selectedAttributes?['TYPE']?.toString() ?? 'N/A';
 
-    final String website =
-        _selectedAttributes?['WEBSITE']?.toString() ??
-        _selectedAttributes?['URL']?.toString() ??
-        '';
+    
+    // P91: website
+    final String name =
+    _selectedAttributes?['FACILITY_NAME']?.toString().toLowerCase() ?? '';
+
+String website;
+
+if (name.contains('park')) {
+  website = "https://www.cityofsacramento.gov/ypce/parks";
+} else {
+  website = "https://www.cityofsacramento.gov/ypce/community-centers";
+}
 
     final String phone =
-        _selectedAttributes?['PHONE']?.toString() ?? 'N/A';
+        _selectedAttributes?['PHONE']?.toString() ?? '';
 
+    // P90: email
     final String email =
-        _selectedAttributes?['EMAIL']?.toString() ?? 'Email not available';
+    (_selectedAttributes?['EMAIL']?.toString().trim().isNotEmpty == true)
+        ? _selectedAttributes!['EMAIL'].toString()
+        : "info@cityofsacramento.org";
 
     final String description =
         _selectedAttributes?['DESCRIPTION']?.toString() ??
         _selectedAttributes?['DETAILS']?.toString() ??
-        'No description available.';
+        '';
 
-    final String? imageUrl =
-        _selectedAttributes?['IMAGE_URL']?.toString();
+    final String? imageUrl = _selectedAttributes?['IMAGE_URL']?.toString();
 
-    // Create social media links map
+    // Social media links
     final Map<String, String> socialLinks = {};
     if (_selectedAttributes?['INSTAGRAM_URL'] != null) {
-      socialLinks['instagram'] = _selectedAttributes?['INSTAGRAM_URL']?.toString() ?? '';
+      socialLinks['instagram'] =
+          _selectedAttributes!['INSTAGRAM_URL'].toString();
     }
     if (_selectedAttributes?['FACEBOOK_URL'] != null) {
-      socialLinks['facebook'] = _selectedAttributes?['FACEBOOK_URL']?.toString() ?? '';
+      socialLinks['facebook'] =
+          _selectedAttributes!['FACEBOOK_URL'].toString();
     }
     if (_selectedAttributes?['TWITTER_URL'] != null) {
-      socialLinks['twitter'] = _selectedAttributes?['TWITTER_URL']?.toString() ?? '';
+      socialLinks['twitter'] =
+          _selectedAttributes!['TWITTER_URL'].toString();
     }
-    
-    // Add demo social media links for testing (remove once real data is available)
+
+    // Demo social links for testing (remove once real data is available)
     if (socialLinks.isEmpty) {
       socialLinks['instagram'] = 'https://instagram.com/somoscampus';
       socialLinks['facebook'] = 'https://facebook.com/somoscampus';
@@ -160,17 +200,12 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       description: description,
       imageUrl: imageUrl,
       showFullInfo: _showFullInfo,
+      // P130
+      locationLat: _selectedLat,
+      locationLng: _selectedLng,
       onClose: _clearSelection,
-      onShowMore: () {
-        setState(() {
-          _showFullInfo = true;
-        });
-      },
-      onShowLess: () {
-        setState(() {
-          _showFullInfo = false;
-        });
-      },
+      onShowMore: () => setState(() => _showFullInfo = true),
+      onShowLess: () => setState(() => _showFullInfo = false),
       socialLinks: socialLinks,
     );
   }
