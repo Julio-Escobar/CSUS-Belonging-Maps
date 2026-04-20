@@ -8,7 +8,7 @@ class CommunityMapsDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
+    // P140: Address navigation feature for community maps
     //Query for screen size to control dynamic sizing of buttons
     double screenWidth = MediaQuery.sizeOf(context).width;
     double buttonWidth = screenWidth * (0.85);
