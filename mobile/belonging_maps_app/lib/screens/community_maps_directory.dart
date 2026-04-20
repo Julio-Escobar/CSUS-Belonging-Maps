@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '/screens/somos_community_map.dart';
+import '/screens/ummah_community_map.dart';
+import '/screens/ubuntu_community_map.dart';
 
 class CommunityMapsDirectory extends StatelessWidget {
   const CommunityMapsDirectory({super.key});
@@ -62,7 +65,10 @@ class CommunityMapsDirectory extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
               onPressed: () {
-                // TODO: Navigate to Somos community map
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SomosCommunityMap()),
+                );
               },
               child: ClipRRect(borderRadius: BorderRadius.circular(20),
               child: Image.asset(
@@ -93,7 +99,10 @@ class CommunityMapsDirectory extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
               onPressed: () {
-                // TODO: Navigate to Ummah community map
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UmmahCommunityMap()),
+                );
               },
               child: ClipRRect(borderRadius: BorderRadius.circular(20),
               child: Image.asset(
@@ -124,7 +133,10 @@ class CommunityMapsDirectory extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
               onPressed: () {
-                // TODO: Navigate to Ubuntu community map
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UbuntuCommunityMap()),
+                );
               },
               child: ClipRRect(borderRadius: BorderRadius.circular(20),
               child: Image.asset(
