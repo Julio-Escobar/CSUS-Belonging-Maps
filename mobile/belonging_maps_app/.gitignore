@@ -48,3 +48,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Auto-generated Xcode config files (machine-specific)
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+
+# Environment variables
+.env
