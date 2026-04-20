@@ -61,7 +61,7 @@ class CampusMapsScreen extends StatelessWidget {
                 // - Show OrganizationInfoCard in BottomSheet
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SomosCampusMap()),
+                  MaterialPageRoute(builder: (_) => SomosCampusMap()),
                 );
               },
             ),
@@ -97,7 +97,7 @@ class CampusMapsScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SomosCampusMap()),
+                  MaterialPageRoute(builder: (_) => SomosCampusMap()),
                 );
               },
             ),
