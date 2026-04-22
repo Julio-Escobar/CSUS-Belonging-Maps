@@ -39,6 +39,9 @@ dependencies:
   arcgis_maps: ^200.8.0+4672
   flutter_dotenv: ^6.0.0
 
+  # 🔥 ADDED THIS (do not remove)
+  http: ^1.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
