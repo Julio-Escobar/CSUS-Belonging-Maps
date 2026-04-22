@@ -4,6 +4,7 @@ import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
+import '../services/auth_service.dart';
 
 final Color backgroundMenuColor = const Color.fromARGB(255, 47, 95, 62);
 final Color menuItemTextColor = Colors.white;
@@ -46,6 +47,8 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = AuthService.isAdmin;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: topBarColor,
@@ -67,7 +70,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
             child: AnimatedOpacity(
               opacity: _drawerOpen ? 0.5 : 0.0,
               duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
               child: GestureDetector(
                 onTap: _closeDrawer,
                 child: Container(color: Colors.black),
@@ -76,7 +78,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
           ),
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
             left: _drawerOpen ? 0 : -280,
             top: 0,
             bottom: 0,
@@ -86,7 +87,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
               color: backgroundMenuColor,
               child: SafeArea(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Divider(),
                     ListTile(
@@ -130,37 +130,44 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const CommunityMapsDirectory(),
+                            builder: (_) =>
+                                const CommunityMapsDirectory(),
                           ),
                         );
                         _closeDrawer();
                       },
                     ),
                     const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.people_outline),
-                      title: const Text('Organizations'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.mail_outline),
-                      title: const Text('Opportunities'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.book_online_outlined),
-                      title: const Text('Community Resources'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
-                    ),
-                    const Divider(),
+                    if (isAdmin) ...[
+                      const Divider(),
+                      const ListTile(
+                        title: Text(
+                          "ADMIN PANEL",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.edit),
+                        title: const Text("Edit Maps"),
+                        textColor: menuItemTextColor,
+                        iconColor: menuItemIconColor,
+                        onTap: _closeDrawer,
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.add),
+                        title: const Text("Add Location"),
+                        textColor: menuItemTextColor,
+                        iconColor: menuItemIconColor,
+                        onTap: _closeDrawer,
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.delete),
+                        title: const Text("Delete Entries"),
+                        textColor: menuItemTextColor,
+                        iconColor: menuItemIconColor,
+                        onTap: _closeDrawer,
+                      ),
+                    ],
                     const Spacer(),
                     const Divider(),
                     ListTile(
@@ -171,7 +178,9 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => LoginScreen(),
+                          ),
                         );
                         _closeDrawer();
                       },

@@ -1,5 +1,9 @@
-import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../widgets/hamburger_menu.dart';
+import '../services/auth_service.dart';
 import 'map_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -9,54 +13,60 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
 
   void handleLogin(BuildContext context) async {
-    // Demo push direct to map
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const MapScreen()),
+    final username = usernameController.text;
+    final password = passwordController.text;
+
+    final url = Uri.parse(
+      'http://10.0.2.2:5162/api/auth/login?username=$username&password=$password',
     );
 
-    // Uncomment after login authentication added
-    // bool success = await AuthService.login(
-    //   usernameController.text,
-    //   passwordController.text,
-    // );
-    //
-    // if (success) {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (_) => const MapScreen()),
-    //   );
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text("Invalid credentials"))
-    //   );
-    // }
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        AuthService.isAdmin = data['role'] == 'Admin';
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MapScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid credentials")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Connection error: $e")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return HamburgerMenu(
-      body: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(labelText: "Username"),
-              ),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(labelText: "Password"),
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => handleLogin(context),
-                child: const Text("Login"),
-              ),
-            ],
-          ),
+      title: "Login",
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(
+              controller: usernameController,
+              decoration: const InputDecoration(labelText: "Username"),
+            ),
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(labelText: "Password"),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => handleLogin(context),
+              child: const Text("Login"),
+            ),
+          ],
         ),
       ),
     );
