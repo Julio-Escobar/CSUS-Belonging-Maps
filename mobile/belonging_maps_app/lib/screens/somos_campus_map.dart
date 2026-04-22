@@ -3,6 +3,7 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
+import '/widgets/map_filter_button.dart';
 
 class SomosCampusMap extends StatefulWidget {
   SomosCampusMap({super.key});
@@ -117,6 +118,19 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               onZoomIn: _zoomIn,
               onZoomOut: _zoomOut,
             ),
+          // P1-56: Filter button
+            Positioned(
+              top: 16,
+              right: 16,
+              child: SafeArea(
+                child: MapFilterButton(
+                  featureLayer: _featureLayer,
+                  filterField: 'CATEGORY',
+                  label: 'Category',
+                ),
+              ),
+            ),
+          
             if (_selectedAttributes != null) _buildLocationInfoCard(),
           ],
         ),
