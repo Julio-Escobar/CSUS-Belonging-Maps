@@ -3,6 +3,7 @@ import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
 import '../screens/login_screen.dart';
+import '../screens/about_us_screen.dart';
 
 final Color backgroundMenuColor = const Color.fromARGB(255, 47, 95, 62);
 final Color menuItemTextColor = Colors.white;
@@ -181,7 +182,13 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       title: const Text('About Us'),
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
-                      onTap: _closeDrawer,
+                      onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AboutUsScreen()),
+                    );
+                    _closeDrawer();
+                  },
                     ),
                     const Divider(),
                   ],
