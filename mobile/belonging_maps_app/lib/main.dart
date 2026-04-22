@@ -1,11 +1,18 @@
+import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
+import 'package:belonging_maps_app/screens/community_maps_directory.dart';
+import 'package:belonging_maps_app/screens/map_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:arcgis_maps/arcgis_maps.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/campus_maps_screen.dart';
-import 'screens/community_maps_directory.dart';
-import 'screens/map_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
+  
+  final apiKey = dotenv.env['ARCGIS_API_KEY'] ?? '';
+  ArcGISEnvironment.apiKey = apiKey;
+  
   runApp(const BelongingMapsApp());
 }
 
@@ -14,16 +21,30 @@ class BelongingMapsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // detect path for web
+    final uri = Uri.base;
+    String initial = uri.path;
+    if (initial == '/' || initial.isEmpty) {
+      // if using hash routing (default for Flutter web) the fragment may hold the route
+      if (uri.fragment.isNotEmpty) initial = uri.fragment;
+    }
+    if (initial.isEmpty) initial = '/';
+
     return MaterialApp(
       title: 'Belonging Maps',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue),
-      // Change home screen below to test different screen quick test
-      home: const WelcomeScreen(),
-      // home: LoginScreen(),
-      // home: CampusMapsScreen(),
-      // home: CommunityMapsDirectory(),
-      //home: MapScreen(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+
+      initialRoute: initial,
+      routes: {
+        '/': (context) => const WelcomeScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
+        '/campus': (context) => const CampusMapsScreen(),
+        '/community': (context) => const CommunityMapsDirectory(),
+        '/map': (context) => const MapScreen(),
+      },
     );
   }
 }

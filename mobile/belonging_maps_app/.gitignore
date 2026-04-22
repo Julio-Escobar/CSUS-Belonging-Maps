@@ -33,6 +33,11 @@ migrate_working_dir/
 .pub/
 /build/
 
+# ArcGIS Maps - machine-specific core files
+arcgis_maps_core/
+**/arcgis_maps_core/
+/android/app/src/main/jniLibs/
+
 # Symbolication related
 app.*.symbols
 
@@ -43,3 +48,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Auto-generated Xcode config files (machine-specific)
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+
+# Environment variables
+.env

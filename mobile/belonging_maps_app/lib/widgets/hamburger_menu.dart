@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
+import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 
-final Color backgroundMenuColor = const Color.fromARGB(255, 25, 99, 42);
+final Color backgroundMenuColor = const Color.fromARGB(255, 47, 95, 62);
 final Color menuItemTextColor = Colors.white;
 final Color menuItemIconColor = const Color.fromARGB(255, 153, 144, 11);
+
+final Color topBarColor = const Color.fromARGB(255, 47, 95, 62);
+final Color topBarTextColor = Colors.white;
+final Color topBarIconColor = const Color.fromARGB(255, 9, 70, 29);
 
 class HamburgerMenu extends StatefulWidget {
   final Widget body;
@@ -45,7 +50,12 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: topBarColor,
+        foregroundColor: topBarTextColor,
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: _toggleDrawer,
@@ -119,7 +129,8 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const CampusMapsScreen(),
+                            builder: (_) =>
+                                const CommunityMapsDirectory(),
                           ),
                         );
                         _closeDrawer();
@@ -160,7 +171,23 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                     const Divider(),
                     ListTile(
                       leading: const Icon(Icons.person_3_outlined),
-                      title: const Text('Login'),
+                      title: const Text('Administrator Login'),
+                      textColor: menuItemTextColor,
+                      iconColor: menuItemIconColor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LoginScreen(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.person_pin_outlined),
+                      title: const Text('About Us'),
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
                       onTap: _closeDrawer,

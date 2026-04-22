@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import '/screens/somos_community_map.dart';
+import '/screens/ummah_community_map.dart';
+import '/screens/ubuntu_community_map.dart';
 
 class CommunityMapsDirectory extends StatelessWidget {
   const CommunityMapsDirectory({super.key});
 
   @override
   Widget build(BuildContext context) {
-    //Query for screen size to control dynamic sizing of buttons
     double screenWidth = MediaQuery.sizeOf(context).width;
     double buttonWidth = screenWidth * (0.85);
     if (buttonWidth >= 401) {
@@ -13,14 +15,11 @@ class CommunityMapsDirectory extends StatelessWidget {
     }
     double buttonHeight = buttonWidth / 3;
 
-    //Padding between buttons
     double paddingHeight = 40;
 
-    //Body text size and color
     Color bodyTextColor = Colors.black;
     double bodyTextSize = 18;
 
-    //Head text size and color
     Color headTextColor = Colors.black;
     double headTextSize = 28;
 
@@ -38,12 +37,10 @@ class CommunityMapsDirectory extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            //Somos text and button
             Text(
               'SOMOS Community Map',
               style: TextStyle(
@@ -63,7 +60,11 @@ class CommunityMapsDirectory extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // TODO: Navigate to Somos community map
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const SomosCommunityMap()),
+                  );
                 },
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -76,8 +77,8 @@ class CommunityMapsDirectory extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: paddingHeight), //Padding
-            //Ummah text and button
+            SizedBox(height: paddingHeight),
+
             Text(
               'UMMAH Community Map',
               style: TextStyle(
@@ -97,7 +98,11 @@ class CommunityMapsDirectory extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // TODO: Navigate to Ummah community map
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const UmmahCommunityMap()),
+                  );
                 },
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -110,8 +115,8 @@ class CommunityMapsDirectory extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: paddingHeight), //Padding
-            //Ubuntu text and button
+            SizedBox(height: paddingHeight),
+
             Text(
               'UBUNTU Community Map',
               style: TextStyle(
@@ -131,7 +136,11 @@ class CommunityMapsDirectory extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // TODO: Navigate to Ubuntu community map
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const UbuntuCommunityMap()),
+                  );
                 },
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -144,7 +153,7 @@ class CommunityMapsDirectory extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 20), //Padding
+            const SizedBox(height: 20),
           ],
         ),
       ),

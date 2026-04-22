@@ -33,14 +33,14 @@ class LoginScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const MapScreen()),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Invalid credentials")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid credentials")),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Connection error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Connection error: $e")),
+      );
     }
   }
 
