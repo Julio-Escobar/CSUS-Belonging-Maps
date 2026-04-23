@@ -10,7 +10,7 @@ const Color mapInfoSecondaryTextColor = Colors.white70;
 const Color mapInfoDividerColor = Colors.white24;
 const Color mapInfoFallbackImageColor = Colors.white12;
 
-class LocationInfoCard extends StatelessWidget {
+class LocationInfoData {
   final String cardTitle;
   final String address;
   final String category;
@@ -20,16 +20,11 @@ class LocationInfoCard extends StatelessWidget {
   final String email;
   final String description;
   final String? imageUrl;
-  final bool showFullInfo;
+  final Map<String, String> socialLinks;
   final double? locationLat;
   final double? locationLng;
-  final VoidCallback onClose;
-  final VoidCallback onShowMore;
-  final VoidCallback onShowLess;
-  final Map<String, String>? socialLinks;
 
-  const LocationInfoCard({
-    super.key,
+  const LocationInfoData({
     required this.cardTitle,
     required this.address,
     required this.category,
@@ -39,59 +34,218 @@ class LocationInfoCard extends StatelessWidget {
     required this.email,
     required this.description,
     required this.imageUrl,
-    required this.showFullInfo,
+    required this.socialLinks,
     this.locationLat,
     this.locationLng,
+  });
+
+  static String cleanField(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return '';
+    if (text.toLowerCase() == 'n/a') return '';
+    if (text.toLowerCase() == 'null') return '';
+    return text;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    return double.tryParse(value.toString());
+  }
+
+  factory LocationInfoData.fromAttributes(Map<String, dynamic>? attributes) {
+    final String companyName = cleanField(attributes?['Company_Name']);
+    final String name = cleanField(attributes?['Name']);
+
+    final String addressField = cleanField(attributes?['ADDRESS']);
+    final String locationField = cleanField(attributes?['LOCATION']);
+
+    final String descriptionField = cleanField(attributes?['DESCRIPTION']);
+    final String detailsField = cleanField(attributes?['DETAILS']);
+
+    final String websiteField = cleanField(attributes?['WEBSITE']);
+    final String urlField = cleanField(attributes?['URL']);
+
+    final String imageField = cleanField(attributes?['IMAGE_URL']);
+
+    return LocationInfoData(
+      cardTitle: companyName.isNotEmpty
+          ? companyName
+          : name.isNotEmpty
+              ? name
+              : 'Location Info',
+      address: addressField.isNotEmpty
+          ? addressField
+          : locationField.isNotEmpty
+              ? locationField
+              : '',
+      category: cleanField(attributes?['CATEGORY']),
+      type: cleanField(attributes?['TYPE']),
+      website: websiteField.isNotEmpty ? websiteField : urlField,
+      phone: cleanField(attributes?['PHONE']),
+      email: cleanField(attributes?['EMAIL']),
+      description: descriptionField.isNotEmpty
+          ? descriptionField
+          : detailsField.isNotEmpty
+              ? detailsField
+              : 'No description available.',
+      imageUrl: imageField.isNotEmpty ? imageField : null,
+      socialLinks: {
+        'Instagram': cleanField(attributes?['Instagram']),
+        'Facebook': cleanField(attributes?['Facebook']),
+        'Twitter_X': cleanField(attributes?['Twitter_X']),
+        'TikTok': cleanField(attributes?['TikTok']),
+        'LinkedIn': cleanField(attributes?['LinkedIn']),
+      },
+      locationLat: _toDouble(
+        attributes?['LATITUDE'] ??
+            attributes?['Latitude'] ??
+            attributes?['LAT'],
+      ),
+      locationLng: _toDouble(
+        attributes?['LONGITUDE'] ??
+            attributes?['Longitude'] ??
+            attributes?['LNG'] ??
+            attributes?['LON'],
+      ),
+    );
+  }
+}
+
+class LocationInfoCard extends StatelessWidget {
+  final LocationInfoData data;
+  final bool showFullInfo;
+  final VoidCallback onClose;
+  final VoidCallback onShowMore;
+  final VoidCallback onShowLess;
+
+  const LocationInfoCard({
+    super.key,
+    required this.data,
+    required this.showFullInfo,
     required this.onClose,
     required this.onShowMore,
     required this.onShowLess,
-    this.socialLinks,
   });
 
+  bool _hasValue(String value) {
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty &&
+        trimmed.toLowerCase() != 'n/a' &&
+        trimmed.toLowerCase() != 'null';
+  }
+
   Future<void> _launchUrl(String url) async {
-    final Uri uri = Uri.parse(url);
+    final String normalizedUrl = url.trim();
+    final Uri uri = Uri.parse(normalizedUrl);
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      debugPrint('Could not launch $url');
+      debugPrint('Could not launch $normalizedUrl');
     }
   }
 
-  // P130
+  bool get _canOpenMaps {
+    return _hasValue(data.address) ||
+        (data.locationLat != null && data.locationLng != null);
+  }
+
   Future<void> _openInMaps() async {
-    if (locationLat == null || locationLng == null) return;
+    final String destination = data.address.trim();
+    final bool hasAddress = _hasValue(destination);
+    final bool hasCoordinates =
+        data.locationLat != null && data.locationLng != null;
 
-    final double lat = locationLat!;
-    final double lng = locationLng!;
-    final String label = Uri.encodeComponent(cardTitle);
+    if (!hasAddress && !hasCoordinates) return;
 
-    Uri uri;
-    if (Platform.isIOS) {
-      // Apple Maps
-      uri = Uri.parse('https://maps.apple.com/?ll=$lat,$lng&q=$label');
-    } else {
-      // Google Maps
-      uri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
-      );
-    }
+    try {
+      if (hasAddress) {
+        final String encodedDestination = Uri.encodeComponent(destination);
+        final String encodedLabel = Uri.encodeComponent(data.cardTitle);
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      final geoUri = Uri.parse('geo:$lat,$lng?q=$lat,$lng($label)');
-      await launchUrl(geoUri, mode: LaunchMode.externalApplication);
+        Uri primaryUri;
+        Uri fallbackUri;
+
+        if (Platform.isIOS) {
+          primaryUri = Uri.parse(
+            'https://maps.apple.com/?daddr=$encodedDestination&dirflg=d&q=$encodedLabel',
+          );
+          fallbackUri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=$encodedDestination',
+          );
+        } else {
+          primaryUri = Uri.parse(
+            'geo:0,0?q=$encodedDestination',
+          );
+          fallbackUri = Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=$encodedDestination&travelmode=driving',
+          );
+        }
+
+        if (await canLaunchUrl(primaryUri)) {
+          await launchUrl(primaryUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+
+        if (await canLaunchUrl(fallbackUri)) {
+          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+
+      if (hasCoordinates) {
+        final double lat = data.locationLat!;
+        final double lng = data.locationLng!;
+        final String label = Uri.encodeComponent(data.cardTitle);
+
+        Uri primaryUri;
+        Uri fallbackUri;
+
+        if (Platform.isIOS) {
+          primaryUri = Uri.parse(
+            'https://maps.apple.com/?ll=$lat,$lng&q=$label',
+          );
+          fallbackUri = Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+          );
+        } else {
+          primaryUri = Uri.parse(
+            'geo:$lat,$lng?q=$lat,$lng($label)',
+          );
+          fallbackUri = Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+          );
+        }
+
+        if (await canLaunchUrl(primaryUri)) {
+          await launchUrl(primaryUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+
+        if (await canLaunchUrl(fallbackUri)) {
+          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+
+      debugPrint('Could not launch maps for ${data.cardTitle}');
+    } catch (e) {
+      debugPrint('Error launching maps: $e');
     }
   }
 
   IconData _getSocialIcon(String platform) {
-    switch (platform.toLowerCase()) {
+    switch (platform.trim().toLowerCase()) {
       case 'instagram':
         return FontAwesomeIcons.instagram;
       case 'facebook':
-        return FontAwesomeIcons.facebook;
-      case 'twitter':
-        return FontAwesomeIcons.twitter;
+        return FontAwesomeIcons.facebookF;
+      case 'twitter_x':
+        return FontAwesomeIcons.xTwitter;
+      case 'tiktok':
+        return FontAwesomeIcons.tiktok;
+      case 'linkedin':
+        return FontAwesomeIcons.linkedinIn;
       default:
         return FontAwesomeIcons.link;
     }
@@ -99,14 +253,14 @@ class LocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double expandedHeight = MediaQuery.of(context).size.height * 0.72;
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        height: showFullInfo
-            ? MediaQuery.of(context).size.height * 0.72
-            : 150,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        height: showFullInfo ? expandedHeight : 190,
         margin: const EdgeInsets.all(12),
         child: Card(
           color: mapInfoCardColor,
@@ -117,26 +271,16 @@ class LocationInfoCard extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: showFullInfo
               ? _ExpandedLocationInfoCard(
-                  cardTitle: cardTitle,
-                  address: address,
-                  category: category,
-                  type: type,
-                  website: website,
-                  phone: phone,
-                  email: email,
-                  description: description,
-                  imageUrl: imageUrl,
-                  hasCoordinates:
-                      locationLat != null && locationLng != null,
+                  data: data,
+                  canOpenMaps: _canOpenMaps,
                   onClose: onClose,
                   onShowLess: onShowLess,
                   onOpenInMaps: _openInMaps,
-                  socialLinks: socialLinks,
                   launchUrl: _launchUrl,
                   getSocialIcon: _getSocialIcon,
                 )
               : _PreviewLocationInfoCard(
-                  cardTitle: cardTitle,
+                  cardTitle: data.cardTitle,
                   onClose: onClose,
                   onShowMore: onShowMore,
                 ),
@@ -145,8 +289,6 @@ class LocationInfoCard extends StatelessWidget {
     );
   }
 }
-
-// Preview card
 
 class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
@@ -170,22 +312,37 @@ class _PreviewLocationInfoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  cardTitle,
-                  style: const TextStyle(
-                    color: mapInfoPrimaryTextColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(
+                    cardTitle,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    style: const TextStyle(
+                      color: mapInfoPrimaryTextColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ),
               IconButton(
                 onPressed: onClose,
-                icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
+                ),
+                icon: const Icon(
+                  Icons.close,
+                  color: mapInfoPrimaryTextColor,
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
@@ -212,89 +369,104 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   }
 }
 
-//Expanded card
-
 class _ExpandedLocationInfoCard extends StatelessWidget {
-  final String cardTitle;
-  final String address;
-  final String category;
-  final String type;
-  final String website;
-  final String phone;
-  final String email;
-  final String description;
-  final String? imageUrl;
-  final bool hasCoordinates;
+  final LocationInfoData data;
+  final bool canOpenMaps;
   final VoidCallback onClose;
   final VoidCallback onShowLess;
   final VoidCallback onOpenInMaps;
-  final Map<String, String>? socialLinks;
   final Future<void> Function(String) launchUrl;
   final IconData Function(String) getSocialIcon;
 
   const _ExpandedLocationInfoCard({
-    required this.cardTitle,
-    required this.address,
-    required this.category,
-    required this.type,
-    required this.website,
-    required this.phone,
-    required this.email,
-    required this.description,
-    required this.imageUrl,
-    required this.hasCoordinates,
+    required this.data,
+    required this.canOpenMaps,
     required this.onClose,
     required this.onShowLess,
     required this.onOpenInMaps,
-    this.socialLinks,
     required this.launchUrl,
     required this.getSocialIcon,
   });
 
-  bool _hasValue(String value) =>
-      value.isNotEmpty && value != 'N/A' && value != 'N/A';
+  bool _hasValue(String value) {
+    final trimmed = value.trim();
+    return trimmed.isNotEmpty &&
+        trimmed.toLowerCase() != 'n/a' &&
+        trimmed.toLowerCase() != 'null';
+  }
+
+  bool _isValidSocialUrl(String value) {
+    final trimmed = value.trim();
+
+    if (!_hasValue(trimmed)) return false;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return false;
+
+    return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  Map<String, String> _filteredSocialLinks() {
+    if (data.socialLinks.isEmpty) return {};
+
+    return Map<String, String>.fromEntries(
+      data.socialLinks.entries.where(
+        (entry) => _hasValue(entry.key) && _isValidSocialUrl(entry.value),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final validSocialLinks = _filteredSocialLinks();
+
     return Column(
       children: [
-        //Header
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 12, 8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  cardTitle,
-                  style: const TextStyle(
-                    color: mapInfoPrimaryTextColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(
+                    data.cardTitle,
+                    softWrap: true,
+                    style: const TextStyle(
+                      color: mapInfoPrimaryTextColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ),
               IconButton(
                 onPressed: onClose,
-                icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
+                ),
+                icon: const Icon(
+                  Icons.close,
+                  color: mapInfoPrimaryTextColor,
+                ),
               ),
             ],
           ),
         ),
         const Divider(height: 1, color: mapInfoDividerColor),
-        //Body
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // Address
-                if (_hasValue(address)) ...[
+                if (_hasValue(data.address)) ...[
                   Text(
-                    address,
+                    data.address,
                     style: const TextStyle(
                       color: mapInfoPrimaryTextColor,
                       fontSize: 15,
@@ -304,11 +476,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // Category / Type
-                if (_hasValue(category)) ...[
+                if (_hasValue(data.category)) ...[
                   Text(
-                    'Category: $category',
+                    'Category: ${data.category}',
                     style: const TextStyle(
                       color: mapInfoPrimaryTextColor,
                       fontSize: 15,
@@ -317,9 +487,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                 ],
-                if (_hasValue(type)) ...[
+                if (_hasValue(data.type)) ...[
                   Text(
-                    'Type: $type',
+                    'Type: ${data.type}',
                     style: const TextStyle(
                       color: mapInfoPrimaryTextColor,
                       fontSize: 15,
@@ -328,11 +498,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // P91: Website
-                if (_hasValue(website)) ...[
+                if (_hasValue(data.website)) ...[
                   GestureDetector(
-                    onTap: () => launchUrl(website),
+                    onTap: () => launchUrl(data.website),
                     child: RichText(
                       text: const TextSpan(
                         style: TextStyle(
@@ -354,13 +522,11 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // Phone
-                if (_hasValue(phone)) ...[
+                if (_hasValue(data.phone)) ...[
                   GestureDetector(
-                    onTap: () => launchUrl('tel:$phone'),
+                    onTap: () => launchUrl('tel:${data.phone}'),
                     child: Text(
-                      'Phone: $phone',
+                      'Phone: ${data.phone}',
                       style: const TextStyle(
                         color: mapInfoPrimaryTextColor,
                         fontSize: 15,
@@ -371,13 +537,11 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                 ],
-
-                // P90: Email 
-                if (_hasValue(email)) ...[
+                if (_hasValue(data.email)) ...[
                   GestureDetector(
-                    onTap: () => launchUrl('mailto:$email'),
+                    onTap: () => launchUrl('mailto:${data.email}'),
                     child: Text(
-                      'Email: $email',
+                      'Email: ${data.email}',
                       style: const TextStyle(
                         color: mapInfoPrimaryTextColor,
                         fontSize: 15,
@@ -388,11 +552,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // Description — only shown when non-empty
-                if (_hasValue(description)) ...[
+                if (_hasValue(data.description)) ...[
                   Text(
-                    description,
+                    data.description,
                     style: const TextStyle(
                       color: mapInfoPrimaryTextColor,
                       fontSize: 15,
@@ -401,9 +563,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // Social Media Links
-                if (socialLinks != null && socialLinks!.isNotEmpty) ...[
+                if (validSocialLinks.isNotEmpty) ...[
                   const Text(
                     'Follow Us',
                     style: TextStyle(
@@ -416,7 +576,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   Wrap(
                     spacing: 15,
                     runSpacing: 15,
-                    children: socialLinks!.entries.map((entry) {
+                    children: validSocialLinks.entries.map((entry) {
                       return GestureDetector(
                         onTap: () => launchUrl(entry.value),
                         child: CircleAvatar(
@@ -433,12 +593,8 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                 ],
-
-                // Show Less
                 const SizedBox(height: 18),
-
-                // P130: Open in Maps
-                if (hasCoordinates) ...[
+                if (canOpenMaps) ...[
                   OutlinedButton.icon(
                     onPressed: onOpenInMaps,
                     icon: const Icon(
@@ -458,7 +614,6 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                 ],
-
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
@@ -479,14 +634,12 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // Image
-                if (imageUrl != null && imageUrl!.isNotEmpty) ...[
+                if (data.imageUrl != null && data.imageUrl!.trim().isNotEmpty) ...[
                   const SizedBox(height: 18),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      imageUrl!,
+                      data.imageUrl!.trim(),
                       height: 240,
                       width: double.infinity,
                       fit: BoxFit.cover,

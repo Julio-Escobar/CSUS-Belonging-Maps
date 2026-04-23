@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
+
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
 import '/widgets/map_filter_button.dart';
 
 class SomosCampusMap extends StatefulWidget {
-  SomosCampusMap({super.key});
+  const SomosCampusMap({super.key});
 
   @override
   State<SomosCampusMap> createState() => _SomosCampusMapState();
@@ -15,18 +16,17 @@ class SomosCampusMap extends StatefulWidget {
 class _SomosCampusMapState extends State<SomosCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
+
   Map<String, dynamic>? _selectedAttributes;
-  // P130: store coordinates extracted from the tapped feature's geometry
   double? _selectedLat;
   double? _selectedLng;
   bool _showFullInfo = false;
+  bool _showInfoCard = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Location is manually set to the Sac State campus.
-    // TODO: Update BasemapStyle to client's desired base map.
     final map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
       ..initialViewpoint = Viewpoint.withLatLongScale(
         latitude: 38.56091,
@@ -34,11 +34,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         scale: 10000,
       );
 
-    // Feature layer is how we get location pins onto the map.
     _featureLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
         Uri.parse(
-          "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
+          'https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0',
         ),
       ),
     );
@@ -56,11 +55,13 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     );
 
     final geoElement = result.geoElements.firstOrNull;
+
     double? lat;
     double? lng;
+
     if (geoElement?.geometry is ArcGISPoint) {
       final point = geoElement!.geometry as ArcGISPoint;
-      // Project to WGS84 (wkid 4326) if needed
+
       final ArcGISPoint wgsPoint;
       if (point.spatialReference?.wkid == 4326) {
         wgsPoint = point;
@@ -71,16 +72,22 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         );
         wgsPoint = projected as ArcGISPoint;
       }
+
       lat = wgsPoint.y;
       lng = wgsPoint.x;
     }
 
-    setState(() {
-      _selectedAttributes = geoElement?.attributes;
-      _selectedLat = lat;
-      _selectedLng = lng;
-      _showFullInfo = false;
-    });
+    if (geoElement?.attributes != null) {
+      setState(() {
+        _selectedAttributes = geoElement!.attributes;
+        _selectedLat = lat;
+        _selectedLng = lng;
+        _showFullInfo = false;
+        _showInfoCard = true;
+      });
+    } else {
+      _dismissLocationCard();
+    }
   }
 
   Future<void> _zoomIn() async {
@@ -95,13 +102,108 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     await _mapController.setViewpointScale(currentScale * 2);
   }
 
-  void _clearSelection() {
+  void _dismissLocationCard() {
+    if (_selectedAttributes == null) return;
+
     setState(() {
-      _selectedAttributes = null;
-      _selectedLat = null;
-      _selectedLng = null;
-      _showFullInfo = false;
+      _showInfoCard = false;
     });
+
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+
+      setState(() {
+        _selectedAttributes = null;
+        _selectedLat = null;
+        _selectedLng = null;
+        _showFullInfo = false;
+      });
+    });
+  }
+
+  String _cleanField(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return '';
+    if (text.toLowerCase() == 'n/a') return '';
+    if (text.toLowerCase() == 'null') return '';
+    return text;
+  }
+
+  LocationInfoData _buildLocationInfoData() {
+    final facilityName = _cleanField(_selectedAttributes?['FACILITY_NAME']);
+    final address = _cleanField(_selectedAttributes?['ADDRESS']).isNotEmpty
+        ? _cleanField(_selectedAttributes?['ADDRESS'])
+        : _cleanField(_selectedAttributes?['LOCATION']).isNotEmpty
+            ? _cleanField(_selectedAttributes?['LOCATION'])
+            : 'Address not available';
+
+    final category = _cleanField(_selectedAttributes?['CATEGORY']);
+    final type = _cleanField(_selectedAttributes?['TYPE']);
+    final phone = _cleanField(_selectedAttributes?['PHONE']);
+    final description = _cleanField(_selectedAttributes?['DESCRIPTION']).isNotEmpty
+        ? _cleanField(_selectedAttributes?['DESCRIPTION'])
+        : _cleanField(_selectedAttributes?['DETAILS']);
+
+    final imageUrl = _cleanField(_selectedAttributes?['IMAGE_URL']).isNotEmpty
+        ? _cleanField(_selectedAttributes?['IMAGE_URL'])
+        : null;
+
+    final lowerName = facilityName.toLowerCase();
+    final website = lowerName.contains('park')
+        ? 'https://www.cityofsacramento.gov/ypce/parks'
+        : 'https://www.cityofsacramento.gov/ypce/community-centers';
+
+    final rawEmail = _cleanField(_selectedAttributes?['EMAIL']);
+    final email =
+        rawEmail.isNotEmpty ? rawEmail : 'info@cityofsacramento.org';
+
+    return LocationInfoData(
+      cardTitle: facilityName.isNotEmpty ? facilityName : 'Location Info',
+      address: address,
+      category: category,
+      type: type,
+      website: website,
+      phone: phone,
+      email: email,
+      description: description,
+      imageUrl: imageUrl,
+      socialLinks: const {},
+      locationLat: _selectedLat,
+      locationLng: _selectedLng,
+    );
+  }
+
+  Widget _buildLocationInfoCard() {
+    final data = _buildLocationInfoData();
+
+    return LocationInfoCard(
+      data: data,
+      showFullInfo: _showFullInfo,
+      onClose: _dismissLocationCard,
+      onShowMore: () {
+        setState(() {
+          _showFullInfo = true;
+        });
+      },
+      onShowLess: () {
+        setState(() {
+          _showFullInfo = false;
+        });
+      },
+    );
+  }
+
+  Widget _buildAnimatedLocationInfoCard() {
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      offset: _showInfoCard ? Offset.zero : const Offset(0, 1),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 250),
+        opacity: _showInfoCard ? 1 : 0,
+        child: _buildLocationInfoCard(),
+      ),
+    );
   }
 
   @override
@@ -118,7 +220,6 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               onZoomIn: _zoomIn,
               onZoomOut: _zoomOut,
             ),
-          // P1-56: Filter button
             Positioned(
               top: 16,
               right: 16,
@@ -130,97 +231,18 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 ),
               ),
             ),
-          
-            if (_selectedAttributes != null) _buildLocationInfoCard(),
+            if (_selectedAttributes != null)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _dismissLocationCard,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            if (_selectedAttributes != null) _buildAnimatedLocationInfoCard(),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLocationInfoCard() {
-    final String cardTitle =
-        _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
-
-    final String address =
-        _selectedAttributes?['ADDRESS']?.toString() ??
-        _selectedAttributes?['LOCATION']?.toString() ??
-        'Address not available';
-
-    final String category =
-        _selectedAttributes?['CATEGORY']?.toString() ?? 'N/A';
-
-    final String type = _selectedAttributes?['TYPE']?.toString() ?? 'N/A';
-
-    
-    // P91: website
-    final String name =
-    _selectedAttributes?['FACILITY_NAME']?.toString().toLowerCase() ?? '';
-
-String website;
-
-if (name.contains('park')) {
-  website = "https://www.cityofsacramento.gov/ypce/parks";
-} else {
-  website = "https://www.cityofsacramento.gov/ypce/community-centers";
-}
-
-    final String phone =
-        _selectedAttributes?['PHONE']?.toString() ?? '';
-
-    // P90: email
-    final String email =
-    (_selectedAttributes?['EMAIL']?.toString().trim().isNotEmpty == true)
-        ? _selectedAttributes!['EMAIL'].toString()
-        : "info@cityofsacramento.org";
-
-    final String description =
-        _selectedAttributes?['DESCRIPTION']?.toString() ??
-        _selectedAttributes?['DETAILS']?.toString() ??
-        '';
-
-    final String? imageUrl = _selectedAttributes?['IMAGE_URL']?.toString();
-
-    // Social media links
-    final Map<String, String> socialLinks = {};
-    if (_selectedAttributes?['INSTAGRAM_URL'] != null) {
-      socialLinks['instagram'] =
-          _selectedAttributes!['INSTAGRAM_URL'].toString();
-    }
-    if (_selectedAttributes?['FACEBOOK_URL'] != null) {
-      socialLinks['facebook'] =
-          _selectedAttributes!['FACEBOOK_URL'].toString();
-    }
-    if (_selectedAttributes?['TWITTER_URL'] != null) {
-      socialLinks['twitter'] =
-          _selectedAttributes!['TWITTER_URL'].toString();
-    }
-
-    // Demo social links for testing (remove once real data is available)
-    if (socialLinks.isEmpty) {
-      socialLinks['instagram'] = 'https://instagram.com/somoscampus';
-      socialLinks['facebook'] = 'https://facebook.com/somoscampus';
-      socialLinks['twitter'] = 'https://twitter.com/somoscampus';
-    }
-
-    return LocationInfoCard(
-      cardTitle: cardTitle,
-      address: address,
-      category: category,
-      type: type,
-      website: website,
-      phone: phone,
-      email: email,
-      description: description,
-      imageUrl: imageUrl,
-      showFullInfo: _showFullInfo,
-      // P130
-      locationLat: _selectedLat,
-      locationLng: _selectedLng,
-      onClose: _clearSelection,
-      onShowMore: () => setState(() => _showFullInfo = true),
-      onShowLess: () => setState(() => _showFullInfo = false),
-      socialLinks: socialLinks,
     );
   }
 }
