@@ -17,7 +17,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
     {
       'label': 'SOMOS Campus Map',
       'subtitle': 'Mapping Our Campus',
-      'imagePath': 'assets/somoscampusmap.png',
+      'imagePath': 'assets/somosCampusMap.png',
     },
   ];
 
@@ -108,7 +108,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SomosCampusMap(),
+                            builder: (_) => SomosCampusMap(),
                           ),
                         );
                       },
