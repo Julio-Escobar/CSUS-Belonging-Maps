@@ -90,6 +90,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		19054A8011137FDBCA5497AE /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				FDFAAFB5E81807583214DF2A /* Pods-Runner.debug.xcconfig */,
+				AADDB9508650BE7D98A67178 /* Pods-Runner.release.xcconfig */,
+				CF8D43E7FE83C280596A4092 /* Pods-Runner.profile.xcconfig */,
+				0678392155BA852A00C32D72 /* Pods-RunnerTests.debug.xcconfig */,
+				55E90FCD3F11A0613992AA80 /* Pods-RunnerTests.release.xcconfig */,
+				0F8FC7460CC37B965954B350 /* Pods-RunnerTests.profile.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		331C8082294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -145,29 +158,6 @@
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
-			sourceTree = "<group>";
-		};
-		98CDA4F369B989F6A15CF01A /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				2441285D3B3749CF45E084CC /* Pods-Runner.debug.xcconfig */,
-				53B9F17F820B3BF4B0DE5C87 /* Pods-Runner.release.xcconfig */,
-				F6BF6CCCFFBE9542718A6411 /* Pods-Runner.profile.xcconfig */,
-				98945185DA1A44BC7DF6B541 /* Pods-RunnerTests.debug.xcconfig */,
-				C7C9D7350E8214BB9593A4B9 /* Pods-RunnerTests.release.xcconfig */,
-				C80B844125739FEAF1B2AE7F /* Pods-RunnerTests.profile.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		9C287FFBDF4158300453BE66 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				599E038B2F98A5D900CFACB6 /* Runtimecore.xcframework */,
-				6B0E9A4D76E3893FBCF71951 /* Pods_Runner.framework */,
-				CDF696B315AFEEA1342B9A0B /* Pods_RunnerTests.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -478,7 +468,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2BUFN594SY;
+				DEVELOPMENT_TEAM = 3AU82N5JP7;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -500,8 +490,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.belongingMapsApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winn.belongingMapsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -680,7 +669,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2BUFN594SY;
+				DEVELOPMENT_TEAM = 3AU82N5JP7;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -715,8 +704,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.belongingMapsApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winn.belongingMapsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -735,7 +723,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 2BUFN594SY;
+				DEVELOPMENT_TEAM = 3AU82N5JP7;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -770,8 +758,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				NEW_SETTING = "";
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.belongingMapsApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.winn.belongingMapsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

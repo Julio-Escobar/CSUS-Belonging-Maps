@@ -3,8 +3,46 @@ import '/screens/somos_campus_map.dart';
 import '/screens/ummah_campus_map.dart';
 import '/screens/ubuntu_campus_map.dart';
 
-class CampusMapsScreen extends StatelessWidget {
+class CampusMapsScreen extends StatefulWidget {
   const CampusMapsScreen({super.key});
+
+  @override
+  State<CampusMapsScreen> createState() => _CampusMapsScreenState();
+}
+
+class _CampusMapsScreenState extends State<CampusMapsScreen> {
+  final TextEditingController searchController = TextEditingController();
+
+  final List<Map<String, String>> maps = [
+    {
+      'label': 'SOMOS Campus Map',
+      'subtitle': 'Mapping Our Campus',
+      'imagePath': 'assets/somosCampusMap.png',
+    },
+  ];
+
+  List<Map<String, String>> filteredMaps = [];
+
+  @override
+  void initState() {
+    super.initState();
+    filteredMaps = maps;
+  }
+
+  void performSearch(String query) {
+    setState(() {
+      filteredMaps = maps
+          .where((map) =>
+              map['label']!.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,13 +56,10 @@ class CampusMapsScreen extends StatelessWidget {
           style: TextStyle(
             fontFamily: '',
             fontWeight: FontWeight.bold,
-            fontSize: 20,
-            letterSpacing: 0.5,
           ),
         ),
-        elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,65 +130,43 @@ class CampusMapsScreen extends StatelessWidget {
 
             //resource buttons
             const Text(
-              'Explore Campus Resources',
+              'Explore Our Campus',
               style: TextStyle(
                 fontFamily: '',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A4A2E),
-                letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Find resources for your community',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6B7280),
-                letterSpacing: 0.2,
+
+            const SizedBox(height: 20),
+
+            // FIX: ListView inside Expanded ONLY (no scrollview above)
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredMaps.length,
+                itemBuilder: (context, index) {
+                  final map = filteredMaps[index];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _MapButton(
+                      label: map['label']!,
+                      subtitle: map['subtitle']!,
+                      imagePath: map['imagePath']!,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SomosCampusMap(),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 28),
-
-            _MapButton(
-              label: 'SOMOS Campus Resource Map',
-              subtitle: 'SOMOS Resources',
-              imagePath: 'assets/somoscampusmap.PNG',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SomosCampusMap()),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            _MapButton(
-              label: 'Ummah Campus Resource Map',
-              subtitle: 'Ummah Resources',
-              imagePath: 'assets/ummahcampusmap.png',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UmmahCampusMap()),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            _MapButton(
-              label: 'Ubuntu Campus Resource Map',
-              subtitle: 'Ubuntu Resources',
-              imagePath: 'assets/ubuntucampusmap.png',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UbuntuCampusMap()),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -189,13 +202,11 @@ class _MapButtonState extends State<_MapButton>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
-      lowerBound: 0.0,
-      upperBound: 1.0,
     );
-    _scaleAnim = Tween<double>(
-      begin: 1.0,
-      end: 0.975,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -218,7 +229,6 @@ class _MapButtonState extends State<_MapButton>
         builder: (context, child) =>
             Transform.scale(scale: _scaleAnim.value, child: child),
         child: Container(
-          width: double.infinity,
           height: 130,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -237,27 +247,23 @@ class _MapButtonState extends State<_MapButton>
               children: [
                 Image.asset(widget.imagePath, fit: BoxFit.cover),
                 Positioned(
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  bottom: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.55),
+                          Colors.black.withOpacity(0.6),
                         ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,9 +276,6 @@ class _MapButtonState extends State<_MapButton>
                                 fontFamily: '',
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                shadows: [
-                                  Shadow(color: Colors.black54, blurRadius: 4),
-                                ],
                               ),
                             ),
                             Text(
@@ -280,18 +283,12 @@ class _MapButtonState extends State<_MapButton>
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
-                                shadows: [
-                                  Shadow(color: Colors.black54, blurRadius: 4),
-                                ],
                               ),
                             ),
                           ],
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                        const Icon(Icons.arrow_forward_ios,
+                            color: Colors.white, size: 16),
                       ],
                     ),
                   ),
