@@ -138,6 +138,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       },
                     ),
                     const Divider(),
+
                     if (isAdmin) ...[
                       const Divider(),
                       const ListTile(
@@ -168,23 +169,48 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                         onTap: _closeDrawer,
                       ),
                     ],
+
                     const Spacer(),
                     const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.person_3_outlined),
-                      title: const Text('Administrator Login'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LoginScreen(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
+
+                    if (!isAdmin)
+                      ListTile(
+                        leading: const Icon(Icons.person_3_outlined),
+                        title: const Text('Administrator Login'),
+                        textColor: menuItemTextColor,
+                        iconColor: menuItemIconColor,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LoginScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+
+                    if (isAdmin)
+                      ListTile(
+                        leading: const Icon(Icons.logout),
+                        title: const Text('Logout'),
+                        textColor: menuItemTextColor,
+                        iconColor: menuItemIconColor,
+                        onTap: () {
+                          AuthService.isAdmin = false;
+
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WelcomeScreen(),
+                            ),
+                            (route) => false,
+                          );
+
+                          _closeDrawer();
+                        },
+                      ),
+
                     const Divider(),
                     ListTile(
                       leading: const Icon(Icons.person_pin_outlined),
@@ -192,12 +218,14 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                       textColor: menuItemTextColor,
                       iconColor: menuItemIconColor,
                       onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AboutUsScreen()),
-                    );
-                    _closeDrawer();
-                  },
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AboutUsScreen(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
                     ),
                     const Divider(),
                   ],
