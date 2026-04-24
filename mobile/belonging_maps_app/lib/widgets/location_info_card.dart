@@ -465,16 +465,32 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (_hasValue(data.address)) ...[
-                  Text(
-                    data.address,
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.location_on,
+                          color: mapInfoPrimaryTextColor.withOpacity(0.8),
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          data.address,
+                          style: const TextStyle(
+                            color: mapInfoPrimaryTextColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 24),
                 ],
                 if (_hasValue(data.category)) ...[
                   Text(
@@ -564,17 +580,27 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   const SizedBox(height: 22),
                 ],
                 if (validSocialLinks.isNotEmpty) ...[
-                  const Text(
-                    'Follow Us',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: mapInfoPrimaryTextColor,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.share,
+                        color: mapInfoPrimaryTextColor.withOpacity(0.8),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Follow Us',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: mapInfoPrimaryTextColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   Wrap(
-                    spacing: 15,
+                    spacing: 16,
                     runSpacing: 15,
                     children: validSocialLinks.entries.map((entry) {
                       return GestureDetector(
