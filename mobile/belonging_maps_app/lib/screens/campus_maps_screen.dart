@@ -54,7 +54,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
         title: const Text(
           'Campus Maps',
           style: TextStyle(
-            fontFamily: 'Georgia',
+            fontFamily: '',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -64,25 +64,75 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // search
-            TextField(
-              controller: searchController,
-              onChanged: performSearch,
-              decoration: InputDecoration(
-                hintText: "Search maps...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
+            //campus buttons
             const Text(
               'Explore Our Campus',
               style: TextStyle(
-                fontFamily: 'Georgia',
+                fontFamily: '',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A4A2E),
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Select a map to get started',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            _MapButton(
+              label: 'SOMOS Campus Map',
+              subtitle: 'SOMOS Campus',
+              imagePath: 'assets/somoscampusmap.PNG',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SomosCampusMap()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ummah Campus Map',
+              subtitle: 'Ummah Campus',
+              imagePath: 'assets/ummahcampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => UmmahCampusMap()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ubuntu Campus Map',
+              subtitle: 'Ubuntu Campus',
+              imagePath: 'assets/ubuntucampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => UbuntuCampusMap()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 36),
+
+            //resource buttons
+            const Text(
+              'Explore Our Campus',
+              style: TextStyle(
+                fontFamily: '',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A4A2E),
@@ -223,6 +273,8 @@ class _MapButtonState extends State<_MapButton>
                               widget.label,
                               style: const TextStyle(
                                 color: Colors.white,
+                                fontFamily: '',
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
