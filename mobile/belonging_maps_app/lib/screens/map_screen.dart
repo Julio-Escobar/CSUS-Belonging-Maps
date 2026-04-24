@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/hamburger_menu.dart';
 import 'somos_campus_map.dart';
 
 class MapScreen extends StatefulWidget {
@@ -76,9 +75,6 @@ class _CampusMapsScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return HamburgerMenu(
-      title: "Belonging Maps",
-      body: const SomosCampusMap(),
-    );
+    return const SomosCampusMap();
   }
 }
