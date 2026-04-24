@@ -16,7 +16,7 @@ class CampusMapsScreen extends StatelessWidget {
         title: const Text(
           'Campus Maps',
           style: TextStyle(
-            fontFamily: 'Georgia',
+            fontFamily: '',
             fontWeight: FontWeight.bold,
             fontSize: 20,
             letterSpacing: 0.5,
@@ -29,11 +29,11 @@ class CampusMapsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section 1 header
+            //campus buttons
             const Text(
               'Explore Our Campus',
               style: TextStyle(
-                fontFamily: 'Georgia',
+                fontFamily: '',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A4A2E),
@@ -53,12 +53,9 @@ class CampusMapsScreen extends StatelessWidget {
 
             _MapButton(
               label: 'SOMOS Campus Map',
-              subtitle: 'SOMOS Resources',
+              subtitle: 'SOMOS Campus',
               imagePath: 'assets/somoscampusmap.PNG',
               onTap: () {
-                // - User clicks on a map pin
-                // - Fetch organization data from API
-                // - Show OrganizationInfoCard in BottomSheet
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => SomosCampusMap()),
@@ -66,13 +63,41 @@ class CampusMapsScreen extends StatelessWidget {
               },
             ),
 
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ummah Campus Map',
+              subtitle: 'Ummah Campus',
+              imagePath: 'assets/ummahcampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => UmmahCampusMap()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            _MapButton(
+              label: 'Ubuntu Campus Map',
+              subtitle: 'Ubuntu Campus',
+              imagePath: 'assets/ubuntucampusmap.png',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => UbuntuCampusMap()),
+                );
+              },
+            ),
+
             const SizedBox(height: 36),
 
-            // Section 2 header
+            //resource buttons
             const Text(
               'Explore Campus Resources',
               style: TextStyle(
-                fontFamily: 'Georgia',
+                fontFamily: '',
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A4A2E),
@@ -242,7 +267,7 @@ class _MapButtonState extends State<_MapButton>
                               widget.label,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontFamily: 'Georgia',
+                                fontFamily: '',
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 shadows: [
