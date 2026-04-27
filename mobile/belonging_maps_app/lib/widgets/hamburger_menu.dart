@@ -5,6 +5,7 @@ import '../screens/community_maps_directory.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../services/auth_service.dart';
+import '../screens/community_resources_screen.dart';
 
 final Color backgroundMenuColor = const Color.fromARGB(255, 47, 95, 62);
 final Color menuItemTextColor = Colors.white;
@@ -115,6 +116,22 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CampusMapsScreen(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.library_books_outlined),
+                      title: const Text('Community Resources'),
+                      textColor: menuItemTextColor,
+                      iconColor: menuItemIconColor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CommunityResourcesScreen(),
                           ),
                         );
                         _closeDrawer();
