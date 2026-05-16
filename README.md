@@ -49,7 +49,106 @@ TBD
 TBD
 
 ## Timeline
-Coming soon.
+
+## Sprint 0: Project Setup
+
+**Duration:** Jan 26 – Feb 22, 2026  
+**Status:** Finished
+
+- Jira configuration and project initialization
+- Team onboarding
+
+---
+
+## Sprint 1: Planning & Research
+
+**Duration:** Feb 23 – Mar 8, 2026  
+**Status:** Finished
+
+**Deliverables:**
+
+- Project Charter development
+- Technology stack evaluation
+- Database cost research
+- ERD diagram design
+- Figma prototyping
+
+---
+
+## Sprint 2: Welcome Page & Navigation
+
+**Duration:** Mar 9 – Mar 22, 2026  
+**Status:** Finished
+
+**Deliverables:**
+
+- Welcome screen
+- Hamburger menu with sidebar navigation
+- About Us page
+- Admin login UI
+
+**Key Features:**
+
+- Interactive welcome page with campus and community buttons
+- Responsive hamburger menu with sidebar navigation
+- Smooth navigation and User Interface
+- Admin login interface
+
+---
+
+## Sprint 3: Campus Maps
+
+**Duration:** Mar 30 – Apr 12, 2026  
+**Status:** Finished
+
+**Deliverables:**
+
+- ArcGIS campus map layers (SOMOS, Ummah, Ubuntu)
+- Interactive location pins
+- Location info cards with address, phone, email, website
+- Social media links (Instagram, Facebook, Twitter, TikTok, LinkedIn)
+- Search functionality
+- Filter buttons by organization
+- Zoom in/out controls
+
+**Key Features:**
+
+- Map pin tap interactions
+- "Open in Maps" button for navigation
+- Address navigation to native maps app
+- Organization-specific filters
+- Search bar for locations
+
+---
+
+## Sprint 4: Community Maps
+
+**Duration:** Apr 13 – Apr 26, 2026  
+**Status:** Finshed
+
+**Deliverables:**
+
+- Community map layers (SOMOS, Ummah, Ubuntu communities)
+- Enhanced location popups with images
+- Amenity badge system
+- Social media icon extraction from ArcGIS
+- UI refinements and polish
+
+**Key Features:**
+
+- Image loading with fallback UI
+- Amenity badges with icon mapping)
+- Improved card typography and spacing
+
+---
+
+## Stack & Resources
+
+| Mobile | Flutter (Dart) |
+| Maps | ArcGIS Maps SDK |
+| Backend | .NET 8/10 (C#) |
+| Database | Azure SQL |
+| Version Control | Git / GitHub |
 
 ## Contributors
 Dev Gandhi: [devgandhi@csus.edu](mailto:devgandhi@csus.edu)
