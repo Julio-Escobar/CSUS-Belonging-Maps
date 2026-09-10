@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+  // When authentication is implemented, replace this with actual user role check
+  final bool isAdmin = true;
 
 const Color _primaryGreen = Color(0xFF2F5F3E);
 
-class CommunityResourcesScreen extends StatelessWidget {
+class CommunityResourcesScreen extends StatefulWidget {
+
   const CommunityResourcesScreen({super.key});
 
+  @override
+  State<CommunityResourcesScreen> createState() => _CommunityResourcesScreenState();
+}
+class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   // Placeholder resources — replace with real data when available
-  static const List<Map<String, String>> _resources = [
+  final List<Map<String, String>> _resources = [
     {
       'title': 'Food Pantry',
       'description': 'Free food resources available for students and community members.',
@@ -80,6 +87,99 @@ class CommunityResourcesScreen extends StatelessWidget {
     }
   }
 
+void _addResource() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final categoryController = TextEditingController();
+    String selectedIcon = 'food';
+
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(context: context, builder: (context) { 
+      return StatefulBuilder(
+          // Needed so the dropdown can update inside the dialog
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Add Resource'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Title'),
+                        validator: (value) =>
+                            (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(labelText: 'Description'),
+                        maxLines: 3,
+                        validator: (value) =>
+                            (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      TextFormField(
+                        controller: categoryController,
+                        decoration: const InputDecoration(labelText: 'Category'),
+                        validator: (value) =>
+                            (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedIcon,
+                        decoration: const InputDecoration(labelText: 'Icon'),
+                        items: const [
+                          DropdownMenuItem(value: 'food', child: Text('Food')),
+                          DropdownMenuItem(value: 'health', child: Text('Health')),
+                          DropdownMenuItem(value: 'housing', child: Text('Housing')),
+                          DropdownMenuItem(value: 'education', child: Text('Education')),
+                          DropdownMenuItem(value: 'financial', child: Text('Financial')),
+                          DropdownMenuItem(value: 'career', child: Text('Career')),
+                          DropdownMenuItem(value: 'transportation', child: Text('Transportation')),
+                          DropdownMenuItem(value: 'family', child: Text('Family')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedIcon = value);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      setState(() {
+                        _resources.add({
+                          'title': titleController.text,
+                          'description': descriptionController.text,
+                          'category': categoryController.text,
+                          'icon': selectedIcon,
+                        });
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Add', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,7 +194,16 @@ class CommunityResourcesScreen extends StatelessWidget {
         backgroundColor: _primaryGreen,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
-      ),
+        actions: [
+          // When authentication is implemented, replace this with actual user role check
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+              tooltip: 'Add resource',
+              onPressed: _addResource,
+            ),
+        ],
+    ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _resources.length,
