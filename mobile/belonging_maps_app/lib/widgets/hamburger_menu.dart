@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
+import '../screens/community_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../services/auth_service.dart';
@@ -115,6 +116,22 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CampusMapsScreen(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.library_books_outlined),
+                      title: const Text('Community Resources'),
+                      textColor: menuItemTextColor,
+                      iconColor: menuItemIconColor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CommunityResourcesScreen(),
                           ),
                         );
                         _closeDrawer();
