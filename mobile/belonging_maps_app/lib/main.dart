@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/about_us_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class BelongingMapsApp extends StatelessWidget {
         '/campus': (context) => const CampusMapsScreen(),
         '/community': (context) => const CommunityMapsDirectory(),
         '/map': (context) => const MapScreen(),
+        '/about': (context) => const AboutUsScreen(),
       },
     );
   }
