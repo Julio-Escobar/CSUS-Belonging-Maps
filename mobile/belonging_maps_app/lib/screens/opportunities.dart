@@ -9,7 +9,7 @@ class OpportunitiesScreen extends StatelessWidget {
 
   static const List<_ScholarshipResource> _resources = [
     _ScholarshipResource(
-      title: 'Scholarships',
+      title: 'SOMOS Scholarships',
       description:
           'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
       links:[
@@ -185,7 +185,7 @@ class OpportunitiesScreen extends StatelessWidget {
       backgroundColor: _pageBackground,
       appBar: AppBar(
         title: const Text(
-          'SOMOS Resources',
+          'Opportunities',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: _primaryGreen,
