@@ -210,6 +210,102 @@ void _deleteResource (int index) {
     },
   );
 }
+void _editResource(int index) {
+  final resource = _resources[index];
+  final titleController = TextEditingController(text: resource['title']);
+  final descriptionController = TextEditingController(text: resource['description']);
+  final categoryController = TextEditingController(text: resource['category']);
+  String selectedIcon = resource['icon']!;
+
+  final formKey = GlobalKey<FormState>();
+
+  showDialog(context: context, builder: (context) {
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: const Text('Edit Resource'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Title'),
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Required' : null,
+                  ),
+                  TextFormField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                    maxLines: 3,
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Required' : null,
+                  ),
+                  TextFormField(
+                    controller: categoryController,
+                    decoration: const InputDecoration(labelText: 'Category'),
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedIcon,
+                    decoration: const InputDecoration(labelText: 'Icon'),
+                    items: const [
+                      DropdownMenuItem(value: 'food', child: Text('Food')),
+                      DropdownMenuItem(value: 'health', child: Text('Health')),
+                      DropdownMenuItem(value: 'housing', child: Text('Housing')),
+                      DropdownMenuItem(value: 'education', child: Text('Education')),
+                      DropdownMenuItem(value: 'financial', child: Text('Financial')),
+                      DropdownMenuItem(value: 'career', child: Text('Career')),
+                      DropdownMenuItem(value: 'transportation', child: Text('Transportation')),
+                      DropdownMenuItem(value: 'family', child: Text('Family')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedIcon = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  setState(() {
+                    _resources[index] = {
+                      'title': titleController.text,
+                      'description': descriptionController.text,
+                      'category': categoryController.text,
+                      'icon': selectedIcon,
+                    };
+                  });
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Resource updated')),
+                  );
+                }
+              },
+              child: const Text('Update', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +344,7 @@ void _deleteResource (int index) {
             icon: _getIcon(resource['icon']!),
             isAdmin: isAdmin,
             onDelete: () => _deleteResource(index),
+            onEdit: () => _editResource(index)
           );
         },
       ),
@@ -262,7 +359,7 @@ class _ResourceCard extends StatelessWidget {
   final IconData icon;
   final bool isAdmin;
   final VoidCallback onDelete;
-
+  final VoidCallback onEdit;
   const _ResourceCard({
     required this.title,
     required this.description,
@@ -270,6 +367,7 @@ class _ResourceCard extends StatelessWidget {
     required this.icon,
     required this.isAdmin,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -335,9 +433,25 @@ class _ResourceCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // Show delete icon only for admin users
+                      // Show edit and delete icon only for admin users
                       if (isAdmin) ...[
                         const SizedBox(width: 6),
+                        // Wrapped into column to have edit and delete icons stacked vertically for better UI
+                        Column(
+                          children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: onEdit,
+                          child: const Padding(
+                            padding: EdgeInsets.all(2.0),
+                            child: Icon(
+                              Icons.edit,
+                              color: Colors.blueAccent,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         InkWell(
                           borderRadius: BorderRadius.circular(20),
                           onTap: onDelete,
@@ -347,8 +461,10 @@ class _ResourceCard extends StatelessWidget {
                               Icons.remove_circle_outline,
                               color: Colors.redAccent,
                               size: 22,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ],
