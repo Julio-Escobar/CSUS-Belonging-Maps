@@ -7,12 +7,11 @@ const Color _pageBackground = Color(0xFFF9F5FA);
 class OpportunitiesScreen extends StatelessWidget {
   const OpportunitiesScreen({super.key});
 
-  // Placeholder resources from the pending Community Resources screen.
   static const List<_ScholarshipResource> _resources = [
     _ScholarshipResource(
-      title: 'SOMOS Scholarships',
+      title: 'Scholarships',
       description:
-          'List of scholarships and opportunities for SOMOS students.',
+          'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
       links:[
         _ScholarshipLink(name: 'Spirit of Giving', url: 'https://www.winecountrygiftbaskets.com/information/scholarship.asp?srsltid=AfmBOorZirDGNmjoTYp0012FuEBOmL4sSxC54JfpgxXuKkD4UILa99Z9'),
         _ScholarshipLink(name: 'Hope College Scholarship', url: 'https://scholarships.sofiashope.org/?gad_source=1&gad_campaignid=22767042193&gbraid=0AAAAABJPZR5h7skRdflBR815h6GqSr5H3&gclid=Cj0KCQjwkILEBhDeARIsAL--pjzKdKWccMkaVu1HWZDRb4TKWMR4gNU3R0YXwwMBrmxCNCND_QyMenUaAqewEALw_wcB'),
