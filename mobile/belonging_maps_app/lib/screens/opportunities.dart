@@ -9,7 +9,7 @@ class OpportunitiesScreen extends StatelessWidget {
 
   static const List<_ScholarshipResource> _resources = [
     _ScholarshipResource(
-      title: 'Scholarships',
+      title: 'SOMOS Scholarships',
       description:
           'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
       links:[
