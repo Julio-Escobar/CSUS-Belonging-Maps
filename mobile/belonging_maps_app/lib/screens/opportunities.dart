@@ -185,7 +185,7 @@ class OpportunitiesScreen extends StatelessWidget {
       backgroundColor: _pageBackground,
       appBar: AppBar(
         title: const Text(
-          'SOMOS Resources',
+          'Opportunities',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: _primaryGreen,
