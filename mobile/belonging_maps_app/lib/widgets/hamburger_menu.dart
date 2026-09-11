@@ -1,3 +1,4 @@
+import 'package:belonging_maps_app/screens/Opportunities.dart';
 import 'package:flutter/material.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
@@ -149,6 +150,23 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           MaterialPageRoute(
                             builder: (_) =>
                                 const CommunityMapsDirectory(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
+                    ),
+                    const Divider(),
+
+                    ListTile(
+                      leading: const Icon(Icons.announcement_outlined),
+                      title: const Text('Opportunities'),
+                      textColor: menuItemTextColor,
+                      iconColor: menuItemIconColor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OpportunitiesScreen(),
                           ),
                         );
                         _closeDrawer();
