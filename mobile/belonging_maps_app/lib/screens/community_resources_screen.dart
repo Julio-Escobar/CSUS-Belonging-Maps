@@ -178,7 +178,38 @@ void _addResource() {
       },
     );
   }
+// Function to delete a resource within the list, showing a confirmation dialog before deletion
+void _deleteResource (int index) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog (
+        title: const Text('Delete Resource'),
+        content: const Text('Are you sure you want to delete this resource?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+          onPressed: () {
+            setState(() {
+              _resources.removeAt(index);
+            });
+            Navigator.pop(context);
 
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Resource deleted')),
+            );
+          },
+          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +246,8 @@ void _addResource() {
             description: resource['description']!,
             category: resource['category']!,
             icon: _getIcon(resource['icon']!),
+            isAdmin: isAdmin,
+            onDelete: () => _deleteResource(index),
           );
         },
       ),
@@ -227,12 +260,16 @@ class _ResourceCard extends StatelessWidget {
   final String description;
   final String category;
   final IconData icon;
+  final bool isAdmin;
+  final VoidCallback onDelete;
 
   const _ResourceCard({
     required this.title,
     required this.description,
     required this.category,
     required this.icon,
+    required this.isAdmin,
+    required this.onDelete,
   });
 
   @override
@@ -298,8 +335,25 @@ class _ResourceCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      // Show delete icon only for admin users
+                      if (isAdmin) ...[
+                        const SizedBox(width: 6),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: onDelete,
+                          child: const Padding(
+                            padding: EdgeInsets.all(2.0),
+                            child: Icon(
+                              Icons.remove_circle_outline,
+                              color: Colors.redAccent,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
+                  
                   const SizedBox(height: 6),
                   Text(
                     description,
