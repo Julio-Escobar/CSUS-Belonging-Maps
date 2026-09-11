@@ -1,3 +1,4 @@
+import 'package:belonging_maps_app/screens/Opportunities.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
 import 'package:belonging_maps_app/screens/map_screen.dart';
@@ -45,6 +46,7 @@ class BelongingMapsApp extends StatelessWidget {
         '/campus': (context) => const CampusMapsScreen(),
         '/community': (context) => const CommunityMapsDirectory(),
         '/map': (context) => const MapScreen(),
+        'opportunites': (context) => const OpportunitiesScreen(),
         '/about': (context) => const AboutUsScreen(),
       },
     );
