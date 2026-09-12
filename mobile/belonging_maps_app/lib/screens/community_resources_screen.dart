@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/hamburger_menu.dart';
+
 const Color _primaryGreen = Color(0xFF2F5F3E);
 const Color _pageBackground = Color(0xFFF9F5FA);
 
@@ -99,28 +101,22 @@ class CommunityResourcesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Community Resources',
-          style: TextStyle(fontWeight: FontWeight.bold),
+    return HamburgerMenu(
+      title: 'Community Resources',
+      body: Scaffold(
+        backgroundColor: _pageBackground,
+        body: ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: _resources.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final resource = _resources[index];
+            return _ResourceCard(
+              resource: resource,
+              onTap: () => _showResourceInformation(context, resource),
+            );
+          },
         ),
-        backgroundColor: _primaryGreen,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _resources.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final resource = _resources[index];
-          return _ResourceCard(
-            resource: resource,
-            onTap: () => _showResourceInformation(context, resource),
-          );
-        },
       ),
     );
   }
