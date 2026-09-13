@@ -41,6 +41,7 @@ dependencies:
 
   # 🔥 ADDED THIS (do not remove)
   http: ^1.2.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

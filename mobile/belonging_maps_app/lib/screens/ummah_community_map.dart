@@ -5,6 +5,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
+import '/widgets/current_location_buttons.dart';
+import '/widgets/map_search_bar.dart';
+import '/widgets/map_layers_button.dart';
+import '/services/layer_search.dart';
+import '/services/current_location.dart';
 
 class UmmahCommunityMap extends StatefulWidget {
   const UmmahCommunityMap({super.key});
@@ -14,6 +19,9 @@ class UmmahCommunityMap extends StatefulWidget {
 }
 
 class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
+  static const double _mapControlPadding = 16;
+  static const double _zoomControlWidth = 72;
+
   late ArcGISMapViewController _mapController;
 
   late FeatureLayer _ummahBusinessServicesLayer;
@@ -29,8 +37,33 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   bool _showUmmahEducation = true;
 
   Map<String, dynamic>? _selectedAttributes;
+  String? _selectedCategory;
   bool _showFullInfo = false;
   bool _showInfoCard = false;
+
+  final TextEditingController _searchController = TextEditingController();
+
+  final GraphicsOverlay _userOverlay = GraphicsOverlay();
+
+  List<MapLayerEntry> get _layerEntries => [
+        MapLayerEntry(
+          label: 'Business Services',
+          layer: _ummahBusinessServicesLayer,
+        ),
+        MapLayerEntry(
+          label: 'Community Services',
+          layer: _ummahCommunityServicesLayer,
+        ),
+        MapLayerEntry(label: 'Halal Foods', layer: _ummahHalalFoodsLayer),
+        MapLayerEntry(
+          label: 'Religious & Cultural',
+          layer: _ummahReligiousCulturalLayer,
+        ),
+        MapLayerEntry(label: 'Education', layer: _ummahEducationLayer),
+      ];
+
+  List<FeatureLayer> get _layers =>
+      _layerEntries.map((entry) => entry.layer).toList();
 
   @override
   void initState() {
@@ -82,6 +115,13 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
     ]);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
+    _mapController.graphicsOverlays.add(_userOverlay);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
@@ -92,10 +132,18 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
     );
 
     Map<String, dynamic>? newAttributes;
+    String? newCategory;
 
     for (final result in results) {
       if (result.geoElements.isNotEmpty) {
         newAttributes = result.geoElements.first.attributes;
+
+        for (final entry in _layerEntries) {
+          if (identical(entry.layer, result.layerContent)) {
+            newCategory = entry.label;
+            break;
+          }
+        }
         break;
       }
     }
@@ -105,6 +153,7 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
 
       setState(() {
         _selectedAttributes = newAttributes;
+        _selectedCategory = newCategory;
         _showFullInfo = false;
         _showInfoCard = isReplacingExistingCard;
       });
@@ -147,13 +196,47 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
 
       setState(() {
         _selectedAttributes = null;
+        _selectedCategory = null;
         _showFullInfo = false;
       });
     });
   }
 
+  Future<void> _getCurrentLocation() {
+    return showCurrentLocation(_mapController, _userOverlay);
+  }
+
+  Widget _buildTopMapControls() {
+    return Positioned(
+      top: _mapControlPadding,
+      left: _mapControlPadding,
+      right: _mapControlPadding,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(width: _zoomControlWidth),
+            const SizedBox(width: 12),
+            Expanded(
+              child: MapSearchBar(
+                controller: _searchController,
+                onChanged: (query) => applyLayerSearch(_layers, query),
+              ),
+            ),
+            const SizedBox(width: 12),
+            MapLayersButton(entries: _layerEntries),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLocationInfoCard() {
-    final data = LocationInfoData.fromAttributes(_selectedAttributes);
+    final data = LocationInfoData.fromAttributes(
+      _selectedAttributes,
+      fallbackCategory: _selectedCategory,
+    );
 
     return LocationInfoCard(
       data: data,
@@ -196,6 +279,8 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
               onTap: _handleMapTap,
             ),
             MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
+            _buildTopMapControls(),
+            CurrentLocationButton(onPressed: _getCurrentLocation),
             if (_selectedAttributes != null) _buildAnimatedLocationInfoCard(),
           ],
         ),
