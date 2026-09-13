@@ -135,7 +135,7 @@ class _OrganizationResourcesScreenState
     return HamburgerMenu(
       title: 'Organization Resources',
       actions: [
-        // Admint add resource button
+// Admin add resource button
         if (isAdmin)
           IconButton(
             icon: const Icon(Icons.content_paste),
