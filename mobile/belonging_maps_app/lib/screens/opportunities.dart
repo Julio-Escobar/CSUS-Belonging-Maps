@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/accessibility_theme.dart';
+
 // When authentication is implemented, replace this with actual user role check
 final bool isAdmin = true;
 
-const Color _primaryGreen = Color(0xFF2F5F3E);
-const Color _pageBackground = Color(0xFFF9F5FA);
 const String _storageKey = 'opportunities_resources_v1';
 
 const Map<String, IconData> _iconOptions = {
@@ -133,7 +133,8 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
         ),
         _ScholarshipLink(
           name: 'Islamic Scholarship Fund',
-          url: 'https://www.islamicscholarshipfund.org/create-your-own-scholarship',
+          url:
+              'https://www.islamicscholarshipfund.org/create-your-own-scholarship',
         ),
         _ScholarshipLink(
           name: 'Muslim Women Scholarship',
@@ -172,7 +173,8 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     ),
     _ScholarshipResource(
       title: 'Ubuntu Scholarships',
-      description: 'List of scholarships and opportunities for Ubuntu students.',
+      description:
+          'List of scholarships and opportunities for Ubuntu students.',
       iconKey: 'book',
       links: [
         _ScholarshipLink(
@@ -260,8 +262,10 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
         final List<dynamic> decoded = jsonDecode(storedJson);
         setState(() {
           _resources = decoded
-              .map((item) =>
-                  _ScholarshipResource.fromJson(item as Map<String, dynamic>))
+              .map(
+                (item) =>
+                    _ScholarshipResource.fromJson(item as Map<String, dynamic>),
+              )
               .toList();
           _isLoading = false;
         });
@@ -286,25 +290,25 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
 
   Future<void> _openLink(BuildContext context, String url) async {
     if (url.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No link provided')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No link provided')));
       return;
     }
 
     final uri = Uri.tryParse(url);
     if (uri == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid URL format')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid URL format')));
       return;
     }
 
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open $url')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not open $url')));
     }
   }
 
@@ -314,10 +318,8 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   ) {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => _ResourceInfoDialog(
-        resource: resource,
-        onOpenLink: _openLink,
-      ),
+      builder: (dialogContext) =>
+          _ResourceInfoDialog(resource: resource, onOpenLink: _openLink),
     );
   }
 
@@ -334,7 +336,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     if (result != null) {
       setState(() {
         if (isEditing) {
-          _resources[index!] = result;
+          _resources[index] = result;
         } else {
           _resources.add(result);
         }
@@ -355,20 +357,26 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   }
 
   void _deleteResource(int index) async {
+    final colors = AccessibilityColors.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Opportunity'),
-        content: const Text('Are you sure you want to delete this opportunity?'),
+        content: const Text(
+          'Are you sure you want to delete this opportunity?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.onPrimary,
+            ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -379,36 +387,38 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       await _saveResources();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Opportunity deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Scaffold(
-      backgroundColor: _pageBackground,
+      backgroundColor: colors.pageBackground,
       appBar: AppBar(
         title: const Text(
           'Opportunities',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: _primaryGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
         centerTitle: true,
         actions: [
           if (isAdmin)
             IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+              icon: const Icon(Icons.add_circle_outline),
               tooltip: 'Add opportunity',
               onPressed: () => _showOpportunityDialog(),
             ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _primaryGreen))
+          ? Center(child: CircularProgressIndicator(color: colors.primary))
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: _resources.length,
@@ -432,10 +442,7 @@ class _ResourceInfoDialog extends StatefulWidget {
   final _ScholarshipResource resource;
   final Function(BuildContext, String) onOpenLink;
 
-  const _ResourceInfoDialog({
-    required this.resource,
-    required this.onOpenLink,
-  });
+  const _ResourceInfoDialog({required this.resource, required this.onOpenLink});
 
   @override
   State<_ResourceInfoDialog> createState() => _ResourceInfoDialogState();
@@ -455,8 +462,10 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+    final colors = AccessibilityColors.of(context);
 
     return Dialog(
+      backgroundColor: colors.cardBackground,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
@@ -476,18 +485,16 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                   Expanded(
                     child: Text(
                       widget.resource.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: _primaryGreen,
+                        color: colors.primary,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black54),
+                    icon: Icon(Icons.close, color: colors.secondaryText),
                     splashRadius: 20,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                     tooltip: 'Close',
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -508,9 +515,9 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                         padding: const EdgeInsets.only(right: 12.0),
                         child: Text(
                           widget.resource.description,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.black87,
+                            color: colors.primaryText,
                             height: 1.4,
                           ),
                         ),
@@ -522,20 +529,17 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
               const SizedBox(height: 14),
               Text(
                 'Tap a scholarship to visit its website',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.black.withValues(alpha: 0.55),
-                ),
+                style: TextStyle(fontSize: 13, color: colors.secondaryText),
               ),
               const SizedBox(height: 10),
               Flexible(
                 child: widget.resource.links.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
                           child: Text(
                             'No links available.',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(color: colors.secondaryText),
                           ),
                         ),
                       )
@@ -549,23 +553,40 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final link = widget.resource.links[index];
-                            return ListTile(
-                              contentPadding:
-                                  const EdgeInsets.only(right: 12.0),
-                              title: Text(
-                                link.name,
-                                style: const TextStyle(
-                                  color: _primaryGreen,
-                                  fontWeight: FontWeight.w600,
+                            final hasUrl = link.url.trim().isNotEmpty;
+                            return Semantics(
+                              container: true,
+                              button: true,
+                              label: hasUrl
+                                  ? 'Open ${link.name}'
+                                  : '${link.name}, link unavailable',
+                              hint: hasUrl
+                                  ? 'Double tap to open the scholarship website.'
+                                  : 'Double tap to hear that no link is available.',
+                              onTap: () => widget.onOpenLink(context, link.url),
+                              child: ExcludeSemantics(
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.only(
+                                    right: 12.0,
+                                  ),
+                                  title: Text(
+                                    link.name,
+                                    style: TextStyle(
+                                      color: colors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  trailing: Icon(
+                                    hasUrl
+                                        ? Icons.open_in_new
+                                        : Icons.link_off_outlined,
+                                    size: 18,
+                                    color: colors.secondaryText,
+                                  ),
+                                  onTap: () =>
+                                      widget.onOpenLink(context, link.url),
                                 ),
                               ),
-                              trailing: const Icon(
-                                Icons.open_in_new,
-                                size: 18,
-                                color: _primaryGreen,
-                              ),
-                              onTap: () =>
-                                  widget.onOpenLink(context, link.url),
                             );
                           },
                         ),
@@ -602,10 +623,12 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
     super.initState();
     final target = widget.initialResource;
     titleController = TextEditingController(text: target?.title ?? '');
-    descriptionController =
-        TextEditingController(text: target?.description ?? '');
+    descriptionController = TextEditingController(
+      text: target?.description ?? '',
+    );
     selectedIcon = target?.iconKey ?? 'book';
-    linkEditors = target?.links
+    linkEditors =
+        target?.links
             .map((link) => _LinkEditorModel(name: link.name, url: link.url))
             .toList() ??
         [];
@@ -624,6 +647,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialResource != null;
+    final colors = AccessibilityColors.of(context);
 
     return AlertDialog(
       title: Text(isEditing ? 'Edit Opportunity' : 'Add Opportunity'),
@@ -639,32 +663,39 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                 TextFormField(
                   controller: titleController,
                   decoration: const InputDecoration(labelText: 'Title'),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty) ? 'Required' : null,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
                 ),
                 TextFormField(
                   controller: descriptionController,
                   decoration: const InputDecoration(labelText: 'Description'),
                   maxLines: 3,
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty) ? 'Required' : null,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedIcon,
+                  initialValue: selectedIcon,
                   decoration: const InputDecoration(labelText: 'Icon'),
                   items: _iconOptions.keys
-                      .map((key) => DropdownMenuItem(
-                            value: key,
-                            child: Row(
-                              children: [
-                                Icon(_iconOptions[key],
-                                    size: 18, color: _primaryGreen),
-                                const SizedBox(width: 8),
-                                Text(key[0].toUpperCase() + key.substring(1)),
-                              ],
-                            ),
-                          ))
+                      .map(
+                        (key) => DropdownMenuItem(
+                          value: key,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _iconOptions[key],
+                                size: 18,
+                                color: colors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(key[0].toUpperCase() + key.substring(1)),
+                            ],
+                          ),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) setState(() => selectedIcon = value);
@@ -712,7 +743,8 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.redAccent),
+                          icon: Icon(Icons.close, color: colors.destructive),
+                          tooltip: 'Remove link ${i + 1}',
                           onPressed: () {
                             linkEditors[i].dispose();
                             setState(() => linkEditors.removeAt(i));
@@ -733,16 +765,21 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
+          ),
           onPressed: () {
             if (!formKey.currentState!.validate()) return;
 
             final parsedLinks = linkEditors
                 .where((e) => e.nameController.text.trim().isNotEmpty)
-                .map((e) => _ScholarshipLink(
-                      name: e.nameController.text.trim(),
-                      url: e.urlController.text.trim(),
-                    ))
+                .map(
+                  (e) => _ScholarshipLink(
+                    name: e.nameController.text.trim(),
+                    url: e.urlController.text.trim(),
+                  ),
+                )
                 .toList();
 
             final newResource = _ScholarshipResource(
@@ -754,10 +791,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
 
             Navigator.pop(context, newResource);
           },
-          child: Text(
-            isEditing ? 'Update' : 'Add',
-            style: const TextStyle(color: Colors.white),
-          ),
+          child: Text(isEditing ? 'Update' : 'Add'),
         ),
       ],
     );
@@ -769,8 +803,8 @@ class _LinkEditorModel {
   final TextEditingController urlController;
 
   _LinkEditorModel({String name = '', String url = ''})
-      : nameController = TextEditingController(text: name),
-        urlController = TextEditingController(text: url);
+    : nameController = TextEditingController(text: name),
+      urlController = TextEditingController(text: url);
 
   void dispose() {
     nameController.dispose();
@@ -809,20 +843,23 @@ class _ScholarshipResource {
   IconData get icon => _iconOptions[iconKey] ?? Icons.auto_stories;
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'description': description,
-        'iconKey': iconKey,
-        'links': links.map((l) => l.toJson()).toList(),
-      };
+    'title': title,
+    'description': description,
+    'iconKey': iconKey,
+    'links': links.map((l) => l.toJson()).toList(),
+  };
 
   factory _ScholarshipResource.fromJson(Map<String, dynamic> json) =>
       _ScholarshipResource(
         title: json['title'] as String? ?? '',
         description: json['description'] as String? ?? '',
         iconKey: json['iconKey'] as String? ?? 'book',
-        links: (json['links'] as List<dynamic>?)
-                ?.map((item) =>
-                    _ScholarshipLink.fromJson(item as Map<String, dynamic>))
+        links:
+            (json['links'] as List<dynamic>?)
+                ?.map(
+                  (item) =>
+                      _ScholarshipLink.fromJson(item as Map<String, dynamic>),
+                )
                 .toList() ??
             [],
       );
@@ -845,102 +882,98 @@ class _ResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'View information for ${resource.title}',
-      child: Card(
-        elevation: 2,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(resource.icon, color: _primaryGreen, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              resource.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+    final colors = AccessibilityColors.of(context);
+
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Semantics(
+                button: true,
+                label: '${resource.title}. ${resource.description}',
+                hint: 'Double tap to view scholarship links.',
+                onTap: onTap,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onTap,
+                  child: ExcludeSemantics(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          if (isAdmin) ...[
-                            const SizedBox(width: 6),
-                            Column(
-                              children: [
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  onTap: onEdit,
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(2.0),
-                                    child: Icon(
-                                      Icons.edit,
-                                      color: Colors.blueAccent,
-                                      size: 22,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  onTap: onDelete,
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(2.0),
-                                    child: Icon(
-                                      Icons.remove_circle_outline,
-                                      color: Colors.redAccent,
-                                      size: 22,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        resource.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                          height: 1.4,
+                          child: Icon(
+                            resource.icon,
+                            color: colors.primary,
+                            size: 26,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                resource.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colors.primaryText,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                resource.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colors.secondaryText,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+            if (isAdmin) ...[
+              const SizedBox(width: 6),
+              Column(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit, color: colors.action),
+                    tooltip: 'Edit ${resource.title}',
+                    onPressed: onEdit,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: colors.destructive,
+                    ),
+                    tooltip: 'Delete ${resource.title}',
+                    onPressed: onDelete,
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );
