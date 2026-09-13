@@ -4,6 +4,7 @@ import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
 import '../screens/community_resources_screen.dart';
+import '../screens/organization_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../services/auth_service.dart';
@@ -133,6 +134,22 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CommunityResourcesScreen(),
+                          ),
+                        );
+                        _closeDrawer();
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.folder_shared_outlined),
+                      title: const Text('Organization Resources'),
+                      textColor: menuItemTextColor,
+                      iconColor: menuItemIconColor,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OrganizationResourcesScreen(),
                           ),
                         );
                         _closeDrawer();
