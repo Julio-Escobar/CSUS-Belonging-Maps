@@ -14,11 +14,13 @@ import '../services/accessibility_theme.dart';
 class HamburgerMenu extends StatefulWidget {
   final Widget body;
   final String title;
+  final List<Widget>? actions;
 
   const HamburgerMenu({
     super.key,
     required this.body,
     this.title = 'Belonging Maps',
+    this.actions,
   });
 
   @override
@@ -64,6 +66,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
           icon: const Icon(Icons.menu),
           onPressed: _toggleDrawer,
         ),
+        actions: widget.actions,
       ),
       body: Stack(
         children: [
