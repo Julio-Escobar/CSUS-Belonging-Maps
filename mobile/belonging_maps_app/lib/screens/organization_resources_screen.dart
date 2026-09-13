@@ -256,7 +256,7 @@ class _ResourceCard extends StatelessWidget {
                   IconButton(
                     icon: const Icon(
                       Icons.remove_circle_outline,
-                      color: Colors.redAccent,
+color: Theme.of(context).colorScheme.error,
                     ),
                     tooltip: 'Delete resource',
                     onPressed: onDelete,
