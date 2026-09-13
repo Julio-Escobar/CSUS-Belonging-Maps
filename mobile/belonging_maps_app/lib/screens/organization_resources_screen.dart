@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
 
 const Color _primaryGreen = Color(0xFF2F5F3E);
@@ -36,6 +37,60 @@ class _OrganizationResourcesScreenState
     ),
   ];
 
+  // Admin only
+  void _showAddResourceDialog() {
+    final titleController = TextEditingController();
+    final categoryController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Add Resource'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: categoryController,
+              decoration: const InputDecoration(labelText: 'Category'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (titleController.text.trim().isEmpty) return;
+              setState(() {
+                _resources.add(
+                  _OrganizationResource(
+                    title: titleController.text.trim(),
+                    category: categoryController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    icon: Icons.groups_outlined,
+                  ),
+                );
+              });
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showResourceInformation(_OrganizationResource resource) {
     showDialog<void>(
       context: context,
@@ -68,10 +123,26 @@ class _OrganizationResourcesScreenState
     );
   }
 
+  void _deleteResource(int index) {
+    setState(() => _resources.removeAt(index));
+  }
+
   @override
+  //Check if the user is an admin
   Widget build(BuildContext context) {
+    final isAdmin = AuthService.isAdmin;
+
     return HamburgerMenu(
       title: 'Organization Resources',
+      actions: [
+        // Admint add resource button
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.content_paste),
+            tooltip: 'Add resource',
+            onPressed: _showAddResourceDialog,
+          ),
+      ],
       body: Scaffold(
         backgroundColor: _pageBackground,
         body: ListView.separated(
@@ -82,7 +153,9 @@ class _OrganizationResourcesScreenState
             final resource = _resources[index];
             return _ResourceCard(
               resource: resource,
+              isAdmin: isAdmin,
               onTap: () => _showResourceInformation(resource),
+              onDelete: () => _deleteResource(index),
             );
           },
         ),
@@ -107,9 +180,16 @@ class _OrganizationResource {
 
 class _ResourceCard extends StatelessWidget {
   final _OrganizationResource resource;
+  final bool isAdmin;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _ResourceCard({required this.resource, required this.onTap});
+  const _ResourceCard({
+    required this.resource,
+    required this.isAdmin,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +251,16 @@ class _ResourceCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Delete button
+                if (isAdmin)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.redAccent,
+                    ),
+                    tooltip: 'Delete resource',
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ),
