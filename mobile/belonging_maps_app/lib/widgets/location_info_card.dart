@@ -52,9 +52,13 @@ class LocationInfoData {
     return double.tryParse(value.toString());
   }
 
-  factory LocationInfoData.fromAttributes(Map<String, dynamic>? attributes) {
+  factory LocationInfoData.fromAttributes(
+    Map<String, dynamic>? attributes, {
+    String? fallbackCategory,
+  }) {
     final String companyName = cleanField(attributes?['Company_Name']);
     final String name = cleanField(attributes?['Name']);
+    final String categoryField = cleanField(attributes?['CATEGORY']);
 
     final String addressField = cleanField(attributes?['ADDRESS']);
     final String locationField = cleanField(attributes?['LOCATION']);
@@ -78,7 +82,9 @@ class LocationInfoData {
           : locationField.isNotEmpty
               ? locationField
               : '',
-      category: cleanField(attributes?['CATEGORY']),
+      category: categoryField.isNotEmpty
+          ? categoryField
+          : cleanField(fallbackCategory),
       type: cleanField(attributes?['TYPE']),
       website: websiteField.isNotEmpty ? websiteField : urlField,
       phone: cleanField(attributes?['PHONE']),
@@ -281,6 +287,7 @@ class LocationInfoCard extends StatelessWidget {
                 )
               : _PreviewLocationInfoCard(
                   cardTitle: data.cardTitle,
+                  category: data.category,
                   onClose: onClose,
                   onShowMore: onShowMore,
                 ),
@@ -292,17 +299,21 @@ class LocationInfoCard extends StatelessWidget {
 
 class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
+  final String category;
   final VoidCallback onClose;
   final VoidCallback onShowMore;
 
   const _PreviewLocationInfoCard({
     required this.cardTitle,
+    required this.category,
     required this.onClose,
     required this.onShowMore,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool hasCategory = category.trim().isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
       child: Column(
@@ -316,7 +327,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 12),
                   child: Text(
                     cardTitle,
-                    maxLines: 4,
+                    maxLines: hasCategory ? 3 : 4,
                     overflow: TextOverflow.ellipsis,
                     softWrap: true,
                     style: const TextStyle(
@@ -342,6 +353,22 @@ class _PreviewLocationInfoCard extends StatelessWidget {
               ),
             ],
           ),
+          if (hasCategory) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: mapInfoSecondaryTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
