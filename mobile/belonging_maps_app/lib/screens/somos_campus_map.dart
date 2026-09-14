@@ -170,6 +170,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
+      orgLogo: 'assets/somos_logo_temp.png',
     );
   }
 

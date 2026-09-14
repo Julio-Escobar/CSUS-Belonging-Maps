@@ -90,6 +90,11 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage('assets/ubuntu_logo_temp.png'),
+                ),
                 title: Text(
                   cardTitle,
                   style: TextStyle(
