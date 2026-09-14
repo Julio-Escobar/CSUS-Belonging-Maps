@@ -1,29 +1,26 @@
-import 'package:belonging_maps_app/screens/Opportunities.dart';
 import 'package:flutter/material.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
 import '../screens/community_resources_screen.dart';
+import '../screens/organization_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
+import '../screens/accessibility_settings_screen.dart';
+import '../screens/opportunities.dart';
 import '../services/auth_service.dart';
-
-final Color backgroundMenuColor = const Color.fromARGB(255, 47, 95, 62);
-final Color menuItemTextColor = Colors.white;
-final Color menuItemIconColor = const Color.fromARGB(255, 153, 144, 11);
-
-final Color topBarColor = const Color.fromARGB(255, 47, 95, 62);
-final Color topBarTextColor = Colors.white;
-final Color topBarIconColor = const Color.fromARGB(255, 9, 70, 29);
+import '../services/accessibility_theme.dart';
 
 class HamburgerMenu extends StatefulWidget {
   final Widget body;
   final String title;
+  final List<Widget>? actions;
 
   const HamburgerMenu({
     super.key,
     required this.body,
     this.title = 'Belonging Maps',
+    this.actions,
   });
 
   @override
@@ -50,11 +47,17 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = AuthService.isAdmin;
+    final colors = AccessibilityColors.of(context);
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final drawerDuration = reduceMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 300);
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: topBarColor,
-        foregroundColor: topBarTextColor,
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
         title: Text(
           widget.title,
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -63,6 +66,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
           icon: const Icon(Icons.menu),
           onPressed: _toggleDrawer,
         ),
+        actions: widget.actions,
       ),
       body: Stack(
         children: [
@@ -71,7 +75,9 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
             ignoring: !_drawerOpen,
             child: AnimatedOpacity(
               opacity: _drawerOpen ? 0.5 : 0.0,
-              duration: const Duration(milliseconds: 250),
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
               child: GestureDetector(
                 onTap: _closeDrawer,
                 child: Container(color: Colors.black),
@@ -79,191 +85,224 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
             ),
           ),
           AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
+            duration: drawerDuration,
             left: _drawerOpen ? 0 : -280,
             top: 0,
             bottom: 0,
             width: 280,
             child: Material(
               elevation: 16,
-              color: backgroundMenuColor,
+              color: colors.primary,
               child: SafeArea(
-                child: Column(
-                  children: [
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.waving_hand_sharp),
-                      title: const Text('Welcome'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WelcomeScreen(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.school_outlined),
-                      title: const Text('Campus Maps'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CampusMapsScreen(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.library_books_outlined),
-                      title: const Text('Community Resources'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CommunityResourcesScreen(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.location_city_outlined),
-                      title: const Text('Community Maps'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const CommunityMapsDirectory(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-
-                    ListTile(
-                      leading: const Icon(Icons.announcement_outlined),
-                      title: const Text('Opportunities'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const OpportunitiesScreen(),
-                          ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-
-                    if (isAdmin) ...[
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
                       const Divider(),
-                      const ListTile(
-                        title: Text(
-                          "ADMIN PANEL",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ),
                       ListTile(
-                        leading: const Icon(Icons.edit),
-                        title: const Text("Edit Maps"),
-                        textColor: menuItemTextColor,
-                        iconColor: menuItemIconColor,
-                        onTap: _closeDrawer,
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.add),
-                        title: const Text("Add Location"),
-                        textColor: menuItemTextColor,
-                        iconColor: menuItemIconColor,
-                        onTap: _closeDrawer,
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.delete),
-                        title: const Text("Delete Entries"),
-                        textColor: menuItemTextColor,
-                        iconColor: menuItemIconColor,
-                        onTap: _closeDrawer,
-                      ),
-                    ],
-
-                    const Spacer(),
-                    const Divider(),
-
-                    if (!isAdmin)
-                      ListTile(
-                        leading: const Icon(Icons.person_3_outlined),
-                        title: const Text('Administrator Login'),
-                        textColor: menuItemTextColor,
-                        iconColor: menuItemIconColor,
+                        leading: const Icon(Icons.waving_hand_sharp),
+                        title: const Text('Welcome'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => LoginScreen(),
-                            ),
-                          );
-                          _closeDrawer();
-                        },
-                      ),
-
-                    if (isAdmin)
-                      ListTile(
-                        leading: const Icon(Icons.logout),
-                        title: const Text('Logout'),
-                        textColor: menuItemTextColor,
-                        iconColor: menuItemIconColor,
-                        onTap: () {
-                          AuthService.isAdmin = false;
-
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
                               builder: (_) => const WelcomeScreen(),
                             ),
-                            (route) => false,
                           );
-
                           _closeDrawer();
                         },
                       ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.school_outlined),
+                        title: const Text('Campus Maps'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CampusMapsScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.library_books_outlined),
+                        title: const Text('Community Resources'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CommunityResourcesScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.folder_shared_outlined),
+                        title: const Text('Organization Resources'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const OrganizationResourcesScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.location_city_outlined),
+                        title: const Text('Community Maps'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CommunityMapsDirectory(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
 
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.person_pin_outlined),
-                      title: const Text('About Us'),
-                      textColor: menuItemTextColor,
-                      iconColor: menuItemIconColor,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AboutUsScreen(),
+                      ListTile(
+                        leading: const Icon(Icons.announcement_outlined),
+                        title: const Text('Opportunities'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const OpportunitiesScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+
+                      ListTile(
+                        leading: const Icon(Icons.accessibility_new),
+                        title: const Text('Accessibility Settings'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const AccessibilitySettingsScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+
+                      if (isAdmin) ...[
+                        const Divider(),
+                        const ListTile(
+                          title: Text(
+                            "ADMIN PANEL",
+                            style: TextStyle(color: Colors.white70),
                           ),
-                        );
-                        _closeDrawer();
-                      },
-                    ),
-                    const Divider(),
-                  ],
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.edit),
+                          title: const Text("Edit Maps"),
+                          textColor: colors.onPrimary,
+                          iconColor: colors.menuIcon,
+                          onTap: _closeDrawer,
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.add),
+                          title: const Text("Add Location"),
+                          textColor: colors.onPrimary,
+                          iconColor: colors.menuIcon,
+                          onTap: _closeDrawer,
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.delete),
+                          title: const Text("Delete Entries"),
+                          textColor: colors.onPrimary,
+                          iconColor: colors.menuIcon,
+                          onTap: _closeDrawer,
+                        ),
+                      ],
+
+                      const Divider(),
+
+                      if (!isAdmin)
+                        ListTile(
+                          leading: const Icon(Icons.person_3_outlined),
+                          title: const Text('Administrator Login'),
+                          textColor: colors.onPrimary,
+                          iconColor: colors.menuIcon,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => LoginScreen()),
+                            );
+                            _closeDrawer();
+                          },
+                        ),
+
+                      if (isAdmin)
+                        ListTile(
+                          leading: const Icon(Icons.logout),
+                          title: const Text('Logout'),
+                          textColor: colors.onPrimary,
+                          iconColor: colors.menuIcon,
+                          onTap: () {
+                            AuthService.isAdmin = false;
+
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WelcomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+
+                            _closeDrawer();
+                          },
+                        ),
+
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.person_pin_outlined),
+                        title: const Text('About Us'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AboutUsScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+                    ],
+                  ),
                 ),
               ),
             ),

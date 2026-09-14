@@ -1,73 +1,97 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
 
 const Color _primaryGreen = Color(0xFF2F5F3E);
 const Color _pageBackground = Color(0xFFF9F5FA);
 
-class CommunityResourcesScreen extends StatelessWidget {
-  const CommunityResourcesScreen({super.key});
+class OrganizationResourcesScreen extends StatefulWidget {
+  const OrganizationResourcesScreen({super.key});
 
-  // Placeholder resources from the pending Community Resources screen.
-  static const List<_CommunityResource> _resources = [
-    _CommunityResource(
-      title: 'Food Pantry',
-      category: 'Food',
-      description:
-          'Free food resources available for students and community members.',
-      icon: Icons.restaurant_outlined,
+  @override
+  State<OrganizationResourcesScreen> createState() =>
+      _OrganizationResourcesScreenState();
+}
+
+class _OrganizationResourcesScreenState
+    extends State<OrganizationResourcesScreen> {
+  final List<_OrganizationResource> _resources = [
+    const _OrganizationResource(
+      title: 'SOMOS Student Organization',
+      category: 'SOMOS',
+      description: 'Resources and support for SOMOS community members.',
+      icon: Icons.groups_outlined,
     ),
-    _CommunityResource(
-      title: 'Mental Health Services',
-      category: 'Health',
-      description: 'Counseling and mental health support for students.',
-      icon: Icons.favorite_outline,
+    const _OrganizationResource(
+      title: 'Ummah Student Organization',
+      category: 'Ummah',
+      description: 'Resources and support for the Ummah community.',
+      icon: Icons.groups_outlined,
     ),
-    _CommunityResource(
-      title: 'Housing Assistance',
-      category: 'Housing',
-      description:
-          'Resources and support for students experiencing housing insecurity.',
-      icon: Icons.home_outlined,
-    ),
-    _CommunityResource(
-      title: 'Tutoring Center',
-      category: 'Education',
-      description: 'Free academic tutoring and support services on campus.',
-      icon: Icons.school_outlined,
-    ),
-    _CommunityResource(
-      title: 'Financial Aid Office',
-      category: 'Financial',
-      description: 'Help with scholarships, grants, and financial assistance.',
-      icon: Icons.attach_money_outlined,
-    ),
-    _CommunityResource(
-      title: 'Career Center',
-      category: 'Career',
-      description:
-          'Job placement, resume help, and career counseling services.',
-      icon: Icons.work_outline,
-    ),
-    _CommunityResource(
-      title: 'Transportation Services',
-      category: 'Transportation',
-      description: 'Bus passes and transportation assistance for students.',
-      icon: Icons.directions_bus_outlined,
-    ),
-    _CommunityResource(
-      title: 'Childcare Services',
-      category: 'Family',
-      description:
-          'Affordable childcare options available for student parents.',
-      icon: Icons.family_restroom_outlined,
+    const _OrganizationResource(
+      title: 'Ubuntu Student Organization',
+      category: 'Ubuntu',
+      description: 'Resources and support for the Ubuntu community.',
+      icon: Icons.groups_outlined,
     ),
   ];
 
-  void _showResourceInformation(
-    BuildContext context,
-    _CommunityResource resource,
-  ) {
+  // Admin only
+  void _showAddResourceDialog() {
+    final titleController = TextEditingController();
+    final categoryController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Add Resource'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: categoryController,
+              decoration: const InputDecoration(labelText: 'Category'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (titleController.text.trim().isEmpty) return;
+              setState(() {
+                _resources.add(
+                  _OrganizationResource(
+                    title: titleController.text.trim(),
+                    category: categoryController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    icon: Icons.groups_outlined,
+                  ),
+                );
+              });
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResourceInformation(_OrganizationResource resource) {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -99,10 +123,26 @@ class CommunityResourcesScreen extends StatelessWidget {
     );
   }
 
+  void _deleteResource(int index) {
+    setState(() => _resources.removeAt(index));
+  }
+
   @override
+  //Check if the user is an admin
   Widget build(BuildContext context) {
+    final isAdmin = AuthService.isAdmin;
+
     return HamburgerMenu(
-      title: 'Community Resources',
+      title: 'Organization Resources',
+      actions: [
+// Admin add resource button
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.content_paste),
+            tooltip: 'Add resource',
+            onPressed: _showAddResourceDialog,
+          ),
+      ],
       body: Scaffold(
         backgroundColor: _pageBackground,
         body: ListView.separated(
@@ -113,7 +153,9 @@ class CommunityResourcesScreen extends StatelessWidget {
             final resource = _resources[index];
             return _ResourceCard(
               resource: resource,
-              onTap: () => _showResourceInformation(context, resource),
+              isAdmin: isAdmin,
+              onTap: () => _showResourceInformation(resource),
+              onDelete: () => _deleteResource(index),
             );
           },
         ),
@@ -122,13 +164,13 @@ class CommunityResourcesScreen extends StatelessWidget {
   }
 }
 
-class _CommunityResource {
+class _OrganizationResource {
   final String title;
   final String category;
   final String description;
   final IconData icon;
 
-  const _CommunityResource({
+  const _OrganizationResource({
     required this.title,
     required this.category,
     required this.description,
@@ -137,10 +179,17 @@ class _CommunityResource {
 }
 
 class _ResourceCard extends StatelessWidget {
-  final _CommunityResource resource;
+  final _OrganizationResource resource;
+  final bool isAdmin;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _ResourceCard({required this.resource, required this.onTap});
+  const _ResourceCard({
+    required this.resource,
+    required this.isAdmin,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -202,6 +251,16 @@ class _ResourceCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Delete button
+                if (isAdmin)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+color: Theme.of(context).colorScheme.error,
+                    ),
+                    tooltip: 'Delete resource',
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ),

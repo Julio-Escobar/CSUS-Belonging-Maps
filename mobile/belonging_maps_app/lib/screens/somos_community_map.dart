@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
 import '/widgets/current_location_buttons.dart';
+import '/widgets/map_search_bar.dart';
+import '/widgets/map_layers_button.dart';
+import '/services/layer_search.dart';
+import '/services/current_location.dart';
 
 class SomosCommunityMap extends StatefulWidget {
   const SomosCommunityMap({super.key});
@@ -18,7 +21,6 @@ class SomosCommunityMap extends StatefulWidget {
 class _SomosCommunityMapState extends State<SomosCommunityMap> {
   static const double _mapControlPadding = 16;
   static const double _zoomControlWidth = 72;
-  static const double _futureFilterReservedWidth = 132;
 
   late ArcGISMapViewController _mapController;
 
@@ -30,6 +32,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   late FeatureLayer _somosEducationLayer;
 
   Map<String, dynamic>? _selectedAttributes;
+  String? _selectedCategory;
   bool _showFullInfo = false;
   bool _showInfoCard = false;
 
@@ -37,14 +40,20 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
-  List<FeatureLayer> get _layers => [
-        _somosBusinessesLayer,
-        _somosReligionLayer,
-        _somosFoodLayer,
-        _somosPublicArtsLayer,
-        _somosCommunityServicesLayer,
-        _somosEducationLayer,
+  List<MapLayerEntry> get _layerEntries => [
+        MapLayerEntry(label: 'Businesses', layer: _somosBusinessesLayer),
+        MapLayerEntry(label: 'Religion', layer: _somosReligionLayer),
+        MapLayerEntry(label: 'Food', layer: _somosFoodLayer),
+        MapLayerEntry(label: 'Public Arts', layer: _somosPublicArtsLayer),
+        MapLayerEntry(
+          label: 'Community Services',
+          layer: _somosCommunityServicesLayer,
+        ),
+        MapLayerEntry(label: 'Education', layer: _somosEducationLayer),
       ];
+
+  List<FeatureLayer> get _layers =>
+      _layerEntries.map((entry) => entry.layer).toList();
 
   @override
   void initState() {
@@ -105,94 +114,19 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     super.dispose();
   }
 
-  void _applySearch(String query) async {
-    final escapedQuery = query.replaceAll("'", "''");
-
-    if (escapedQuery.trim().isEmpty) {
-      for (final layer in _layers) {
-        layer.definitionExpression = '';
-      }
-      return;
-    }
-
-    final upperQuery = escapedQuery.toUpperCase();
-
-    for (final layer in _layers) {
-      if (layer.loadStatus != LoadStatus.loaded) {
-        await layer.load();
-      }
-
-      final table = layer.featureTable;
-      if (table == null) continue;
-
-      final fields = table.fields
-          .map((f) => f.name)
-          .where((name) =>
-              name.toUpperCase().contains("NAME") ||
-              name.toUpperCase().contains("TITLE") ||
-              name.toUpperCase().contains("FACILITY"))
-          .toList();
-
-      if (fields.isEmpty) continue;
-
-      final conditions = fields
-          .map((f) => "UPPER($f) LIKE '%$upperQuery%'")
-          .join(" OR ");
-
-      layer.definitionExpression = conditions;
-    }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    final permission = await Geolocator.requestPermission();
-
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return;
-    }
-
-    final position = await Geolocator.getCurrentPosition();
-
-    final point = ArcGISPoint(
-      x: position.longitude,
-      y: position.latitude,
-      spatialReference: SpatialReference.wgs84,
-    );
-
-    final outerCircle = SimpleMarkerSymbol(
-      style: SimpleMarkerSymbolStyle.circle,
-      color: Colors.blue.withOpacity(0.2),
-      size: 28,
-    );
-
-    final innerCircle = SimpleMarkerSymbol(
-      style: SimpleMarkerSymbolStyle.circle,
-      color: Colors.blue,
-      size: 14,
-    )
-      ..outline = SimpleLineSymbol(
-        style: SimpleLineSymbolStyle.solid,
-        color: Colors.white,
-        width: 3,
-      );
-
-    final outerGraphic = Graphic(geometry: point, symbol: outerCircle);
-    final innerGraphic = Graphic(geometry: point, symbol: innerCircle);
-
-    _userOverlay.graphics.clear();
-    _userOverlay.graphics.addAll([outerGraphic, innerGraphic]);
-
-    await _mapController.setViewpointCenter(point, scale: 5000);
+  Future<void> _getCurrentLocation() {
+    return showCurrentLocation(_mapController, _userOverlay);
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
     Map<String, dynamic>? newAttributes;
+    String? newCategory;
 
-    for (final layer in _layers) {
-      if (!layer.isVisible) continue;
+    for (final entry in _layerEntries) {
+      if (!entry.layer.isVisible) continue;
 
       final result = await _mapController.identifyLayer(
-        layer,
+        entry.layer,
         screenPoint: screenPoint,
         tolerance: 10.0,
         maximumResults: 1,
@@ -200,6 +134,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
       if (result.geoElements.isNotEmpty) {
         newAttributes = result.geoElements.first.attributes;
+        newCategory = entry.label;
         break;
       }
     }
@@ -209,6 +144,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
       setState(() {
         _selectedAttributes = newAttributes;
+        _selectedCategory = newCategory;
         _showFullInfo = false;
         _showInfoCard = replacing;
       });
@@ -251,13 +187,17 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
       setState(() {
         _selectedAttributes = null;
+        _selectedCategory = null;
         _showFullInfo = false;
       });
     });
   }
 
   Widget _buildLocationInfoCard() {
-    final data = LocationInfoData.fromAttributes(_selectedAttributes);
+    final data = LocationInfoData.fromAttributes(
+      _selectedAttributes,
+      fallbackCategory: _selectedCategory,
+    );
 
     return LocationInfoCard(
       data: data,
@@ -281,23 +221,6 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return Material(
-      elevation: 6,
-      borderRadius: BorderRadius.circular(18),
-      child: TextField(
-        controller: _searchController,
-        onChanged: _applySearch,
-        decoration: const InputDecoration(
-          hintText: 'Search locations...',
-          prefixIcon: Icon(Icons.search),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTopMapControls() {
     return Positioned(
       top: _mapControlPadding,
@@ -310,9 +233,14 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
           children: [
             const SizedBox(width: _zoomControlWidth),
             const SizedBox(width: 12),
-            Expanded(child: _buildSearchBar()),
+            Expanded(
+              child: MapSearchBar(
+                controller: _searchController,
+                onChanged: (query) => applyLayerSearch(_layers, query),
+              ),
+            ),
             const SizedBox(width: 12),
-            const SizedBox(width: _futureFilterReservedWidth),
+            MapLayersButton(entries: _layerEntries),
           ],
         ),
       ),
