@@ -254,9 +254,9 @@ class _ResourceCard extends StatelessWidget {
                 // Delete button
                 if (isAdmin)
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.remove_circle_outline,
-color: Theme.of(context).colorScheme.error,
+                      color: Theme.of(context).colorScheme.error,
                     ),
                     tooltip: 'Delete resource',
                     onPressed: onDelete,
