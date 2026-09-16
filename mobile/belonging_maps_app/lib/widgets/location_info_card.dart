@@ -23,6 +23,7 @@ class LocationInfoData {
   final Map<String, String> socialLinks;
   final double? locationLat;
   final double? locationLng;
+  final String? orgLogo;
 
   const LocationInfoData({
     required this.cardTitle,
@@ -37,6 +38,7 @@ class LocationInfoData {
     required this.socialLinks,
     this.locationLat,
     this.locationLng,
+    this.orgLogo,
   });
 
   static String cleanField(dynamic value) {
@@ -287,6 +289,7 @@ class LocationInfoCard extends StatelessWidget {
                 )
               : _PreviewLocationInfoCard(
                   cardTitle: data.cardTitle,
+                  orgLogo: data.orgLogo,
                   category: data.category,
                   onClose: onClose,
                   onShowMore: onShowMore,
@@ -299,12 +302,14 @@ class LocationInfoCard extends StatelessWidget {
 
 class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
+  final String? orgLogo;
   final String category;
   final VoidCallback onClose;
   final VoidCallback onShowMore;
 
   const _PreviewLocationInfoCard({
     required this.cardTitle,
+    this.orgLogo,
     required this.category,
     required this.onClose,
     required this.onShowMore,
@@ -322,6 +327,14 @@ class _PreviewLocationInfoCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (orgLogo != null) ...[
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage(orgLogo!),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 12),
@@ -454,6 +467,14 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (data.orgLogo != null) ...[
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage(data.orgLogo!),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 12),

@@ -89,6 +89,11 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage('assets/ummah_logo_temp.png'),
+                ),
                 title: Text(
                   cardTitle,
                   style: TextStyle(
