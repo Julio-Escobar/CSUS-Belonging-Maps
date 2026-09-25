@@ -896,7 +896,7 @@ class _ResourceCard extends StatelessWidget {
               child: Semantics(
                 button: true,
                 label: '${resource.title}. ${resource.description}',
-                hint: 'Double tap to view scholarship links.',
+                hint: 'Double tap to view opportunity details and links.',
                 onTap: onTap,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
@@ -945,6 +945,14 @@ class _ResourceCard extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'View opportunity details',
+                          child: Icon(
+                            Icons.chevron_right,
+                            color: colors.secondaryText,
                           ),
                         ),
                       ],
