@@ -43,6 +43,14 @@ class SurveysScreen extends StatelessWidget {
                   icon: const Icon(Icons.forum_outlined),
                   label: const Text('Go to Forums'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // Placeholder for future feedback survey functionality. For addition within other tickets.
+                  },
+                  icon: const Icon(Icons.feedback_outlined),
+                  label: const Text('Feedback Survey'),
+                ),
               ],
             ),
           ),
