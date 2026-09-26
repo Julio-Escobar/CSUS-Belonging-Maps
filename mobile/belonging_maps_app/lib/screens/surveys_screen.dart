@@ -51,6 +51,14 @@ class SurveysScreen extends StatelessWidget {
                   icon: const Icon(Icons.feedback_outlined),
                   label: const Text('Feedback Survey'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // Placeholder for future "What is Missing" survey functionality.
+                  },
+                  icon: const Icon(Icons.help_outline),
+                  label: const Text('What is Missing'),
+                ),
               ],
             ),
           ),
