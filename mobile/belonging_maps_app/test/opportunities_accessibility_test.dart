@@ -45,6 +45,7 @@ void main() {
     expect(find.byTooltip('Edit SOMOS Scholarships'), findsOneWidget);
     expect(find.byTooltip('Delete SOMOS Scholarships'), findsOneWidget);
     expect(find.byTooltip('Add opportunity'), findsOneWidget);
+    expect(find.byTooltip('View opportunity details'), findsNWidgets(3));
     expect(find.byTooltip('Accessibility settings'), findsNothing);
   });
 
@@ -68,6 +69,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
+    expect(
+      find.text(
+        'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
+      ),
+      findsNWidgets(2),
+    );
     final linkSemantics = find.byWidgetPredicate(
       (widget) =>
           widget is Semantics &&
