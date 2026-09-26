@@ -34,6 +34,9 @@ migrate_working_dir/
 /build/
 
 # ArcGIS Maps - machine-specific core files
+# (the "arcgis_maps_core" symlink created by `dart run arcgis_maps install`;
+#  no trailing slash so it matches the symlink, not just directories)
+arcgis_maps_core
 arcgis_maps_core/
 **/arcgis_maps_core/
 /android/app/src/main/jniLibs/
@@ -55,3 +58,6 @@ ios/Flutter/Release.xcconfig
 
 # Environment variables
 .env
+
+# Dev tooling (tool/svg_to_png.mjs) dependencies
+tool/node_modules/
