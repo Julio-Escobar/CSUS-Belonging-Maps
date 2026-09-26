@@ -4,9 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
-
-// When authentication is implemented, replace this with actual user role check
-final bool isAdmin = true;
+import '../services/auth_service.dart';
 
 const String _storageKey = 'opportunities_resources_v1';
 
@@ -397,6 +395,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+    final isAdmin = AuthService.isAdmin;
 
     return Scaffold(
       backgroundColor: colors.pageBackground,

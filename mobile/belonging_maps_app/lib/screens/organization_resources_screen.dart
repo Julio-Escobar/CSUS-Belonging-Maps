@@ -37,16 +37,21 @@ class _OrganizationResourcesScreenState
     ),
   ];
 
-  // Admin only
-  void _showAddResourceDialog() {
-    final titleController = TextEditingController();
-    final categoryController = TextEditingController();
-    final descriptionController = TextEditingController();
+  // Admin only. Pass an index to edit that resource; omit it to add a new one.
+  void _showResourceDialog({int? index}) {
+    final isEditing = index != null;
+    final existing = isEditing ? _resources[index] : null;
+
+    final titleController = TextEditingController(text: existing?.title);
+    final categoryController = TextEditingController(text: existing?.category);
+    final descriptionController = TextEditingController(
+      text: existing?.description,
+    );
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Add Resource'),
+        title: Text(isEditing ? 'Edit Resource' : 'Add Resource'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -72,19 +77,22 @@ class _OrganizationResourcesScreenState
           TextButton(
             onPressed: () {
               if (titleController.text.trim().isEmpty) return;
+              final resource = _OrganizationResource(
+                title: titleController.text.trim(),
+                category: categoryController.text.trim(),
+                description: descriptionController.text.trim(),
+                icon: existing?.icon ?? Icons.groups_outlined,
+              );
               setState(() {
-                _resources.add(
-                  _OrganizationResource(
-                    title: titleController.text.trim(),
-                    category: categoryController.text.trim(),
-                    description: descriptionController.text.trim(),
-                    icon: Icons.groups_outlined,
-                  ),
-                );
+                if (isEditing) {
+                  _resources[index] = resource;
+                } else {
+                  _resources.add(resource);
+                }
               });
               Navigator.of(dialogContext).pop();
             },
-            child: const Text('Add'),
+            child: Text(isEditing ? 'Save' : 'Add'),
           ),
         ],
       ),
@@ -140,7 +148,7 @@ class _OrganizationResourcesScreenState
           IconButton(
             icon: const Icon(Icons.content_paste),
             tooltip: 'Add resource',
-            onPressed: _showAddResourceDialog,
+            onPressed: () => _showResourceDialog(),
           ),
       ],
       body: Scaffold(
@@ -155,6 +163,7 @@ class _OrganizationResourcesScreenState
               resource: resource,
               isAdmin: isAdmin,
               onTap: () => _showResourceInformation(resource),
+              onEdit: () => _showResourceDialog(index: index),
               onDelete: () => _deleteResource(index),
             );
           },
@@ -182,12 +191,14 @@ class _ResourceCard extends StatelessWidget {
   final _OrganizationResource resource;
   final bool isAdmin;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ResourceCard({
     required this.resource,
     required this.isAdmin,
     required this.onTap,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -251,15 +262,23 @@ class _ResourceCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Delete button
                 if (isAdmin)
-                  IconButton(
-                    icon: Icon(
-                      Icons.remove_circle_outline,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    tooltip: 'Delete resource',
-                    onPressed: onDelete,
+                  Column(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: _primaryGreen),
+                        tooltip: 'Edit resource',
+                        onPressed: onEdit,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.remove_circle_outline,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        tooltip: 'Delete resource',
+                        onPressed: onDelete,
+                      ),
+                    ],
                   ),
               ],
             ),
