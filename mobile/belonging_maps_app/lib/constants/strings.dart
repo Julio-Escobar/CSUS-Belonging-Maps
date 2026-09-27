@@ -10,7 +10,7 @@ class AppStrings {
       'support, and a sense of community. Each community map '
       'includes two complementary features: the Campus Belonging '
       'Map, which highlights campus spaces, organizations, and '
-      'services designed to help people thrive at Sac State; ' 
+      'services designed to help people thrive at Sac State; '
       'and the Regional Community Belonging Map, which '
       'introduces users to local businesses, cultural centers, '
       'and community organizations that reflect the vibrancy of '
@@ -35,5 +35,8 @@ class AppStrings {
       'in this work and helping us amplify the voices and stories '
       'that make our communities stronger.';
 
-
+  // TODO: Replace with the real survey links from the project sponsor.
+  static const String feedbackSurveyUrl = 'https://forms.gle/feedback-survey';
+  static const String whatIsMissingSurveyUrl =
+      'https://forms.gle/what-is-missing-survey';
 }
