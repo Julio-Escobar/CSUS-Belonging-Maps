@@ -17,7 +17,8 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
     {
       'label': 'SOMOS Campus Map',
       'subtitle': 'Mapping Our Campus',
-      'imagePath': 'assets/somosCampusMap.png',
+      'imagePath': 'assets/somoscampusmap.PNG',
+      'logoPath': 'assets/somos_logo_temp.png',
     },
   ];
 
@@ -90,6 +91,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
               label: 'SOMOS Campus Map',
               subtitle: 'SOMOS Campus',
               imagePath: 'assets/somoscampusmap.PNG',
+              logoPath: 'assets/somos_logo_temp.png',
               onTap: () {
                 Navigator.push(
                   context,
@@ -104,6 +106,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
               label: 'Ummah Campus Map',
               subtitle: 'Ummah Campus',
               imagePath: 'assets/ummahcampusmap.png',
+              logoPath: 'assets/ummah_logo_temp.png',
               onTap: () {
                 Navigator.push(
                   context,
@@ -118,6 +121,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
               label: 'Ubuntu Campus Map',
               subtitle: 'Ubuntu Campus',
               imagePath: 'assets/ubuntucampusmap.png',
+              logoPath: 'assets/ubuntu_logo_temp.png',
               onTap: () {
                 Navigator.push(
                   context,
@@ -154,6 +158,7 @@ class _CampusMapsScreenState extends State<CampusMapsScreen> {
                       label: map['label']!,
                       subtitle: map['subtitle']!,
                       imagePath: map['imagePath']!,
+                      logoPath: map['logoPath']!,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -178,12 +183,14 @@ class _MapButton extends StatefulWidget {
   final String label;
   final String subtitle;
   final String imagePath;
+  final String logoPath;
   final VoidCallback onTap;
 
   const _MapButton({
     required this.label,
     required this.subtitle,
     required this.imagePath,
+    required this.logoPath,
     required this.onTap,
   });
 
@@ -246,6 +253,15 @@ class _MapButtonState extends State<_MapButton>
               fit: StackFit.expand,
               children: [
                 Image.asset(widget.imagePath, fit: BoxFit.cover),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.white,
+                    backgroundImage: AssetImage(widget.logoPath),
+                  ),
+                ),
                 Positioned(
                   bottom: 0,
                   left: 0,
