@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
+import 'somos_community_map.dart';
+import 'ummah_community_map.dart';
+import 'ubuntu_community_map.dart';
 
 const Color _primaryGreen = Color(0xFF2F5F3E);
 const Color _pageBackground = Color(0xFFF9F5FA);
@@ -16,24 +19,96 @@ class OrganizationResourcesScreen extends StatefulWidget {
 
 class _OrganizationResourcesScreenState
     extends State<OrganizationResourcesScreen> {
+  // Maps each org key to the community map screen it should link to.
+  // TODO: contact emails and meeting times below are placeholders —
+  // swap in the real details before shipping.
+  static final Map<String, Widget Function()> _orgMapBuilders = {
+    'somos': () => const SomosCommunityMap(),
+    'ummah': () => const UmmahCommunityMap(),
+    'ubuntu': () => const UbuntuCommunityMap(),
+  };
+
+  static const Map<String, String> _orgLabels = {
+    'somos': 'SOMOS',
+    'ummah': 'Ummah',
+    'ubuntu': 'Ubuntu',
+  };
+
   final List<_OrganizationResource> _resources = [
     const _OrganizationResource(
       title: 'SOMOS Student Organization',
       category: 'SOMOS',
       description: 'Resources and support for SOMOS community members.',
       icon: Icons.groups_outlined,
+      orgKey: 'somos',
+    ),
+    const _OrganizationResource(
+      title: 'SOMOS Meeting Times',
+      category: 'SOMOS',
+      description:
+          'TODO: replace with real meeting schedule, e.g. "Weekly meetings '
+          'every Thursday at 5:00 PM in the Multicultural Center."',
+      icon: Icons.event_outlined,
+      orgKey: 'somos',
+    ),
+    const _OrganizationResource(
+      title: 'SOMOS Contact Info',
+      category: 'SOMOS',
+      description:
+          'TODO: replace with real contact details, e.g. an email address '
+          'or social media handle for the SOMOS Student Organization.',
+      icon: Icons.mail_outline,
+      orgKey: 'somos',
     ),
     const _OrganizationResource(
       title: 'Ummah Student Organization',
       category: 'Ummah',
       description: 'Resources and support for the Ummah community.',
       icon: Icons.groups_outlined,
+      orgKey: 'ummah',
+    ),
+    const _OrganizationResource(
+      title: 'Ummah Meeting Times',
+      category: 'Ummah',
+      description:
+          'TODO: replace with real meeting schedule, e.g. "Jummah gathering '
+          'every Friday at 1:00 PM, followed by a general meeting."',
+      icon: Icons.event_outlined,
+      orgKey: 'ummah',
+    ),
+    const _OrganizationResource(
+      title: 'Ummah Contact Info',
+      category: 'Ummah',
+      description:
+          'TODO: replace with real contact details, e.g. an email address '
+          'or social media handle for the Ummah Student Organization.',
+      icon: Icons.mail_outline,
+      orgKey: 'ummah',
     ),
     const _OrganizationResource(
       title: 'Ubuntu Student Organization',
       category: 'Ubuntu',
       description: 'Resources and support for the Ubuntu community.',
       icon: Icons.groups_outlined,
+      orgKey: 'ubuntu',
+    ),
+    const _OrganizationResource(
+      title: 'Ubuntu Meeting Times',
+      category: 'Ubuntu',
+      description:
+          'TODO: replace with real meeting schedule, e.g. "Meetings held '
+          'biweekly on Wednesdays at 4:00 PM."',
+      icon: Icons.event_outlined,
+      orgKey: 'ubuntu',
+    ),
+    const _OrganizationResource(
+      title: 'Ubuntu Contact Info',
+      category: 'Ubuntu',
+      description:
+          'TODO: replace with real contact details, e.g. an email address '
+          'or social media handle for the Ubuntu Student Organization.',
+      icon: Icons.mail_outline,
+      orgKey: 'ubuntu',
     ),
   ];
 
@@ -44,6 +119,8 @@ class _OrganizationResourcesScreenState
     'home': Icons.home_outlined,
     'public': Icons.public_outlined,
     'star': Icons.star_outline,
+    'event': Icons.event_outlined,
+    'mail': Icons.mail_outline,
   };
 
   static String _keyForIcon(IconData icon) {
@@ -68,6 +145,7 @@ class _OrganizationResourcesScreenState
     String selectedIcon = existing != null
         ? _keyForIcon(existing.icon)
         : 'groups';
+    String selectedOrgKey = existing?.orgKey ?? _orgLabels.keys.first;
     final formKey = GlobalKey<FormState>();
 
     showDialog<void>(
@@ -140,6 +218,26 @@ class _OrganizationResourcesScreenState
                           }
                         },
                       ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedOrgKey,
+                        decoration: const InputDecoration(
+                          labelText: 'Organization (links to its map)',
+                        ),
+                        items: _orgLabels.entries
+                            .map(
+                              (entry) => DropdownMenuItem(
+                                value: entry.key,
+                                child: Text(entry.value),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            dialogSetState(() => selectedOrgKey = value);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -158,6 +256,7 @@ class _OrganizationResourcesScreenState
                       category: categoryController.text.trim(),
                       description: descriptionController.text.trim(),
                       icon: _iconOptions[selectedIcon]!,
+                      orgKey: selectedOrgKey,
                     );
                     setState(() {
                       if (isEditing) {
@@ -212,6 +311,22 @@ class _OrganizationResourcesScreenState
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final mapBuilder = _orgMapBuilders[resource.orgKey];
+              if (mapBuilder == null) return;
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => mapBuilder()),
+              );
+            },
+            icon: const Icon(Icons.map_outlined, color: Colors.white),
+            label: const Text(
+              'View on Map',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -288,12 +403,14 @@ class _OrganizationResource {
   final String category;
   final String description;
   final IconData icon;
+  final String orgKey;
 
   const _OrganizationResource({
     required this.title,
     required this.category,
     required this.description,
     required this.icon,
+    required this.orgKey,
   });
 }
 
