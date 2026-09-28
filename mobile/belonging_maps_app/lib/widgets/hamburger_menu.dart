@@ -9,6 +9,7 @@ import '../screens/about_us_screen.dart';
 import '../screens/accessibility_settings_screen.dart';
 import '../screens/opportunities.dart';
 import '../screens/surveys_screen.dart';
+import '../screens/forums_screen.dart';
 import '../services/auth_service.dart';
 import '../services/accessibility_theme.dart';
 
@@ -211,7 +212,24 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             },
                           ),
                           const Divider(),
-
+                          
+                          ListTile(
+                        leading: const Icon(Icons.forum_outlined),
+                        title: const Text('Forums'),
+                        textColor: colors.onPrimary,
+                        iconColor: colors.menuIcon,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ForumsScreen(),
+                            ),
+                          );
+                          _closeDrawer();
+                        },
+                      ),
+                      const Divider(),
+                          
                           ListTile(
                             leading: const Icon(Icons.assignment_outlined),
                             title: const Text('Surveys'),
