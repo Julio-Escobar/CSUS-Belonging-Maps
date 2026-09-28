@@ -11,7 +11,8 @@ import '../widgets/hamburger_menu.dart';
 const String _storageKey = 'surveys_v1';
 
 /// Lists the survey buttons. Each one opens its survey outside the app
-/// (P1-136, P1-137). Admins can add surveys with the plus icon (P1-141, P1-142).
+/// (P1-136, P1-137). Admins can add surveys with the plus icon (P1-141, P1-142)
+/// and edit or delete them from each card.
 class SurveysScreen extends StatefulWidget {
   const SurveysScreen({super.key});
 
@@ -95,21 +96,67 @@ class _SurveysScreenState extends State<SurveysScreen> {
     }
   }
 
-  Future<void> _showAddSurveyDialog() async {
+  // Admin only. Pass an index to edit that survey; omit it to add a new one.
+  Future<void> _showSurveyDialog({int? index}) async {
+    final isEditing = index != null;
     final result = await showDialog<Survey>(
       context: context,
-      builder: (_) => const _AddSurveyDialog(),
+      builder: (_) => _SurveyEditorDialog(
+        initialSurvey: isEditing ? _surveys[index] : null,
+      ),
     );
 
     if (result == null) return;
 
-    setState(() => _surveys.add(result));
+    setState(() {
+      if (isEditing) {
+        _surveys[index] = result;
+      } else {
+        _surveys.add(result);
+      }
+    });
+    await _saveSurveys();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEditing ? 'Survey updated' : 'Survey added')),
+      );
+    }
+  }
+
+  Future<void> _deleteSurvey(int index) async {
+    final colors = AccessibilityColors.of(context);
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Survey'),
+        content: const Text('Are you sure you want to delete this survey?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.onPrimary,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    setState(() => _surveys.removeAt(index));
     await _saveSurveys();
 
     if (mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Survey added')));
+      ).showSnackBar(const SnackBar(content: Text('Survey deleted')));
     }
   }
 
@@ -126,7 +173,7 @@ class _SurveysScreenState extends State<SurveysScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add survey',
-            onPressed: _showAddSurveyDialog,
+            onPressed: () => _showSurveyDialog(),
           ),
       ],
       body: Scaffold(
@@ -141,7 +188,10 @@ class _SurveysScreenState extends State<SurveysScreen> {
                   final survey = _surveys[index];
                   return _SurveyCard(
                     survey: survey,
+                    isAdmin: isAdmin,
                     onOpen: () => _openSurvey(survey),
+                    onEdit: () => _showSurveyDialog(index: index),
+                    onDelete: () => _deleteSurvey(index),
                   );
                 },
               ),
@@ -178,9 +228,18 @@ class Survey {
 
 class _SurveyCard extends StatelessWidget {
   final Survey survey;
+  final bool isAdmin;
   final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _SurveyCard({required this.survey, required this.onOpen});
+  const _SurveyCard({
+    required this.survey,
+    required this.isAdmin,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -223,6 +282,25 @@ class _SurveyCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
+            if (isAdmin)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.build, color: colors.action),
+                    tooltip: 'Edit ${survey.title}',
+                    onPressed: onEdit,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: colors.destructive,
+                    ),
+                    tooltip: 'Delete ${survey.title}',
+                    onPressed: onDelete,
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -230,18 +308,28 @@ class _SurveyCard extends StatelessWidget {
   }
 }
 
-class _AddSurveyDialog extends StatefulWidget {
-  const _AddSurveyDialog();
+class _SurveyEditorDialog extends StatefulWidget {
+  final Survey? initialSurvey;
+
+  const _SurveyEditorDialog({this.initialSurvey});
 
   @override
-  State<_AddSurveyDialog> createState() => _AddSurveyDialogState();
+  State<_SurveyEditorDialog> createState() => _SurveyEditorDialogState();
 }
 
-class _AddSurveyDialogState extends State<_AddSurveyDialog> {
+class _SurveyEditorDialogState extends State<_SurveyEditorDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _urlController = TextEditingController();
+  late final _titleController = TextEditingController(
+    text: widget.initialSurvey?.title,
+  );
+  late final _descriptionController = TextEditingController(
+    text: widget.initialSurvey?.description,
+  );
+  late final _urlController = TextEditingController(
+    text: widget.initialSurvey?.url,
+  );
+
+  bool get _isEditing => widget.initialSurvey != null;
 
   @override
   void dispose() {
@@ -279,7 +367,7 @@ class _AddSurveyDialogState extends State<_AddSurveyDialog> {
     final colors = AccessibilityColors.of(context);
 
     return AlertDialog(
-      title: const Text('Add Survey'),
+      title: Text(_isEditing ? 'Edit Survey' : 'Add Survey'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -324,7 +412,7 @@ class _AddSurveyDialogState extends State<_AddSurveyDialog> {
             foregroundColor: colors.onPrimary,
           ),
           onPressed: _submit,
-          child: const Text('Add'),
+          child: Text(_isEditing ? 'Update' : 'Add'),
         ),
       ],
     );

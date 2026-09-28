@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
@@ -10,6 +13,7 @@ import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
 import '/services/current_location.dart';
+import '/services/map_icon_renderer.dart';
 
 class UmmahCommunityMap extends StatefulWidget {
   const UmmahCommunityMap({super.key});
@@ -116,6 +120,31 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
     _mapController.graphicsOverlays.add(_userOverlay);
+
+    unawaited(
+      applyLayerIconRenderers([
+        LayerIconAssignment(
+          layer: _ummahBusinessServicesLayer,
+          config: ummahLayerIcons['businessServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _ummahCommunityServicesLayer,
+          config: ummahLayerIcons['communityServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _ummahHalalFoodsLayer,
+          config: ummahLayerIcons['halalFoods']!,
+        ),
+        LayerIconAssignment(
+          layer: _ummahReligiousCulturalLayer,
+          config: ummahLayerIcons['religiousCultural']!,
+        ),
+        LayerIconAssignment(
+          layer: _ummahEducationLayer,
+          config: ummahLayerIcons['education']!,
+        ),
+      ]),
+    );
   }
 
   @override

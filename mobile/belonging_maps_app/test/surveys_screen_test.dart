@@ -100,4 +100,54 @@ void main() {
     );
     expect(find.text('Add Survey'), findsOneWidget);
   });
+
+  testWidgets('hides edit and delete from non-admins', (tester) async {
+    AuthService.isAdmin = false;
+    await _pumpSurveys(tester);
+
+    expect(find.byTooltip('Edit Feedback Survey'), findsNothing);
+    expect(find.byTooltip('Delete Feedback Survey'), findsNothing);
+  });
+
+  testWidgets('admin can edit a survey', (tester) async {
+    AuthService.isAdmin = true;
+    await _pumpSurveys(tester);
+
+    await tester.tap(find.byTooltip('Edit Feedback Survey'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Survey'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Survey Name'),
+      'App Feedback',
+    );
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ElevatedButton, 'App Feedback'), findsOneWidget);
+    expect(
+      find.widgetWithText(ElevatedButton, 'Feedback Survey'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('admin can delete a survey after confirming', (tester) async {
+    AuthService.isAdmin = true;
+    await _pumpSurveys(tester);
+
+    await tester.tap(find.byTooltip('Delete Feedback Survey'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.widgetWithText(ElevatedButton, 'Feedback Survey'),
+      findsNothing,
+    );
+    expect(
+      find.widgetWithText(ElevatedButton, 'What is Missing Survey'),
+      findsOneWidget,
+    );
+  });
 }

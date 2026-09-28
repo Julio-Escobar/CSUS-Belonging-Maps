@@ -16,12 +16,14 @@ class LoginScreen extends StatelessWidget {
     final username = usernameController.text;
     final password = passwordController.text;
 
-    final url = Uri.parse(
-      'http://10.0.2.2:5162/api/auth/login?username=$username&password=$password',
-    );
+    final url = Uri.parse('http://10.0.2.2:5162/api/auth/login');
 
     try {
-      final response = await http.get(url);
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

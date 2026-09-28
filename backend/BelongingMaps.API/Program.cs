@@ -10,6 +10,19 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        DbSeeder.SeedAdmin(db);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Admin seeding skipped: database unavailable.");
+    }
+}
+
 app.MapControllers();
 
 app.Run();

@@ -24,6 +24,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Surveys'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Surveys'));
     await tester.pumpAndSettle();
 
