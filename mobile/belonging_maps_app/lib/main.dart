@@ -3,6 +3,7 @@ import 'package:belonging_maps_app/screens/opportunities.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
 import 'package:belonging_maps_app/screens/map_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -31,7 +32,7 @@ class BelongingMapsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // detect path for web
-    final uri = Uri.base;
+    final uri = kIsWeb ? Uri.base : Uri(path: '/');
     String initial = uri.path;
     if (initial == '/' || initial.isEmpty) {
       // if using hash routing (default for Flutter web) the fragment may hold the route
