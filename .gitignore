@@ -6,3 +6,4 @@
 
 # env
 .env
+backend/BelongingMaps.API/appsettings.Development.json
