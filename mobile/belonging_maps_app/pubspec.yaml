@@ -99,6 +99,17 @@ flutter:
   assets:
     - assets/
     - .env
+    # Community map icons. Flutter only bundles files located directly in a
+    # listed directory, so each icon subdirectory needs its own entry.
+    # The `.svg` sources are rasterized to `.png` (see tool/svg_to_png.mjs)
+    # because ArcGIS picture-marker symbols cannot load SVG.
+    - assets/map_icons/business/
+    - assets/map_icons/business/BSI-Special-Food-Icons/
+    - assets/map_icons/community-service/
+    - assets/map_icons/edcuation/
+    - assets/map_icons/food/
+    - assets/map_icons/public-art/
+    - assets/map_icons/religious/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

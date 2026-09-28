@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using BelongingMaps.API.Data;
+using BelongingMaps.API.Models;
 using System.Linq;
 
 [ApiController]
@@ -13,13 +14,13 @@ public class AuthController : ControllerBase
         _context = context;
     }
 
-    [HttpGet("login")]
-    public IActionResult Login(string username, string password)
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] LoginRequest request)
     {
         var user = _context.Users
-            .FirstOrDefault(u => u.Username == username && u.PasswordHash == password);
+            .FirstOrDefault(u => u.Username == request.Username);
 
-        if (user == null)
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized();
 
         return Ok(new { role = user.Role });

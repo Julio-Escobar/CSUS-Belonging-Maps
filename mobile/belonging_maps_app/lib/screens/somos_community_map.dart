@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
@@ -10,6 +13,7 @@ import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
 import '/services/current_location.dart';
+import '/services/map_icon_renderer.dart';
 
 class SomosCommunityMap extends StatefulWidget {
   const SomosCommunityMap({super.key});
@@ -106,6 +110,35 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
     _mapController.graphicsOverlays.add(_userOverlay);
+
+    unawaited(
+      applyLayerIconRenderers([
+        LayerIconAssignment(
+          layer: _somosBusinessesLayer,
+          config: somosLayerIcons['businesses']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosReligionLayer,
+          config: somosLayerIcons['religion']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosFoodLayer,
+          config: somosLayerIcons['food']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosPublicArtsLayer,
+          config: somosLayerIcons['publicArts']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosCommunityServicesLayer,
+          config: somosLayerIcons['communityServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosEducationLayer,
+          config: somosLayerIcons['education']!,
+        ),
+      ]),
+    );
   }
 
   @override

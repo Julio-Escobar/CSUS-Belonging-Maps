@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
@@ -10,6 +13,7 @@ import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
 import '/services/current_location.dart';
+import '/services/map_icon_renderer.dart';
 
 class UbuntuCommunityMap extends StatefulWidget {
   const UbuntuCommunityMap({super.key});
@@ -44,7 +48,7 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
   List<MapLayerEntry> get _layerEntries => [
-        MapLayerEntry(label: 'Businesses', layer: _ubuntuBusinessesLayer),
+        MapLayerEntry(label: 'Black Owned Businesses', layer: _ubuntuBusinessesLayer),
         MapLayerEntry(
           label: 'Community Services',
           layer: _ubuntuCommunityServicesLayer,
@@ -100,6 +104,27 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
     _mapController.graphicsOverlays.add(_userOverlay);
+
+    unawaited(
+      applyLayerIconRenderers([
+        LayerIconAssignment(
+          layer: _ubuntuBusinessesLayer,
+          config: ubuntuLayerIcons['businesses']!,
+        ),
+        LayerIconAssignment(
+          layer: _ubuntuCommunityServicesLayer,
+          config: ubuntuLayerIcons['communityServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _ubuntuReligiousLayer,
+          config: ubuntuLayerIcons['religious']!,
+        ),
+        LayerIconAssignment(
+          layer: _ubuntuEducationLayer,
+          config: ubuntuLayerIcons['education']!,
+        ),
+      ]),
+    );
   }
 
   @override
