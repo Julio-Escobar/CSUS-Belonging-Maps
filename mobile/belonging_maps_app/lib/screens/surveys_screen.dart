@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../widgets/hamburger_menu.dart';
+import '../constants/strings.dart';
 import '../services/accessibility_theme.dart';
+import '../services/auth_service.dart';
+import '../widgets/hamburger_menu.dart';
 
-//admin = true for testing
-final bool isAdmin = true;
+const String _storageKey = 'surveys_v1';
 
-const String _storageKey = 'surveys_resources_v1';
-
+/// Lists the survey buttons. Each one opens its survey outside the app
+/// (P1-136, P1-137). Admins can add surveys with the plus icon (P1-141, P1-142)
+/// and edit or delete them from each card.
 class SurveysScreen extends StatefulWidget {
   const SurveysScreen({super.key});
 
@@ -19,35 +22,39 @@ class SurveysScreen extends StatefulWidget {
 
 class _SurveysScreenState extends State<SurveysScreen> {
   bool _isLoading = true;
-  List<_SurveyResource> _resources = [];
+  List<Survey> _surveys = [];
 
-  //sample survey
-  static const List<_SurveyResource> _defaultResources = [
-    _SurveyResource(
-      title: 'Sample Feedback Survey',
-      description: 'A placeholder survey to test the layout and admin tools.',
+  static const List<Survey> _defaultSurveys = [
+    Survey(
+      title: 'Feedback Survey',
+      description: 'Tell us how the Belonging Maps app is working for you.',
+      url: AppStrings.feedbackSurveyUrl,
+    ),
+    Survey(
+      title: 'What is Missing Survey',
+      description:
+          'Let us know about places, organizations, or resources we should add.',
+      url: AppStrings.whatIsMissingSurveyUrl,
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _loadResources();
+    _loadSurveys();
   }
 
-  Future<void> _loadResources() async {
+  Future<void> _loadSurveys() async {
     final prefs = await SharedPreferences.getInstance();
     final storedJson = prefs.getString(_storageKey);
 
     if (storedJson != null && storedJson.isNotEmpty) {
       try {
         final List<dynamic> decoded = jsonDecode(storedJson);
+        if (!mounted) return;
         setState(() {
-          _resources = decoded
-              .map(
-                (item) =>
-                    _SurveyResource.fromJson(item as Map<String, dynamic>),
-              )
+          _surveys = decoded
+              .map((item) => Survey.fromJson(item as Map<String, dynamic>))
               .toList();
           _isLoading = false;
         });
@@ -55,42 +62,69 @@ class _SurveysScreenState extends State<SurveysScreen> {
       } catch (_) {}
     }
 
+    if (!mounted) return;
     setState(() {
-      _resources = List<_SurveyResource>.from(_defaultResources);
+      _surveys = List<Survey>.from(_defaultSurveys);
       _isLoading = false;
     });
-    await _saveResources();
+    await _saveSurveys();
   }
 
-  Future<void> _saveResources() async {
+  Future<void> _saveSurveys() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _storageKey,
-      jsonEncode(_resources.map((res) => res.toJson()).toList()),
+      jsonEncode(_surveys.map((survey) => survey.toJson()).toList()),
     );
   }
 
-  void _showEditDialog(int index) async {
-    final target = _resources[index];
+  Future<void> _openSurvey(Survey survey) async {
+    final uri = Uri.tryParse(survey.url.trim());
+    if (uri == null || !uri.hasScheme) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid survey link')));
+      return;
+    }
 
-    final result = await showDialog<_SurveyResource>(
-      context: context,
-      builder: (dialogContext) => _SurveyEditorDialog(initialResource: target),
-    );
-
-    if (result != null) {
-      setState(() => _resources[index] = result);
-      await _saveResources();
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Survey updated')));
-      }
+    // External mode sends the user to the browser instead of an in-app view.
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not open ${survey.title}')));
     }
   }
 
-  void _deleteResource(int index) async {
+  // Admin only. Pass an index to edit that survey; omit it to add a new one.
+  Future<void> _showSurveyDialog({int? index}) async {
+    final isEditing = index != null;
+    final result = await showDialog<Survey>(
+      context: context,
+      builder: (_) => _SurveyEditorDialog(
+        initialSurvey: isEditing ? _surveys[index] : null,
+      ),
+    );
+
+    if (result == null) return;
+
+    setState(() {
+      if (isEditing) {
+        _surveys[index] = result;
+      } else {
+        _surveys.add(result);
+      }
+    });
+    await _saveSurveys();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEditing ? 'Survey updated' : 'Survey added')),
+      );
+    }
+  }
+
+  Future<void> _deleteSurvey(int index) async {
     final colors = AccessibilityColors.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -114,39 +148,50 @@ class _SurveysScreenState extends State<SurveysScreen> {
       ),
     );
 
-    if (shouldDelete == true) {
-      setState(() => _resources.removeAt(index));
-      await _saveResources();
+    if (shouldDelete != true) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Survey deleted')));
-      }
+    setState(() => _surveys.removeAt(index));
+    await _saveSurveys();
+
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Survey deleted')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+    final isAdmin = AuthService.isAdmin;
 
     return HamburgerMenu(
       title: 'Surveys',
+      actions: [
+        // Admin add survey button
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add survey',
+            onPressed: () => _showSurveyDialog(),
+          ),
+      ],
       body: Scaffold(
         backgroundColor: colors.pageBackground,
         body: _isLoading
             ? Center(child: CircularProgressIndicator(color: colors.primary))
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemCount: _resources.length,
+                itemCount: _surveys.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final resource = _resources[index];
-                  return _ResourceCard(
-                    resource: resource,
+                  final survey = _surveys[index];
+                  return _SurveyCard(
+                    survey: survey,
                     isAdmin: isAdmin,
-                    onEdit: () => _showEditDialog(index),
-                    onDelete: () => _deleteResource(index),
+                    onOpen: () => _openSurvey(survey),
+                    onEdit: () => _showSurveyDialog(index: index),
+                    onDelete: () => _deleteSurvey(index),
                   );
                 },
               ),
@@ -155,140 +200,43 @@ class _SurveysScreenState extends State<SurveysScreen> {
   }
 }
 
-class _SurveyEditorDialog extends StatefulWidget {
-  final _SurveyResource initialResource;
-
-  const _SurveyEditorDialog({required this.initialResource});
-
-  @override
-  State<_SurveyEditorDialog> createState() => _SurveyEditorDialogState();
-}
-
-class _SurveyEditorDialogState extends State<_SurveyEditorDialog> {
-  late TextEditingController titleController;
-  late TextEditingController descriptionController;
-
-  final formKey = GlobalKey<FormState>();
-
-  @override
-  void initState() {
-    super.initState();
-    titleController = TextEditingController(text: widget.initialResource.title);
-    descriptionController = TextEditingController(
-      text: widget.initialResource.description,
-    );
-  }
-
-  @override
-  void dispose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AccessibilityColors.of(context);
-
-    return AlertDialog(
-      title: const Text('Edit Survey'),
-      content: Form(
-        key: formKey,
-        child: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Required'
-                      : null,
-                ),
-                TextFormField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                  maxLines: 3,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Required'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // Placeholder for future feedback survey functionality. For addition within other tickets.
-                  },
-                  icon: const Icon(Icons.feedback_outlined),
-                  label: const Text('Feedback Survey'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // Placeholder for future "What is Missing" survey functionality.
-                  },
-                  icon: const Icon(Icons.help_outline),
-                  label: const Text('What is Missing'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colors.primary,
-            foregroundColor: colors.onPrimary,
-          ),
-          onPressed: () {
-            if (!formKey.currentState!.validate()) return;
-
-            Navigator.pop(
-              context,
-              _SurveyResource(
-                title: titleController.text.trim(),
-                description: descriptionController.text.trim(),
-              ),
-            );
-          },
-          child: const Text('Update'),
-        ),
-      ],
-    );
-  }
-}
-
-class _SurveyResource {
+class Survey {
   final String title;
   final String description;
+  final String url;
 
-  const _SurveyResource({required this.title, required this.description});
+  const Survey({
+    required this.title,
+    required this.description,
+    required this.url,
+  });
 
-  Map<String, dynamic> toJson() => {'title': title, 'description': description};
+  factory Survey.fromJson(Map<String, dynamic> json) {
+    return Survey(
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      url: json['url'] as String? ?? '',
+    );
+  }
 
-  factory _SurveyResource.fromJson(Map<String, dynamic> json) =>
-      _SurveyResource(
-        title: json['title'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-      );
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'description': description,
+    'url': url,
+  };
 }
 
-class _ResourceCard extends StatelessWidget {
-  final _SurveyResource resource;
+class _SurveyCard extends StatelessWidget {
+  final Survey survey;
   final bool isAdmin;
+  final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _ResourceCard({
-    required this.resource,
+  const _SurveyCard({
+    required this.survey,
     required this.isAdmin,
+    required this.onOpen,
     required this.onEdit,
     required this.onDelete,
   });
@@ -298,62 +246,49 @@ class _ResourceCard extends StatelessWidget {
     final colors = AccessibilityColors.of(context);
 
     return Card(
+      color: colors.cardBackground,
       elevation: 2,
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+            if (survey.description.isNotEmpty) ...[
+              Text(
+                survey.description,
+                style: TextStyle(
+                  color: colors.secondaryText,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
-              child: Icon(
-                Icons.assignment_outlined,
-                color: colors.primary,
-                size: 26,
+              const SizedBox(height: 12),
+            ],
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    resource.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.primaryText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    resource.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.secondaryText,
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+              onPressed: onOpen,
+              icon: const Icon(Icons.open_in_new),
+              label: Text(
+                survey.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            if (isAdmin) ...[
-              const SizedBox(width: 6),
-              Column(
+            if (isAdmin)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(
                     icon: Icon(Icons.build, color: colors.action),
-                    tooltip: 'Edit ${resource.title}',
+                    tooltip: 'Edit ${survey.title}',
                     onPressed: onEdit,
                   ),
                   IconButton(
@@ -361,15 +296,125 @@ class _ResourceCard extends StatelessWidget {
                       Icons.remove_circle_outline,
                       color: colors.destructive,
                     ),
-                    tooltip: 'Delete ${resource.title}',
+                    tooltip: 'Delete ${survey.title}',
                     onPressed: onDelete,
                   ),
                 ],
               ),
-            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SurveyEditorDialog extends StatefulWidget {
+  final Survey? initialSurvey;
+
+  const _SurveyEditorDialog({this.initialSurvey});
+
+  @override
+  State<_SurveyEditorDialog> createState() => _SurveyEditorDialogState();
+}
+
+class _SurveyEditorDialogState extends State<_SurveyEditorDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final _titleController = TextEditingController(
+    text: widget.initialSurvey?.title,
+  );
+  late final _descriptionController = TextEditingController(
+    text: widget.initialSurvey?.description,
+  );
+  late final _urlController = TextEditingController(
+    text: widget.initialSurvey?.url,
+  );
+
+  bool get _isEditing => widget.initialSurvey != null;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  String? _validateUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return 'Enter the survey link';
+    final uri = Uri.tryParse(text);
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        uri.host.isEmpty) {
+      return 'Enter a full link starting with https://';
+    }
+    return null;
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(
+      Survey(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        url: _urlController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
+    return AlertDialog(
+      title: Text(_isEditing ? 'Edit Survey' : 'Add Survey'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Survey Name'),
+                textInputAction: TextInputAction.next,
+                validator: (value) => (value?.trim().isEmpty ?? true)
+                    ? 'Enter a survey name'
+                    : null,
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                minLines: 1,
+              ),
+              TextFormField(
+                controller: _urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Survey Link',
+                  hintText: 'https://',
+                ),
+                keyboardType: TextInputType.url,
+                validator: _validateUrl,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
+          ),
+          onPressed: _submit,
+          child: Text(_isEditing ? 'Update' : 'Add'),
+        ),
+      ],
     );
   }
 }
