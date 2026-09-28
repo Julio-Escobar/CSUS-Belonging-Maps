@@ -37,6 +37,24 @@ class _OrganizationResourcesScreenState
     ),
   ];
 
+  static const Map<String, IconData> _iconOptions = {
+    'groups': Icons.groups_outlined,
+    'school': Icons.school_outlined,
+    'diversity': Icons.diversity_3,
+    'home': Icons.home_outlined,
+    'public': Icons.public_outlined,
+    'star': Icons.star_outline,
+  };
+
+  static String _keyForIcon(IconData icon) {
+    return _iconOptions.entries
+        .firstWhere(
+          (entry) => entry.value == icon,
+          orElse: () => _iconOptions.entries.first,
+        )
+        .key;
+  }
+
   // Admin only. Pass an index to edit that resource; omit it to add a new one.
   void _showResourceDialog({int? index}) {
     final isEditing = index != null;
@@ -47,55 +65,124 @@ class _OrganizationResourcesScreenState
     final descriptionController = TextEditingController(
       text: existing?.description,
     );
+    String selectedIcon = existing != null
+        ? _keyForIcon(existing.icon)
+        : 'groups';
+    final formKey = GlobalKey<FormState>();
 
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(isEditing ? 'Edit Resource' : 'Add Resource'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextField(
-              controller: categoryController,
-              decoration: const InputDecoration(labelText: 'Category'),
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (titleController.text.trim().isEmpty) return;
-              final resource = _OrganizationResource(
-                title: titleController.text.trim(),
-                category: categoryController.text.trim(),
-                description: descriptionController.text.trim(),
-                icon: existing?.icon ?? Icons.groups_outlined,
-              );
-              setState(() {
-                if (isEditing) {
-                  _resources[index] = resource;
-                } else {
-                  _resources.add(resource);
-                }
-              });
-              Navigator.of(dialogContext).pop();
-            },
-            child: Text(isEditing ? 'Save' : 'Add'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContextBuild, dialogSetState) {
+            return AlertDialog(
+              title: Text(isEditing ? 'Edit Resource' : 'Add Resource'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Title'),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? 'Required'
+                                : null,
+                      ),
+                      TextFormField(
+                        controller: categoryController,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                        ),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? 'Required'
+                                : null,
+                      ),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        maxLines: 3,
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? 'Required'
+                                : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedIcon,
+                        decoration: const InputDecoration(labelText: 'Icon'),
+                        items: _iconOptions.keys
+                            .map(
+                              (key) => DropdownMenuItem(
+                                value: key,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _iconOptions[key],
+                                      size: 18,
+                                      color: _primaryGreen,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(key[0].toUpperCase() + key.substring(1)),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            dialogSetState(() => selectedIcon = value);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+                  onPressed: () {
+                    if (!formKey.currentState!.validate()) return;
+                    final resource = _OrganizationResource(
+                      title: titleController.text.trim(),
+                      category: categoryController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      icon: _iconOptions[selectedIcon]!,
+                    );
+                    setState(() {
+                      if (isEditing) {
+                        _resources[index] = resource;
+                      } else {
+                        _resources.add(resource);
+                      }
+                    });
+                    Navigator.of(dialogContext).pop();
+                    if (isEditing) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Resource updated')),
+                      );
+                    }
+                  },
+                  child: Text(
+                    isEditing ? 'Update' : 'Add',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -132,7 +219,30 @@ class _OrganizationResourcesScreenState
   }
 
   void _deleteResource(int index) {
-    setState(() => _resources.removeAt(index));
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Resource'),
+        content: const Text('Are you sure you want to delete this resource?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+            onPressed: () {
+              setState(() => _resources.removeAt(index));
+              Navigator.of(dialogContext).pop();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Resource deleted')));
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -248,6 +358,30 @@ class _ResourceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           _CategoryLabel(category: resource.category),
+                          if (isAdmin) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Edit resource',
+                              onPressed: onEdit,
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: _primaryGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Delete resource',
+                              onPressed: onDelete,
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -262,24 +396,6 @@ class _ResourceCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (isAdmin)
-                  Column(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: _primaryGreen),
-                        tooltip: 'Edit resource',
-                        onPressed: onEdit,
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.remove_circle_outline,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        tooltip: 'Delete resource',
-                        onPressed: onDelete,
-                      ),
-                    ],
-                  ),
               ],
             ),
           ),
