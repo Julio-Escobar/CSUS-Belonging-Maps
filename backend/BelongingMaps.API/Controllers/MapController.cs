@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using BelongingMaps.API.Models;
+using BelongingMaps.API.Data;
+using System.Linq;
 
 namespace BelongingMaps.API.Controllers
 {
@@ -7,25 +8,17 @@ namespace BelongingMaps.API.Controllers
     [Route("api/maps")]
     public class MapController : ControllerBase
     {
+        private readonly AppDbContext _context;
+
+        public MapController(AppDbContext context)
+        {
+            _context = context;
+        }
+
         [HttpGet]
         public IActionResult GetLocations()
         {
-            var locations = new List<Location>
-            {
-                new Location
-                {
-                    Title = "Community Center",
-                    Latitude = 38.575,
-                    Longitude = -121.478
-                },
-                new Location
-                {
-                    Title = "School",
-                    Latitude = 38.576,
-                    Longitude = -121.480
-                }
-            };
-
+            var locations = _context.Locations.ToList();
             return Ok(locations);
         }
     }

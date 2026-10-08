@@ -9,5 +9,7 @@ namespace BelongingMaps.API.Data
             : base(options) { }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<Survey> Surveys { get; set; }
     }
 }
