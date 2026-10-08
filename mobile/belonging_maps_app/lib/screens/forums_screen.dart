@@ -1,19 +1,64 @@
 import 'package:flutter/material.dart';
 
 import '../models/forum_post.dart';
+import '../services/auth_service.dart';
 import '../services/forum_post_service.dart';
 import '../widgets/hamburger_menu.dart';
 
-class ForumsScreen extends StatelessWidget {
-  ForumsScreen({super.key, List<ForumPost>? posts})
-    : posts = posts ?? ForumPostService.samplePosts();
+class ForumsScreen extends StatefulWidget {
+  ForumsScreen({super.key, List<ForumPost>? posts}) : posts = posts;
 
-  final List<ForumPost> posts;
+  final List<ForumPost>? posts;
+
+  @override
+  State<ForumsScreen> createState() => _ForumsScreenState();
+}
+
+class _ForumsScreenState extends State<ForumsScreen> {
+  late final List<ForumPost> _posts;
+
+  @override
+  void initState() {
+    super.initState();
+    _posts = List<ForumPost>.of(widget.posts ?? ForumPostService.samplePosts());
+  }
+
+  Future<void> _deletePost(ForumPost post) async {
+    if (!AuthService.isAdmin) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this post?'),
+        content: const Text("This can't be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _posts.removeWhere((candidate) => identical(candidate, post));
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+  }
 
   @override
   Widget build(BuildContext context) {
-    final newestFirst = List<ForumPost>.of(posts)
+    final newestFirst = List<ForumPost>.of(_posts)
       ..sort((first, second) => second.postedAt.compareTo(first.postedAt));
+    final isAdmin = AuthService.isAdmin;
 
     return HamburgerMenu(
       title: 'Forums',
@@ -25,6 +70,8 @@ class ForumsScreen extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) => _ForumPostTile(
                 post: newestFirst[index],
+                showDelete: isAdmin,
+                onDelete: () => _deletePost(newestFirst[index]),
               ),
             ),
     );
@@ -32,9 +79,15 @@ class ForumsScreen extends StatelessWidget {
 }
 
 class _ForumPostTile extends StatelessWidget {
-  const _ForumPostTile({required this.post});
+  const _ForumPostTile({
+    required this.post,
+    required this.showDelete,
+    required this.onDelete,
+  });
 
   final ForumPost post;
+  final bool showDelete;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +108,33 @@ class _ForumPostTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              post.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    post.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (showDelete) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Delete post',
+                    onPressed: onDelete,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.delete_outline, color: colors.error),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 8),
             Row(
@@ -117,10 +190,7 @@ class _EmptyForumsState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('No posts yet'),
-      ),
+      child: Padding(padding: EdgeInsets.all(24), child: Text('No posts yet')),
     );
   }
 }
