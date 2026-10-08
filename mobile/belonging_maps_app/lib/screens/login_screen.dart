@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,43 +5,62 @@ import '../widgets/hamburger_menu.dart';
 import '../services/auth_service.dart';
 import 'map_screen.dart';
 
-class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  /// Optional HTTP client so tests can fake the backend.
+  final http.Client? client;
 
+  const LoginScreen({super.key, this.client});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
-  void handleLogin(BuildContext context) async {
-    final username = usernameController.text;
-    final password = passwordController.text;
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
-    final url = Uri.parse('http://10.0.2.2:5162/api/auth/login');
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
-      );
+  Future<void> handleLogin() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    final result = await AuthService.login(
+      usernameController.text,
+      passwordController.text,
+      client: widget.client,
+    );
 
-        AuthService.isAdmin = data['role'] == 'Admin';
+    if (!mounted) return;
+    setState(() => _isLoading = false);
 
+    switch (result) {
+      case LoginResult.success:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MapScreen()),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid credentials")),
+      case LoginResult.invalidCredentials:
+        _showMessage('Invalid credentials');
+      case LoginResult.serverUnreachable:
+        _showMessage(
+          "Can't reach the server. Check your connection and try again.",
         );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Connection error: $e")),
-      );
+      case LoginResult.missingBaseUrl:
+        _showMessage('API_BASE_URL is missing from .env. See .env.example.');
     }
   }
 
@@ -62,11 +80,18 @@ class LoginScreen extends StatelessWidget {
               controller: passwordController,
               decoration: const InputDecoration(labelText: "Password"),
               obscureText: true,
+              onSubmitted: (_) => handleLogin(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => handleLogin(context),
-              child: const Text("Login"),
+              onPressed: _isLoading ? null : handleLogin,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text("Login"),
             ),
           ],
         ),
