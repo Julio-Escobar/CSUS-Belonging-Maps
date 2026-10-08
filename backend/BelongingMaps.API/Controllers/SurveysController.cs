@@ -25,6 +25,7 @@ namespace BelongingMaps.API.Controllers
         [HttpPost]
         public IActionResult AddSurvey([FromBody] Survey survey)
         {
+            survey.Id = 0;
             _context.Surveys.Add(survey);
             _context.SaveChanges();
             return Ok(survey);
