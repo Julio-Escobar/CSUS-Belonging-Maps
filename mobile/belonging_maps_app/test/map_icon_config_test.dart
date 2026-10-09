@@ -20,6 +20,39 @@ void main() {
     });
   });
 
+  group('iconAssetPathForType', () {
+    test('uses the type-specific icon when the value is mapped', () {
+      final config = somosLayerIcons['publicArts']!;
+      expect(
+        iconAssetPathForType(config, 'Sculpture'),
+        mapIconAssetPath(config.byType['Sculpture']!),
+      );
+      expect(
+        iconAssetPathForType(config, 'Mural'),
+        mapIconAssetPath(config.byType['Mural']!),
+      );
+    });
+
+    test('falls back to the default icon for unknown, blank, or null values',
+        () {
+      final config = ubuntuLayerIcons['religious']!;
+      final fallbackPath = mapIconAssetPath(config.fallback);
+
+      expect(iconAssetPathForType(config, 'Unmapped Type'), fallbackPath);
+      expect(iconAssetPathForType(config, ''), fallbackPath);
+      expect(iconAssetPathForType(config, '   '), fallbackPath);
+      expect(iconAssetPathForType(config, null), fallbackPath);
+    });
+
+    test('matches mapped values after trimming surrounding whitespace', () {
+      final config = ubuntuLayerIcons['religious']!;
+      expect(
+        iconAssetPathForType(config, '  Mosque '),
+        mapIconAssetPath(config.byType['Mosque']!),
+      );
+    });
+  });
+
   group('layer icon configurations', () {
     test('configure every layer of each community map', () {
       expect(

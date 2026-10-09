@@ -44,6 +44,9 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
+  /// Holds the enlarged icon drawn on top of the currently selected feature.
+  final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
+
   List<MapLayerEntry> get _layerEntries => [
         MapLayerEntry(label: 'Businesses', layer: _somosBusinessesLayer),
         MapLayerEntry(label: 'Religion', layer: _somosReligionLayer),
@@ -58,6 +61,38 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
 
   List<FeatureLayer> get _layers =>
       _layerEntries.map((entry) => entry.layer).toList();
+
+  /// Pairs each layer with the icon configuration used to render it.
+  List<LayerIconAssignment> get _layerAssignments => [
+        LayerIconAssignment(
+          layer: _somosBusinessesLayer,
+          config: somosLayerIcons['businesses']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosReligionLayer,
+          config: somosLayerIcons['religion']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosFoodLayer,
+          config: somosLayerIcons['food']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosPublicArtsLayer,
+          config: somosLayerIcons['publicArts']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosCommunityServicesLayer,
+          config: somosLayerIcons['communityServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _somosEducationLayer,
+          config: somosLayerIcons['education']!,
+        ),
+      ];
+
+  /// Looks up the icon configuration for a tapped layer.
+  Map<FeatureLayer, LayerIconConfig> get _layerConfigs =>
+      {for (final assignment in _layerAssignments) assignment.layer: assignment.config};
 
   @override
   void initState() {
@@ -109,36 +144,9 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     map.operationalLayers.addAll(_layers);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
-    _mapController.graphicsOverlays.add(_userOverlay);
+    _mapController.graphicsOverlays.addAll([_userOverlay, _selectionOverlay]);
 
-    unawaited(
-      applyLayerIconRenderers([
-        LayerIconAssignment(
-          layer: _somosBusinessesLayer,
-          config: somosLayerIcons['businesses']!,
-        ),
-        LayerIconAssignment(
-          layer: _somosReligionLayer,
-          config: somosLayerIcons['religion']!,
-        ),
-        LayerIconAssignment(
-          layer: _somosFoodLayer,
-          config: somosLayerIcons['food']!,
-        ),
-        LayerIconAssignment(
-          layer: _somosPublicArtsLayer,
-          config: somosLayerIcons['publicArts']!,
-        ),
-        LayerIconAssignment(
-          layer: _somosCommunityServicesLayer,
-          config: somosLayerIcons['communityServices']!,
-        ),
-        LayerIconAssignment(
-          layer: _somosEducationLayer,
-          config: somosLayerIcons['education']!,
-        ),
-      ]),
-    );
+    unawaited(applyLayerIconRenderers(_layerAssignments));
   }
 
   @override
@@ -154,6 +162,8 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   Future<void> _handleMapTap(Offset screenPoint) async {
     Map<String, dynamic>? newAttributes;
     String? newCategory;
+    Geometry? newGeometry;
+    LayerIconConfig? newIconConfig;
 
     for (final entry in _layerEntries) {
       if (!entry.layer.isVisible) continue;
@@ -166,8 +176,11 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
       );
 
       if (result.geoElements.isNotEmpty) {
-        newAttributes = result.geoElements.first.attributes;
+        final element = result.geoElements.first;
+        newAttributes = element.attributes;
+        newGeometry = element.geometry;
         newCategory = entry.label;
+        newIconConfig = _layerConfigs[entry.layer];
         break;
       }
     }
@@ -190,6 +203,18 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
             _showInfoCard = true;
           });
         });
+      }
+
+      if (newIconConfig != null) {
+        await showSelectedFeature(
+          mapController: _mapController,
+          selectionOverlay: _selectionOverlay,
+          geometry: newGeometry,
+          iconAssetPath: iconAssetPathForType(
+            newIconConfig,
+            newAttributes[mapIconTypeField],
+          ),
+        );
       }
     } else {
       _dismissLocationCard();
@@ -214,6 +239,8 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     setState(() {
       _showInfoCard = false;
     });
+
+    clearSelectedFeature(_selectionOverlay);
 
     Future.delayed(const Duration(milliseconds: 160), () {
       if (!mounted) return;
