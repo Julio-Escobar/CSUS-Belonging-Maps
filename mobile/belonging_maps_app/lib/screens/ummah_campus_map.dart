@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import '/widgets/map_filter_button.dart';
+import '../widgets/hamburger_menu.dart';
 class UmmahCampusMap extends StatefulWidget {
   const UmmahCampusMap({super.key});
 
@@ -49,27 +50,29 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          ArcGISMapView(
-            controllerProvider: () => _mapController,
-            onTap: _handleMapTap,
-          ),
-          // Filter button
-          Positioned(
-            top: 16,
-            right: 16,
-            child: SafeArea(
-              child: MapFilterButton(
-                featureLayer: _featureLayer,
-                filterField: 'CATEGORY',
-                label: 'Category',
+    return HamburgerMenu(
+      body: Scaffold(
+        body: Stack(
+          children: [
+            ArcGISMapView(
+              controllerProvider: () => _mapController,
+              onTap: _handleMapTap,
+            ),
+            // Filter button
+            Positioned(
+              top: 16,
+              right: 16,
+              child: SafeArea(
+                child: MapFilterButton(
+                  featureLayer: _featureLayer,
+                  filterField: 'CATEGORY',
+                  label: 'Category',
+                ),
               ),
             ),
-          ),
-          if (_selectedAttributes != null) _buildCard(),
-        ],
+            if (_selectedAttributes != null) _buildCard(),
+          ],
+        ),
       ),
     );
   }

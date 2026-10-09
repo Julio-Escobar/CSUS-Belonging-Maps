@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/hamburger_menu.dart';
 
 const String _storageKey = 'opportunities_resources_v1';
 
@@ -397,42 +398,36 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final colors = AccessibilityColors.of(context);
     final isAdmin = AuthService.isAdmin;
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Opportunities',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-        centerTitle: true,
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Add opportunity',
-              onPressed: () => _showOpportunityDialog(),
-            ),
-        ],
+    return HamburgerMenu(
+      title: 'Opportunities',
+      actions: [
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Add opportunity',
+            onPressed: () => _showOpportunityDialog(),
+          ),
+      ],
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: _isLoading
+            ? Center(child: CircularProgressIndicator(color: colors.primary))
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _resources.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final resource = _resources[index];
+                  return _ResourceCard(
+                    resource: resource,
+                    isAdmin: isAdmin,
+                    onTap: () => _showResourceInformation(context, resource),
+                    onDelete: () => _deleteResource(index),
+                    onEdit: () => _showOpportunityDialog(index: index),
+                  );
+                },
+              ),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _resources.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final resource = _resources[index];
-                return _ResourceCard(
-                  resource: resource,
-                  isAdmin: isAdmin,
-                  onTap: () => _showResourceInformation(context, resource),
-                  onDelete: () => _deleteResource(index),
-                  onEdit: () => _showOpportunityDialog(index: index),
-                );
-              },
-            ),
     );
   }
 }
