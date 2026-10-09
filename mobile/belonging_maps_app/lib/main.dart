@@ -9,6 +9,7 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/accessibility_settings.dart';
 import 'services/accessibility_theme.dart';
+import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/about_us_screen.dart';
 
@@ -20,6 +21,9 @@ void main() async {
   ArcGISEnvironment.apiKey = apiKey;
 
   final accessibilitySettings = await AccessibilitySettingsController.load();
+
+  // Restore a saved admin login so the admin controls show right away (P1-216).
+  await AuthService.loadLogin();
 
   runApp(BelongingMapsApp(settings: accessibilitySettings));
 }
