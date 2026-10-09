@@ -12,11 +12,14 @@ const double mapIconSize = 40;
 /// The attribute field used to distinguish icon types across all layers.
 const String mapIconTypeField = 'Type';
 
-/// How much larger the selected feature's icon is drawn than the rest of the
-/// icons on the map.
+/// The scale at which a selected feature's icon is drawn relative to the rest
+/// of the icons on the map. This is the single value to change to make a
+/// selected icon appear larger or smaller.
 const double selectedIconScale = 1.6;
 
-/// On-screen size (in device-independent pixels) of a selected feature's icon.
+/// On-screen size (in device-independent pixels) of a selected feature's icon,
+/// derived from [mapIconSize] and [selectedIconScale]. Edit those to change
+/// the selected icon's size.
 const double selectedMapIconSize = mapIconSize * selectedIconScale;
 
 /// A feature layer paired with the icon configuration that should be applied
@@ -100,12 +103,14 @@ Future<void> applyLayerIconRenderers(
   );
 }
 
-/// Draws the icon at [iconAssetPath] 30% larger (via [selectedMapIconSize]) in
+/// Draws the icon at [iconAssetPath] larger than the standard icons in
 /// [selectionOverlay], on top of the tapped feature, and centers the map on it
 /// without changing the current zoom level.
 ///
-/// The overlay graphic covers the feature's normal-sized icon (both are drawn
-/// on the same, shared center), so the result appears 30% larger.
+/// The size is taken from [selectedMapIconSize]; adjust [selectedIconScale] to
+/// change how much larger the selected icon appears. The overlay graphic
+/// covers the feature's normal-sized icon (both are drawn on the same, shared
+/// center), so the result appears larger.
 Future<void> showSelectedFeature({
   required ArcGISMapViewController mapController,
   required GraphicsOverlay selectionOverlay,
