@@ -1,0 +1,61 @@
+# ===== Secrets / environment — never upload API keys =====
+.env
+.env.*
+**/.env
+**/.env.*
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+
+# .NET secret config (connection strings, etc.)
+**/appsettings.Development.json
+
+# ===== Generated build output (huge — biggest token win) =====
+**/.dart_tool/
+**/build/
+**/bin/
+**/obj/
+**/.gradle/
+**/Pods/
+**/ios/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ===== Machine-specific (ArcGIS native SDK) =====
+arcgis_maps_core
+arcgis_maps_core/
+
+# ===== Dependencies =====
+**/node_modules/
+
+# ===== Binary / large media (not useful as text context) =====
+*.png
+*.PNG
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.mp4
+*.mov
+*.pdf
+
+# ===== Data files =====
+*.csv
+*.xlsx
+*.sqlite
+
+# ===== IDE / OS =====
+.vscode/
+.idea/
+.DS_Store
