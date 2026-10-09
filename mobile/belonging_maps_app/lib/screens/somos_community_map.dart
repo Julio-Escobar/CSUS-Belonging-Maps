@@ -12,6 +12,7 @@ import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
+import '/services/layer_filter.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 
@@ -47,17 +48,9 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   /// Holds the enlarged icon drawn on top of the currently selected feature.
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
 
-  List<MapLayerEntry> get _layerEntries => [
-        MapLayerEntry(label: 'Businesses', layer: _somosBusinessesLayer),
-        MapLayerEntry(label: 'Religion', layer: _somosReligionLayer),
-        MapLayerEntry(label: 'Food', layer: _somosFoodLayer),
-        MapLayerEntry(label: 'Public Arts', layer: _somosPublicArtsLayer),
-        MapLayerEntry(
-          label: 'Community Services',
-          layer: _somosCommunityServicesLayer,
-        ),
-        MapLayerEntry(label: 'Education', layer: _somosEducationLayer),
-      ];
+  /// The map's categories and their per-type filter state. Initialized in
+  /// [initState] so the type selections persist while the screen is alive.
+  late final List<MapLayerEntry> _layerEntries;
 
   List<FeatureLayer> get _layers =>
       _layerEntries.map((entry) => entry.layer).toList();
@@ -141,6 +134,39 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
       ),
     );
 
+    _layerEntries = [
+      MapLayerEntry(
+        label: 'Businesses',
+        layer: _somosBusinessesLayer,
+        config: somosLayerIcons['businesses'],
+      ),
+      MapLayerEntry(
+        label: 'Religion',
+        layer: _somosReligionLayer,
+        config: somosLayerIcons['religion'],
+      ),
+      MapLayerEntry(
+        label: 'Food',
+        layer: _somosFoodLayer,
+        config: somosLayerIcons['food'],
+      ),
+      MapLayerEntry(
+        label: 'Public Arts',
+        layer: _somosPublicArtsLayer,
+        config: somosLayerIcons['publicArts'],
+      ),
+      MapLayerEntry(
+        label: 'Community Services',
+        layer: _somosCommunityServicesLayer,
+        config: somosLayerIcons['communityServices'],
+      ),
+      MapLayerEntry(
+        label: 'Education',
+        layer: _somosEducationLayer,
+        config: somosLayerIcons['education'],
+      ),
+    ];
+
     map.operationalLayers.addAll(_layers);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
@@ -153,6 +179,23 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Recomputes every layer's definition expression from the current type
+  /// filters and search text, so the two combine (AND) instead of overwriting
+  /// each other.
+  Future<void> _applyFilters() async {
+    for (final entry in _layerEntries) {
+      final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
+      final searchClause =
+          await buildLayerSearchClause(entry.layer, _searchController.text);
+
+      final clauses = <String>[
+        if (typeClause.isNotEmpty) typeClause,
+        if (searchClause.isNotEmpty) '($searchClause)',
+      ];
+      entry.layer.definitionExpression = clauses.join(' AND ');
+    }
   }
 
   Future<void> _getCurrentLocation() {
@@ -296,11 +339,14 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
             Expanded(
               child: MapSearchBar(
                 controller: _searchController,
-                onChanged: (query) => applyLayerSearch(_layers, query),
+                onChanged: (_) => unawaited(_applyFilters()),
               ),
             ),
             const SizedBox(width: 12),
-            MapLayersButton(entries: _layerEntries),
+            MapLayersButton(
+              entries: _layerEntries,
+              onFilterChanged: () => unawaited(_applyFilters()),
+            ),
           ],
         ),
       ),

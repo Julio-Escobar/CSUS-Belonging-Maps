@@ -12,6 +12,7 @@ import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
+import '/services/layer_filter.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 
@@ -52,25 +53,9 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   /// Holds the enlarged icon drawn on top of the currently selected feature.
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
 
-  List<MapLayerEntry> get _layerEntries => [
-        MapLayerEntry(
-          label: 'Business Services',
-          layer: _ummahBusinessServicesLayer,
-        ),
-        MapLayerEntry(
-          label: 'Community Services',
-          layer: _ummahCommunityServicesLayer,
-        ),
-        MapLayerEntry(label: 'Halal Foods', layer: _ummahHalalFoodsLayer),
-        MapLayerEntry(
-          label: 'Religious & Cultural',
-          layer: _ummahReligiousCulturalLayer,
-        ),
-        MapLayerEntry(label: 'Education', layer: _ummahEducationLayer),
-      ];
-
-  List<FeatureLayer> get _layers =>
-      _layerEntries.map((entry) => entry.layer).toList();
+  /// The map's categories and their per-type filter state. Initialized in
+  /// [initState] so the type selections persist while the screen is alive.
+  late final List<MapLayerEntry> _layerEntries;
 
   /// Pairs each layer with the icon configuration used to render it.
   List<LayerIconAssignment> get _layerAssignments => [
@@ -140,6 +125,34 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
         Uri.parse(dotenv.env['UMMAH_EDUCATION_URL'] ?? ''),
       ),
     )..isVisible = _showUmmahEducation;
+
+    _layerEntries = [
+      MapLayerEntry(
+        label: 'Business Services',
+        layer: _ummahBusinessServicesLayer,
+        config: ummahLayerIcons['businessServices'],
+      ),
+      MapLayerEntry(
+        label: 'Community Services',
+        layer: _ummahCommunityServicesLayer,
+        config: ummahLayerIcons['communityServices'],
+      ),
+      MapLayerEntry(
+        label: 'Halal Foods',
+        layer: _ummahHalalFoodsLayer,
+        config: ummahLayerIcons['halalFoods'],
+      ),
+      MapLayerEntry(
+        label: 'Religious & Cultural',
+        layer: _ummahReligiousCulturalLayer,
+        config: ummahLayerIcons['religiousCultural'],
+      ),
+      MapLayerEntry(
+        label: 'Education',
+        layer: _ummahEducationLayer,
+        config: ummahLayerIcons['education'],
+      ),
+    ];
 
     map.operationalLayers.addAll([
       _ummahBusinessServicesLayer,
@@ -258,6 +271,23 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
     });
   }
 
+  /// Recomputes every layer's definition expression from the current type
+  /// filters and search text, so the two combine (AND) instead of overwriting
+  /// each other.
+  Future<void> _applyFilters() async {
+    for (final entry in _layerEntries) {
+      final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
+      final searchClause =
+          await buildLayerSearchClause(entry.layer, _searchController.text);
+
+      final clauses = <String>[
+        if (typeClause.isNotEmpty) typeClause,
+        if (searchClause.isNotEmpty) '($searchClause)',
+      ];
+      entry.layer.definitionExpression = clauses.join(' AND ');
+    }
+  }
+
   Future<void> _getCurrentLocation() {
     return showCurrentLocation(_mapController, _userOverlay);
   }
@@ -277,11 +307,14 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
             Expanded(
               child: MapSearchBar(
                 controller: _searchController,
-                onChanged: (query) => applyLayerSearch(_layers, query),
+                onChanged: (_) => unawaited(_applyFilters()),
               ),
             ),
             const SizedBox(width: 12),
-            MapLayersButton(entries: _layerEntries),
+            MapLayersButton(
+              entries: _layerEntries,
+              onFilterChanged: () => unawaited(_applyFilters()),
+            ),
           ],
         ),
       ),
