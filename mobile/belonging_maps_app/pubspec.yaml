@@ -84,6 +84,7 @@ flutter_native_splash:
 
   ios: true
   android: true
+  web: false
 
 # The following section is specific to Flutter packages.
 flutter:
