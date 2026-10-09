@@ -222,7 +222,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ForumsScreen(),
+                              builder: (_) => ForumsScreen(),
                             ),
                           );
                           _closeDrawer();
