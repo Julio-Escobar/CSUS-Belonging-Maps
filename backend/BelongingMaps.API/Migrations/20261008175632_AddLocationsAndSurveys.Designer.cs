@@ -3,6 +3,7 @@ using BelongingMaps.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BelongingMaps.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008175632_AddLocationsAndSurveys")]
+    partial class AddLocationsAndSurveys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -42,22 +45,6 @@ namespace BelongingMaps.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Locations");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Latitude = 38.575000000000003,
-                            Longitude = -121.47799999999999,
-                            Title = "Community Center"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Latitude = 38.576000000000001,
-                            Longitude = -121.48,
-                            Title = "School"
-                        });
                 });
 
             modelBuilder.Entity("BelongingMaps.API.Models.Survey", b =>
