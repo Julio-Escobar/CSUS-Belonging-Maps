@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../constants/strings.dart';
 import '../services/accessibility_theme.dart';
 import '../widgets/hamburger_menu.dart';
 import 'campus_maps_screen.dart';
@@ -33,6 +34,19 @@ class WelcomeScreen extends StatelessWidget {
                     width: 200,
                     height: 200,
                     semanticLabel: 'Belonging Maps logo',
+                  ),
+                  const SizedBox(height: 24),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: Text(
+                      AppStrings.welcomeDescription,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colors.onPrimary,
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 40),
                   SizedBox(
