@@ -6,4 +6,5 @@
 
 # env
 .env
+mobile/belonging_maps_app/arcgis_maps_core
 backend/BelongingMaps.API/appsettings.Development.json
