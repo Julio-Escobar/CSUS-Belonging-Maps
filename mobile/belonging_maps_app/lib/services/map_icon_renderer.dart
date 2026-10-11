@@ -12,6 +12,16 @@ const double mapIconSize = 40;
 /// The attribute field used to distinguish icon types across all layers.
 const String mapIconTypeField = 'Type';
 
+/// The scale at which a selected feature's icon is drawn relative to the rest
+/// of the icons on the map. This is the single value to change to make a
+/// selected icon appear larger or smaller.
+const double selectedIconScale = 1.6;
+
+/// On-screen size (in device-independent pixels) of a selected feature's icon,
+/// derived from [mapIconSize] and [selectedIconScale]. Edit those to change
+/// the selected icon's size.
+const double selectedMapIconSize = mapIconSize * selectedIconScale;
+
 /// A feature layer paired with the icon configuration that should be applied
 /// to it.
 class LayerIconAssignment {
@@ -91,4 +101,50 @@ Future<void> applyLayerIconRenderers(
       ),
     ),
   );
+}
+
+/// Draws the icon at [iconAssetPath] larger than the standard icons in
+/// [selectionOverlay], on top of the tapped feature, and centers the map on it
+/// without changing the current zoom level.
+///
+/// The size is taken from [selectedMapIconSize]; adjust [selectedIconScale] to
+/// change how much larger the selected icon appears. The overlay graphic
+/// covers the feature's normal-sized icon (both are drawn on the same, shared
+/// center), so the result appears larger.
+Future<void> showSelectedFeature({
+  required ArcGISMapViewController mapController,
+  required GraphicsOverlay selectionOverlay,
+  required Geometry? geometry,
+  required String iconAssetPath,
+}) async {
+  selectionOverlay.graphics.clear();
+
+  final point = _wgs84Point(geometry);
+  if (point == null) return;
+
+  final symbol = await _symbolFor(iconAssetPath, selectedMapIconSize);
+  if (symbol != null) {
+    selectionOverlay.graphics.add(Graphic(geometry: point, symbol: symbol));
+  }
+
+  await mapController.setViewpointCenter(point);
+}
+
+/// Removes the enlarged icon drawn for a previously selected feature, so it
+/// returns to its normal size.
+void clearSelectedFeature(GraphicsOverlay selectionOverlay) {
+  selectionOverlay.graphics.clear();
+}
+
+/// Projects [geometry] to WGS84 when needed so it can be added to a graphics
+/// overlay and used to recenter the map. Returns null for non-point geometry.
+ArcGISPoint? _wgs84Point(Geometry? geometry) {
+  if (geometry is! ArcGISPoint) return null;
+
+  if (geometry.spatialReference?.wkid == 4326) return geometry;
+
+  return GeometryEngine.project(
+    geometry,
+    outputSpatialReference: SpatialReference.wgs84,
+  ) as ArcGISPoint?;
 }

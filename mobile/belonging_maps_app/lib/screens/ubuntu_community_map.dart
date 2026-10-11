@@ -12,6 +12,7 @@ import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
 import '/services/layer_search.dart';
+import '/services/layer_filter.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 
@@ -47,18 +48,36 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
-  List<MapLayerEntry> get _layerEntries => [
-        MapLayerEntry(label: 'Black Owned Businesses', layer: _ubuntuBusinessesLayer),
-        MapLayerEntry(
-          label: 'Community Services',
-          layer: _ubuntuCommunityServicesLayer,
+  /// Holds the enlarged icon drawn on top of the currently selected feature.
+  final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
+
+  /// The map's categories and their per-type filter state. Initialized in
+  /// [initState] so the type selections persist while the screen is alive.
+  late final List<MapLayerEntry> _layerEntries;
+
+  /// Pairs each layer with the icon configuration used to render it.
+  List<LayerIconAssignment> get _layerAssignments => [
+        LayerIconAssignment(
+          layer: _ubuntuBusinessesLayer,
+          config: ubuntuLayerIcons['businesses']!,
         ),
-        MapLayerEntry(label: 'Religious', layer: _ubuntuReligiousLayer),
-        MapLayerEntry(label: 'Education', layer: _ubuntuEducationLayer),
+        LayerIconAssignment(
+          layer: _ubuntuCommunityServicesLayer,
+          config: ubuntuLayerIcons['communityServices']!,
+        ),
+        LayerIconAssignment(
+          layer: _ubuntuReligiousLayer,
+          config: ubuntuLayerIcons['religious']!,
+        ),
+        LayerIconAssignment(
+          layer: _ubuntuEducationLayer,
+          config: ubuntuLayerIcons['education']!,
+        ),
       ];
 
-  List<FeatureLayer> get _layers =>
-      _layerEntries.map((entry) => entry.layer).toList();
+  /// Looks up the icon configuration for a tapped layer.
+  Map<FeatureLayer, LayerIconConfig> get _layerConfigs =>
+      {for (final assignment in _layerAssignments) assignment.layer: assignment.config};
 
   @override
   void initState() {
@@ -95,6 +114,29 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
       ),
     )..isVisible = _showUbuntuEducation;
 
+    _layerEntries = [
+      MapLayerEntry(
+        label: 'Black Owned Businesses',
+        layer: _ubuntuBusinessesLayer,
+        config: ubuntuLayerIcons['businesses'],
+      ),
+      MapLayerEntry(
+        label: 'Community Services',
+        layer: _ubuntuCommunityServicesLayer,
+        config: ubuntuLayerIcons['communityServices'],
+      ),
+      MapLayerEntry(
+        label: 'Religious',
+        layer: _ubuntuReligiousLayer,
+        config: ubuntuLayerIcons['religious'],
+      ),
+      MapLayerEntry(
+        label: 'Education',
+        layer: _ubuntuEducationLayer,
+        config: ubuntuLayerIcons['education'],
+      ),
+    ];
+
     map.operationalLayers.addAll([
       _ubuntuBusinessesLayer,
       _ubuntuCommunityServicesLayer,
@@ -103,28 +145,9 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
     ]);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
-    _mapController.graphicsOverlays.add(_userOverlay);
+    _mapController.graphicsOverlays.addAll([_userOverlay, _selectionOverlay]);
 
-    unawaited(
-      applyLayerIconRenderers([
-        LayerIconAssignment(
-          layer: _ubuntuBusinessesLayer,
-          config: ubuntuLayerIcons['businesses']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuCommunityServicesLayer,
-          config: ubuntuLayerIcons['communityServices']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuReligiousLayer,
-          config: ubuntuLayerIcons['religious']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuEducationLayer,
-          config: ubuntuLayerIcons['education']!,
-        ),
-      ]),
-    );
+    unawaited(applyLayerIconRenderers(_layerAssignments));
   }
 
   @override
@@ -142,14 +165,19 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
 
   Map<String, dynamic>? newAttributes;
   String? newCategory;
+  Geometry? newGeometry;
+  LayerIconConfig? newIconConfig;
 
   for (final result in results) {
     if (result.geoElements.isNotEmpty) {
-      newAttributes = result.geoElements.first.attributes;
+      final element = result.geoElements.first;
+      newAttributes = element.attributes;
+      newGeometry = element.geometry;
 
       for (final entry in _layerEntries) {
         if (identical(entry.layer, result.layerContent)) {
           newCategory = entry.label;
+          newIconConfig = _layerConfigs[entry.layer];
           break;
         }
       }
@@ -176,6 +204,18 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
         });
       });
     }
+
+    if (newIconConfig != null) {
+      await showSelectedFeature(
+        mapController: _mapController,
+        selectionOverlay: _selectionOverlay,
+        geometry: newGeometry,
+        iconAssetPath: iconAssetPathForType(
+          newIconConfig,
+          newAttributes[mapIconTypeField],
+        ),
+      );
+    }
   } else {
     _dismissLocationCard();
   }
@@ -200,6 +240,8 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
       _showInfoCard = false;
     });
 
+    clearSelectedFeature(_selectionOverlay);
+
     Future.delayed(const Duration(milliseconds: 250), () {
       if (!mounted) return;
 
@@ -209,6 +251,23 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
         _showFullInfo = false;
       });
     });
+  }
+
+  /// Recomputes every layer's definition expression from the current type
+  /// filters and search text, so the two combine (AND) instead of overwriting
+  /// each other.
+  Future<void> _applyFilters() async {
+    for (final entry in _layerEntries) {
+      final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
+      final searchClause =
+          await buildLayerSearchClause(entry.layer, _searchController.text);
+
+      final clauses = <String>[
+        if (typeClause.isNotEmpty) typeClause,
+        if (searchClause.isNotEmpty) '($searchClause)',
+      ];
+      entry.layer.definitionExpression = clauses.join(' AND ');
+    }
   }
 
   Future<void> _getCurrentLocation() {
@@ -230,11 +289,14 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
             Expanded(
               child: MapSearchBar(
                 controller: _searchController,
-                onChanged: (query) => applyLayerSearch(_layers, query),
+                onChanged: (_) => unawaited(_applyFilters()),
               ),
             ),
             const SizedBox(width: 12),
-            MapLayersButton(entries: _layerEntries),
+            MapLayersButton(
+              entries: _layerEntries,
+              onFilterChanged: () => unawaited(_applyFilters()),
+            ),
           ],
         ),
       ),
