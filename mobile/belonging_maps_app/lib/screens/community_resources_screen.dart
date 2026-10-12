@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
-
-const Color _primaryGreen = Color(0xFF2F5F3E);
-const Color _pageBackground = Color(0xFFF9F5FA);
 
 class CommunityResourcesScreen extends StatefulWidget {
   const CommunityResourcesScreen({super.key});
@@ -85,6 +83,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   }
 
   void _addResource() {
+    final colors = AccessibilityColors.of(context);
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     final categoryController = TextEditingController();
@@ -109,8 +108,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         decoration: const InputDecoration(labelText: 'Title'),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: descriptionController,
@@ -120,8 +119,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         maxLines: 3,
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: categoryController,
@@ -130,11 +129,12 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         ),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: selectedIcon,
                         decoration: const InputDecoration(labelText: 'Icon'),
                         items: const [
@@ -185,11 +185,14 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryGreen,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                   ),
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
-                      print('ADD RESOURCE SUBMIT: ${titleController.text.trim()}');
+                      print(
+                        'ADD RESOURCE SUBMIT: ${titleController.text.trim()}',
+                      );
                       setState(() {
                         _resources.add(
                           _CommunityResource(
@@ -204,10 +207,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                       Navigator.of(dialogContext).pop();
                     }
                   },
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: const Text('Add'),
                 ),
               ],
             );
@@ -221,26 +221,29 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
     BuildContext context,
     _CommunityResource resource,
   ) {
+    final colors = AccessibilityColors.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(resource.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CategoryLabel(category: resource.category),
-            const SizedBox(height: 16),
-            const Text(
-              'Resource information',
-              style: TextStyle(
-                color: _primaryGreen,
-                fontWeight: FontWeight.bold,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CategoryLabel(category: resource.category),
+              const SizedBox(height: 16),
+              Text(
+                'Resource information',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(resource.description),
-          ],
+              const SizedBox(height: 6),
+              Text(resource.description),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -253,9 +256,12 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   }
 
   void _editResource(int index) {
+    final colors = AccessibilityColors.of(context);
     final resource = _resources[index];
     final titleController = TextEditingController(text: resource.title);
-    final descriptionController = TextEditingController(text: resource.description);
+    final descriptionController = TextEditingController(
+      text: resource.description,
+    );
     final categoryController = TextEditingController(text: resource.category);
     String selectedIcon = switch (resource.icon) {
       Icons.restaurant_outlined => 'food',
@@ -289,8 +295,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         decoration: const InputDecoration(labelText: 'Title'),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: descriptionController,
@@ -300,8 +306,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         maxLines: 3,
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: categoryController,
@@ -310,12 +316,13 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                         ),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: selectedIcon,
+                        isExpanded: true,
+                        initialValue: selectedIcon,
                         decoration: const InputDecoration(labelText: 'Icon'),
                         items: const [
                           DropdownMenuItem(value: 'food', child: Text('Food')),
@@ -365,7 +372,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryGreen,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                   ),
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
@@ -383,10 +391,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                       );
                     }
                   },
-                  child: const Text(
-                    'Update',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: const Text('Update'),
                 ),
               ],
             );
@@ -397,6 +402,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   }
 
   void _deleteResource(int index) {
+    final colors = AccessibilityColors.of(context);
     final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
 
     showDialog<void>(
@@ -411,7 +417,10 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.destructive,
+                foregroundColor: colors.onPrimary,
+              ),
               onPressed: () {
                 setState(() {
                   _resources.removeAt(index);
@@ -421,10 +430,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                   const SnackBar(content: Text('Resource deleted')),
                 );
               },
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -435,7 +441,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   @override
   Widget build(BuildContext context) {
     final isAdmin = AuthService.isAdmin;
-    // final isAdmin = true; // For testing purposes, set to true. Change to AuthService.isAdmin in production.
+    final colors = AccessibilityColors.of(context);
 
     return HamburgerMenu(
       title: 'Community Resources',
@@ -448,7 +454,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
           ),
       ],
       body: Scaffold(
-        backgroundColor: _pageBackground,
+        backgroundColor: colors.pageBackground,
         body: ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: _resources.length,
@@ -500,94 +506,91 @@ class _ResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'View information for ${resource.title}',
-      child: Card(
-        elevation: 2,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+    final colors = AccessibilityColors.of(context);
+
+    return Card(
+      color: colors.cardBackground,
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        excludeFromSemantics: true,
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(resource.icon, color: colors.primary, size: 26),
                   ),
-                  child: Icon(resource.icon, color: _primaryGreen, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          button: true,
+                          label: 'View information for ${resource.title}',
+                          onTap: onTap,
+                          child: ExcludeSemantics(
                             child: Text(
                               resource.title,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
+                              style: TextStyle(
+                                color: colors.primaryText,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _CategoryLabel(category: resource.category),
-                          if (isAdmin) ...[
-                            if (onEdit != null) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: 'Edit resource',
-                                onPressed: onEdit,
-                                icon: const Icon(
-                                  Icons.edit_outlined,
-                                  color: _primaryGreen,
-                                ),
-                              ),
-                            ],
-                            if (onDelete != null) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: 'Delete resource',
-                                onPressed: onDelete,
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        resource.description,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                          height: 1.4,
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        _CategoryLabel(category: resource.category),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                resource.description,
+                style: TextStyle(color: colors.secondaryText, height: 1.4),
+              ),
+              if (isAdmin) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      if (onEdit != null)
+                        IconButton(
+                          tooltip: 'Edit ${resource.title}',
+                          onPressed: onEdit,
+                          icon: Icon(Icons.edit_outlined, color: colors.action),
+                        ),
+                      if (onDelete != null)
+                        IconButton(
+                          tooltip: 'Delete ${resource.title}',
+                          onPressed: onDelete,
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: colors.destructive,
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -602,19 +605,17 @@ class _CategoryLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _primaryGreen.withValues(alpha: 0.1),
+        color: colors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         category,
-        style: const TextStyle(
-          color: _primaryGreen,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
       ),
     );
   }

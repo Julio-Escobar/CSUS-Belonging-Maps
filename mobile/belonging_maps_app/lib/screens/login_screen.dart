@@ -6,8 +6,29 @@ import '../widgets/hamburger_menu.dart';
 import '../services/auth_service.dart';
 import 'map_screen.dart';
 
+typedef LoginRequest =
+    Future<http.Response> Function({
+      required String username,
+      required String password,
+    });
+
+Future<http.Response> _sendLoginRequest({
+  required String username,
+  required String password,
+}) {
+  final url = Uri.parse('http://10.0.2.2:5162/api/auth/login');
+  return http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'username': username, 'password': password}),
+  );
+}
+
 class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
+  final LoginRequest _loginRequest;
+
+  LoginScreen({super.key, LoginRequest? loginRequest})
+    : _loginRequest = loginRequest ?? _sendLoginRequest;
 
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -16,16 +37,14 @@ class LoginScreen extends StatelessWidget {
     final username = usernameController.text;
     final password = passwordController.text;
 
-    final url = Uri.parse('http://10.0.2.2:5162/api/auth/login');
-
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
+      final response = await _loginRequest(
+        username: username,
+        password: password,
       );
 
       if (response.statusCode == 200) {
+        if (!context.mounted) return;
         final data = jsonDecode(response.body);
 
         AuthService.isAdmin = data['role'] == 'Admin';
@@ -35,14 +54,16 @@ class LoginScreen extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const MapScreen()),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid credentials")),
-        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Invalid credentials")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Connection error: $e")),
-      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Connection error: $e")));
     }
   }
 

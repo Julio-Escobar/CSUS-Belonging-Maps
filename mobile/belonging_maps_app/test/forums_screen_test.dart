@@ -5,6 +5,8 @@ import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/semantics_finders.dart';
+
 void main() {
   tearDown(() => AuthService.isAdmin = false);
 
@@ -82,7 +84,7 @@ void main() {
     );
   });
 
-  testWidgets('truncates long post text without overflowing on narrow screens', (
+  testWidgets('wraps long post text at 200% without overflowing on narrow screens', (
     tester,
   ) async {
     AuthService.isAdmin = true;
@@ -102,16 +104,26 @@ void main() {
       bodyPreview: longPreview,
     );
 
-    await tester.pumpWidget(MaterialApp(home: ForumsScreen(posts: [post])));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(320, 568),
+            textScaler: TextScaler.linear(2),
+          ),
+          child: ForumsScreen(posts: [post]),
+        ),
+      ),
+    );
 
     final titleWidget = tester.widget<Text>(find.text(longTitle));
     final previewWidget = tester.widget<Text>(find.text(longPreview));
-    expect(titleWidget.maxLines, 2);
-    expect(titleWidget.overflow, TextOverflow.ellipsis);
-    expect(previewWidget.maxLines, 3);
-    expect(previewWidget.overflow, TextOverflow.ellipsis);
+    expect(titleWidget.maxLines, isNull);
+    expect(titleWidget.overflow, isNull);
+    expect(previewWidget.maxLines, isNull);
+    expect(previewWidget.overflow, isNull);
     final deleteButton = find.ancestor(
-      of: find.byTooltip('Delete post'),
+      of: find.byTooltip('Delete $longTitle'),
       matching: find.byType(IconButton),
     );
     expect(tester.getSize(deleteButton).width, greaterThanOrEqualTo(48));
@@ -128,11 +140,11 @@ void main() {
   testWidgets('only admins see the delete control', (tester) async {
     AuthService.isAdmin = false;
     await tester.pumpWidget(MaterialApp(home: ForumsScreen()));
-    expect(find.byTooltip('Delete post'), findsNothing);
+    expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
     AuthService.isAdmin = true;
     await tester.pumpWidget(MaterialApp(home: ForumsScreen()));
-    expect(find.byTooltip('Delete post'), findsAtLeastNWidgets(1));
+    expect(find.byTooltip(RegExp(r'^Delete ')), findsAtLeastNWidgets(1));
   });
 
   testWidgets('canceling or dismissing confirmation keeps the post', (
@@ -147,14 +159,14 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: ForumsScreen(posts: [post])));
 
-    await tester.tap(find.byTooltip('Delete post'));
+    await tester.tap(find.byTooltip('Delete Keep this post'));
     await tester.pumpAndSettle();
     expect(find.text("This can't be undone."), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Keep this post'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Delete post'));
+    await tester.tap(find.byTooltip('Delete Keep this post'));
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(4, 4));
     await tester.pumpAndSettle();
@@ -165,6 +177,7 @@ void main() {
   testWidgets('confirmed deletion preserves order and shows feedback', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     final posts = [
       ForumPost(
@@ -188,9 +201,9 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(home: ForumsScreen(posts: posts)));
 
-    await tester.tap(find.byTooltip('Delete post').at(1));
+    tester.semantics.tap(semanticTapByTooltip('Delete Middle post'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
+    tester.semantics.tap(find.semantics.byLabel('Delete'));
     await tester.pumpAndSettle();
 
     expect(find.text('Middle post'), findsNothing);
@@ -201,6 +214,7 @@ void main() {
       lessThan(tester.getTopLeft(find.text('Older post')).dy),
     );
     expect(find.text('Post deleted'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('deleting the last post shows the empty state', (tester) async {
@@ -213,7 +227,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: ForumsScreen(posts: [post])));
 
-    await tester.tap(find.byTooltip('Delete post'));
+    await tester.tap(find.byTooltip('Delete Only post'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();

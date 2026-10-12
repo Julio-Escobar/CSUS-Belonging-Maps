@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
+import '/services/map_location_source.dart';
 import '/widgets/map_filter_button.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
+import '/widgets/map_location_browser.dart';
+import '/widgets/location_info_card.dart';
+
 class UmmahCampusMap extends StatefulWidget {
   const UmmahCampusMap({super.key});
 
@@ -14,6 +18,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
   Map<String, dynamic>? _selectedAttributes;
+  bool _showFullInfo = false;
 
   @override
   void initState() {
@@ -27,9 +32,11 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       );
 
     _featureLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(Uri.parse(
-        "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0"
-      ))
+      ServiceFeatureTable.withUri(
+        Uri.parse(
+          "https://services5.arcgis.com/54falWtcpty3V47Z/arcgis/rest/services/City_of_Sacramento_Community_Centers/FeatureServer/0",
+        ),
+      ),
     );
 
     map.operationalLayers.add(_featureLayer);
@@ -44,8 +51,14 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       maximumResults: 1,
     );
 
+    if (!mounted) return;
+    _showLocation(result.geoElements.firstOrNull?.attributes);
+  }
+
+  void _showLocation(Map<String, dynamic>? attributes) {
     setState(() {
-      _selectedAttributes = result.geoElements.firstOrNull?.attributes;
+      _selectedAttributes = attributes;
+      _showFullInfo = false;
     });
   }
 
@@ -61,9 +74,18 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     await _mapController.setViewpointScale(currentScale * 2);
   }
 
+  Future<void> _browseLocations() async {
+    final location = await showMapLocationBrowser(context, [
+      arcGisLocationSource(name: 'Campus locations', layer: _featureLayer),
+    ]);
+    if (!mounted || location == null) return;
+    _showLocation(location.attributes);
+  }
+
   @override
   Widget build(BuildContext context) {
     return HamburgerMenu(
+      title: 'Ummah Campus Map',
       body: Scaffold(
         body: Stack(
           children: [
@@ -84,6 +106,18 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 ),
               ),
             ),
+            if (_selectedAttributes == null)
+              Positioned(
+                bottom: 24,
+                left: 16,
+                child: SafeArea(
+                  child: ElevatedButton.icon(
+                    onPressed: _browseLocations,
+                    icon: const Icon(Icons.list),
+                    label: const Text('Browse locations'),
+                  ),
+                ),
+              ),
             if (_selectedAttributes != null) _buildCard(),
           ],
         ),
@@ -92,42 +126,15 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   }
 
   Widget _buildCard() {
-    String cardTitle = _selectedAttributes?['FACILITY_NAME']?.toString() ?? 'Location Info';
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        constraints: BoxConstraints(maxHeight: 400),
-        margin: EdgeInsets.all(20.0),
-        child: Card(
-          elevation: 8,
-          color: Color(0xFF2F5F3E),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white,
-                  backgroundImage: AssetImage('assets/ummah_logo_temp.png'),
-                ),
-                title: Text(
-                  cardTitle,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
-                ),
-                trailing: CloseButton(
-                  color: Colors.white,
-                  onPressed: () => setState(() => _selectedAttributes = null)),
-              ),
-              Divider(height: 1),
-            ],
-          ),
-        ),
+    return LocationInfoCard(
+      data: LocationInfoData.fromAttributes(
+        _selectedAttributes,
+        fallbackCategory: 'Campus locations',
       ),
+      showFullInfo: _showFullInfo,
+      onClose: () => _showLocation(null),
+      onShowMore: () => setState(() => _showFullInfo = true),
+      onShowLess: () => setState(() => _showFullInfo = false),
     );
   }
 }

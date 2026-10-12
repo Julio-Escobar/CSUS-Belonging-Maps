@@ -1,6 +1,7 @@
 import 'package:belonging_maps_app/screens/community_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,13 +15,15 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.menu));
+    final semantics = tester.ensureSemantics();
+    tester.semantics.tap(semanticTapByTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Community Resources'));
+    tester.semantics.tap(semanticTapByLabel('Community Resources'));
     await tester.pumpAndSettle();
 
     expect(find.text('Food Pantry'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('lists resources and shows selected resource information', (
@@ -58,12 +61,14 @@ void main() {
       const MaterialApp(home: CommunityResourcesScreen()),
     );
 
-    expect(find.byIcon(Icons.post_add_rounded), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    expect(find.byTooltip('Add resource'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.post_add_rounded));
+    tester.semantics.tap(semanticTapByTooltip('Add resource'));
     await tester.pumpAndSettle();
 
     expect(find.text('Add Resource'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('admin can edit a resource', (tester) async {
@@ -74,12 +79,15 @@ void main() {
       const MaterialApp(home: CommunityResourcesScreen()),
     );
 
-    await tester.tap(find.byTooltip('Edit resource').first);
+    await tester.tap(find.byTooltip('Edit Food Pantry'));
     await tester.pumpAndSettle();
 
     expect(find.text('Edit Resource'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'Updated Food Pantry');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'Updated Food Pantry',
+    );
     await tester.enterText(
       find.byType(TextFormField).at(1),
       'Updated community food access',
@@ -102,7 +110,7 @@ void main() {
     );
 
     expect(find.text('Food Pantry'), findsOneWidget);
-    await tester.tap(find.byTooltip('Delete resource').first);
+    await tester.tap(find.byTooltip('Delete Food Pantry'));
     await tester.pumpAndSettle();
 
     expect(find.text('Delete Resource'), findsOneWidget);

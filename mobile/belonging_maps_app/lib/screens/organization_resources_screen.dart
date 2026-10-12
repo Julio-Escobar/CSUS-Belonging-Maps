@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
-
-const Color _primaryGreen = Color(0xFF2F5F3E);
-const Color _pageBackground = Color(0xFFF9F5FA);
 
 class OrganizationResourcesScreen extends StatefulWidget {
   const OrganizationResourcesScreen({super.key});
@@ -57,6 +55,7 @@ class _OrganizationResourcesScreenState
 
   // Admin only. Pass an index to edit that resource; omit it to add a new one.
   void _showResourceDialog({int? index}) {
+    final colors = AccessibilityColors.of(context);
     final isEditing = index != null;
     final existing = isEditing ? _resources[index] : null;
 
@@ -88,8 +87,8 @@ class _OrganizationResourcesScreenState
                         decoration: const InputDecoration(labelText: 'Title'),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: categoryController,
@@ -98,8 +97,8 @@ class _OrganizationResourcesScreenState
                         ),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       TextFormField(
                         controller: descriptionController,
@@ -109,11 +108,12 @@ class _OrganizationResourcesScreenState
                         maxLines: 3,
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? 'Required'
-                                : null,
+                            ? 'Required'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: selectedIcon,
                         decoration: const InputDecoration(labelText: 'Icon'),
                         items: _iconOptions.keys
@@ -125,10 +125,12 @@ class _OrganizationResourcesScreenState
                                     Icon(
                                       _iconOptions[key],
                                       size: 18,
-                                      color: _primaryGreen,
+                                      color: colors.primary,
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(key[0].toUpperCase() + key.substring(1)),
+                                    Text(
+                                      key[0].toUpperCase() + key.substring(1),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -150,7 +152,10 @@ class _OrganizationResourcesScreenState
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                  ),
                   onPressed: () {
                     if (!formKey.currentState!.validate()) return;
                     final resource = _OrganizationResource(
@@ -173,10 +178,7 @@ class _OrganizationResourcesScreenState
                       );
                     }
                   },
-                  child: Text(
-                    isEditing ? 'Update' : 'Add',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  child: Text(isEditing ? 'Update' : 'Add'),
                 ),
               ],
             );
@@ -187,26 +189,29 @@ class _OrganizationResourcesScreenState
   }
 
   void _showResourceInformation(_OrganizationResource resource) {
+    final colors = AccessibilityColors.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(resource.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CategoryLabel(category: resource.category),
-            const SizedBox(height: 16),
-            const Text(
-              'Resource information',
-              style: TextStyle(
-                color: _primaryGreen,
-                fontWeight: FontWeight.bold,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CategoryLabel(category: resource.category),
+              const SizedBox(height: 16),
+              Text(
+                'Resource information',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(resource.description),
-          ],
+              const SizedBox(height: 6),
+              Text(resource.description),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -219,6 +224,7 @@ class _OrganizationResourcesScreenState
   }
 
   void _deleteResource(int index) {
+    final colors = AccessibilityColors.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -230,7 +236,10 @@ class _OrganizationResourcesScreenState
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.onPrimary,
+            ),
             onPressed: () {
               setState(() => _resources.removeAt(index));
               Navigator.of(dialogContext).pop();
@@ -238,7 +247,7 @@ class _OrganizationResourcesScreenState
                 context,
               ).showSnackBar(const SnackBar(content: Text('Resource deleted')));
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -249,11 +258,12 @@ class _OrganizationResourcesScreenState
   //Check if the user is an admin
   Widget build(BuildContext context) {
     final isAdmin = AuthService.isAdmin;
+    final colors = AccessibilityColors.of(context);
 
     return HamburgerMenu(
       title: 'Organization Resources',
       actions: [
-// Admin add resource button
+        // Admin add resource button
         if (isAdmin)
           IconButton(
             icon: const Icon(Icons.content_paste),
@@ -262,7 +272,7 @@ class _OrganizationResourcesScreenState
           ),
       ],
       body: Scaffold(
-        backgroundColor: _pageBackground,
+        backgroundColor: colors.pageBackground,
         body: ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: _resources.length,
@@ -314,90 +324,89 @@ class _ResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'View information for ${resource.title}',
-      child: Card(
-        elevation: 2,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+    final colors = AccessibilityColors.of(context);
+
+    return Card(
+      color: colors.cardBackground,
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        excludeFromSemantics: true,
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(resource.icon, color: colors.primary, size: 26),
                   ),
-                  child: Icon(resource.icon, color: _primaryGreen, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          button: true,
+                          label: 'View information for ${resource.title}',
+                          onTap: onTap,
+                          child: ExcludeSemantics(
                             child: Text(
                               resource.title,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
+                              style: TextStyle(
+                                color: colors.primaryText,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _CategoryLabel(category: resource.category),
-                          if (isAdmin) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Edit resource',
-                              onPressed: onEdit,
-                              icon: const Icon(
-                                Icons.edit_outlined,
-                                color: _primaryGreen,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Delete resource',
-                              onPressed: onDelete,
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ],
+                        ),
+                        const SizedBox(height: 6),
+                        _CategoryLabel(category: resource.category),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                resource.description,
+                style: TextStyle(color: colors.secondaryText, height: 1.4),
+              ),
+              if (isAdmin) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      IconButton(
+                        tooltip: 'Edit ${resource.title}',
+                        onPressed: onEdit,
+                        icon: Icon(Icons.edit_outlined, color: colors.action),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        resource.description,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                          height: 1.4,
+                      IconButton(
+                        tooltip: 'Delete ${resource.title}',
+                        onPressed: onDelete,
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: colors.destructive,
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -412,19 +421,17 @@ class _CategoryLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _primaryGreen.withValues(alpha: 0.1),
+        color: colors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         category,
-        style: const TextStyle(
-          color: _primaryGreen,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
       ),
     );
   }

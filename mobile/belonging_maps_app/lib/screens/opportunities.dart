@@ -466,7 +466,6 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
     return Dialog(
       backgroundColor: colors.cardBackground,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: screenSize.width * 0.92,
@@ -676,6 +675,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: selectedIcon,
                   decoration: const InputDecoration(labelText: 'Icon'),
                   items: _iconOptions.keys
@@ -701,8 +701,11 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   },
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     const Text(
                       'Opportunity Links',
@@ -924,24 +927,20 @@ class _ResourceCard extends StatelessWidget {
                             children: [
                               Text(
                                 resource.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colors.primaryText,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: colors.primaryText,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 resource.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colors.secondaryText,
-                                  fontSize: 14,
-                                  height: 1.4,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: colors.secondaryText,
+                                      height: 1.4,
+                                    ),
                               ),
                             ],
                           ),

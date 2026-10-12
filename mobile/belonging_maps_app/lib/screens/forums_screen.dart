@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/forum_post.dart';
+import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../services/forum_post_service.dart';
 import '../widgets/hamburger_menu.dart';
@@ -25,6 +26,7 @@ class _ForumsScreenState extends State<ForumsScreen> {
 
   Future<void> _deletePost(ForumPost post) async {
     if (!AuthService.isAdmin) return;
+    final colors = AccessibilityColors.of(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -36,7 +38,11 @@ class _ForumsScreenState extends State<ForumsScreen> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.onPrimary,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
@@ -91,7 +97,7 @@ class _ForumPostTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final colors = AccessibilityColors.of(context);
     final postedAt = post.postedAt.toLocal();
     final localizations = MaterialLocalizations.of(context);
     final postedDate = localizations.formatMediumDate(postedAt);
@@ -101,8 +107,7 @@ class _ForumPostTile extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      color: colors.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: colors.cardBackground,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -114,52 +119,49 @@ class _ForumPostTile extends StatelessWidget {
                 Expanded(
                   child: Text(
                     post.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: colors.primaryText,
                     ),
                   ),
                 ),
                 if (showDelete) ...[
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: 'Delete post',
+                    tooltip: 'Delete ${post.title}',
                     onPressed: onDelete,
                     constraints: const BoxConstraints(
                       minWidth: 48,
                       minHeight: 48,
                     ),
                     padding: EdgeInsets.zero,
-                    icon: Icon(Icons.delete_outline, color: colors.error),
+                    icon: Icon(Icons.delete_outline, color: colors.destructive),
                   ),
                 ],
               ],
             ),
             const SizedBox(height: 8),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    'by ${post.author}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                Text(
+                  'by ${post.author}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.secondaryText),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 4),
                 Text(
                   '$postedDate, $postedTime',
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.secondaryText),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               post.bodyPreview,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),

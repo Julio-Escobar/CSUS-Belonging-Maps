@@ -59,10 +59,8 @@ class MapLayersButton extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) => _LayerPanel(
-        entries: entries,
-        onFilterChanged: onFilterChanged,
-      ),
+      builder: (context) =>
+          _LayerPanel(entries: entries, onFilterChanged: onFilterChanged),
     );
   }
 
@@ -72,14 +70,11 @@ class MapLayersButton extends StatelessWidget {
       color: layersButtonBackgroundColor,
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _openLayerPanel(context),
-        child: const SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(Icons.layers, color: layersButtonIconColor),
-        ),
+      child: IconButton(
+        tooltip: 'Map layers',
+        onPressed: () => _openLayerPanel(context),
+        icon: const Icon(Icons.layers, color: layersButtonIconColor),
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
       ),
     );
   }
@@ -261,4 +256,3 @@ class _LayerPanelState extends State<_LayerPanel> {
     );
   }
 }
-
