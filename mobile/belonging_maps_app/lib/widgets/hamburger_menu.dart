@@ -311,7 +311,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => LoginScreen(),
+                                    builder: (_) => const LoginScreen(),
                                   ),
                                 );
                                 _closeDrawer();
@@ -324,8 +324,12 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                               title: const Text('Logout'),
                               textColor: colors.onPrimary,
                               iconColor: colors.menuIcon,
-                              onTap: () {
-                                AuthService.isAdmin = false;
+                              onTap: () async {
+                                // Clears the saved login too, so the admin
+                                // controls stay hidden after a restart (P1-217).
+                                _closeDrawer();
+                                await AuthService.logout();
+                                if (!context.mounted) return;
 
                                 Navigator.pushAndRemoveUntil(
                                   context,
@@ -334,8 +338,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                   ),
                                   (route) => false,
                                 );
-
-                                _closeDrawer();
                               },
                             ),
 
