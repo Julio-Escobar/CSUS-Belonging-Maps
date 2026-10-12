@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/semantics_finders.dart';
+
 Future<void> _pumpSurveys(WidgetTester tester) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
@@ -51,10 +53,11 @@ void main() {
   testWidgets('admin can add a survey from the plus icon popup', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     await _pumpSurveys(tester);
 
-    await tester.tap(find.byTooltip('Add survey'));
+    tester.semantics.tap(semanticTapByTooltip('Add survey'));
     await tester.pumpAndSettle();
 
     expect(find.text('Add Survey'), findsOneWidget);
@@ -75,6 +78,7 @@ void main() {
       find.widgetWithText(ElevatedButton, 'Campus Climate Survey'),
       findsOneWidget,
     );
+    semantics.dispose();
   });
 
   testWidgets('add survey popup rejects a missing name and bad link', (
@@ -110,10 +114,11 @@ void main() {
   });
 
   testWidgets('admin can edit a survey', (tester) async {
+    final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     await _pumpSurveys(tester);
 
-    await tester.tap(find.byTooltip('Edit Feedback Survey'));
+    tester.semantics.tap(semanticTapByTooltip('Edit Feedback Survey'));
     await tester.pumpAndSettle();
 
     expect(find.text('Edit Survey'), findsOneWidget);
@@ -130,13 +135,15 @@ void main() {
       find.widgetWithText(ElevatedButton, 'Feedback Survey'),
       findsNothing,
     );
+    semantics.dispose();
   });
 
   testWidgets('admin can delete a survey after confirming', (tester) async {
+    final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     await _pumpSurveys(tester);
 
-    await tester.tap(find.byTooltip('Delete Feedback Survey'));
+    tester.semantics.tap(semanticTapByTooltip('Delete Feedback Survey'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
     await tester.pumpAndSettle();
@@ -149,5 +156,6 @@ void main() {
       find.widgetWithText(ElevatedButton, 'What is Missing Survey'),
       findsOneWidget,
     );
+    semantics.dispose();
   });
 }

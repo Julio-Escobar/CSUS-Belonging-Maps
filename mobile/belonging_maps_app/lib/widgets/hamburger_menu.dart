@@ -212,24 +212,24 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             },
                           ),
                           const Divider(),
-                          
+
                           ListTile(
-                        leading: const Icon(Icons.forum_outlined),
-                        title: const Text('Forums'),
-                        textColor: colors.onPrimary,
-                        iconColor: colors.menuIcon,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ForumsScreen(),
-                            ),
-                          );
-                          _closeDrawer();
-                        },
-                      ),
-                      const Divider(),
-                          
+                            leading: const Icon(Icons.forum_outlined),
+                            title: const Text('Forums'),
+                            textColor: colors.onPrimary,
+                            iconColor: colors.menuIcon,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ForumsScreen(),
+                                ),
+                              );
+                              _closeDrawer();
+                            },
+                          ),
+                          const Divider(),
+
                           ListTile(
                             leading: const Icon(Icons.assignment_outlined),
                             title: const Text('Surveys'),
@@ -276,23 +276,26 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             ListTile(
                               leading: const Icon(Icons.edit),
                               title: const Text("Edit Maps"),
+                              subtitle: const Text('Not available yet'),
                               textColor: colors.onPrimary,
                               iconColor: colors.menuIcon,
-                              onTap: _closeDrawer,
+                              enabled: false,
                             ),
                             ListTile(
                               leading: const Icon(Icons.add),
                               title: const Text("Add Location"),
+                              subtitle: const Text('Not available yet'),
                               textColor: colors.onPrimary,
                               iconColor: colors.menuIcon,
-                              onTap: _closeDrawer,
+                              enabled: false,
                             ),
                             ListTile(
                               leading: const Icon(Icons.delete),
                               title: const Text("Delete Entries"),
+                              subtitle: const Text('Not available yet'),
                               textColor: colors.onPrimary,
                               iconColor: colors.menuIcon,
-                              onTap: _closeDrawer,
+                              enabled: false,
                             ),
                           ],
 

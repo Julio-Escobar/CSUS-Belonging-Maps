@@ -25,9 +25,13 @@ class MapZoomControls extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            _ZoomButton(icon: Icons.add, onTap: onZoomIn),
+            _ZoomButton(icon: Icons.add, label: 'Zoom in', onTap: onZoomIn),
             const SizedBox(height: 10),
-            _ZoomButton(icon: Icons.remove, onTap: onZoomOut),
+            _ZoomButton(
+              icon: Icons.remove,
+              label: 'Zoom out',
+              onTap: onZoomOut,
+            ),
           ],
         ),
       ),
@@ -37,9 +41,14 @@ class MapZoomControls extends StatelessWidget {
 
 class _ZoomButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
-  const _ZoomButton({required this.icon, required this.onTap});
+  const _ZoomButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +56,17 @@ class _ZoomButton extends StatelessWidget {
       color: zoomButtonBackgroundColor,
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+      child: Semantics(
+        button: true,
+        label: label,
         onTap: onTap,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(icon, color: zoomButtonIconColor),
+        child: ExcludeSemantics(
+          child: IconButton(
+            tooltip: label,
+            onPressed: onTap,
+            icon: Icon(icon, color: zoomButtonIconColor),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
         ),
       ),
     );
