@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -16,7 +17,10 @@ class LoginScreen extends StatelessWidget {
     final username = usernameController.text;
     final password = passwordController.text;
 
-    final url = Uri.parse('http://10.0.2.2:5162/api/auth/login');
+    final apiHost = defaultTargetPlatform == TargetPlatform.android
+      ? '10.0.2.2'
+      : 'localhost';
+    final url = Uri.parse('http://$apiHost:5162/api/auth/login');
 
     try {
       final response = await http.post(
@@ -36,7 +40,13 @@ class LoginScreen extends StatelessWidget {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid credentials")),
+          SnackBar(
+            content: Text(
+              response.statusCode == 401
+                  ? "Invalid username or password"
+                  : "Login failed (HTTP ${response.statusCode})",
+            ),
+          ),
         );
       }
     } catch (e) {
