@@ -33,6 +33,18 @@ class LayerIconConfig {
 String mapIconAssetPath(String relativeSvgPath) =>
     'assets/map_icons/${relativeSvgPath.replaceAll('.svg', '.png')}';
 
+/// Resolves the bundled asset path for the icon a feature whose `Type` value
+/// is [typeValue] uses within [config], falling back to the config's default
+/// icon when the value is unmapped, blank, or null.
+String iconAssetPathForType(LayerIconConfig config, dynamic typeValue) {
+  final key = typeValue?.toString().trim();
+  final relative =
+      (key != null && key.isNotEmpty && config.byType.containsKey(key))
+          ? config.byType[key]!
+          : config.fallback;
+  return mapIconAssetPath(relative);
+}
+
 /// Ummah community map icons, keyed by layer id.
 const Map<String, LayerIconConfig> ummahLayerIcons = {
   'businessServices': LayerIconConfig(

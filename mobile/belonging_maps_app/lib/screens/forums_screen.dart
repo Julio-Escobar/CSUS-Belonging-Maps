@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-
+ 
 import '../models/forum_post.dart';
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../services/forum_post_service.dart';
 import '../widgets/hamburger_menu.dart';
-
+ 
 String _formatPostedAt(BuildContext context, DateTime value) {
   final local = value.toLocal();
   final localizations = MaterialLocalizations.of(context);
@@ -13,35 +13,35 @@ String _formatPostedAt(BuildContext context, DateTime value) {
   final time = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(local));
   return '$date, $time';
 }
-
+ 
 class ForumsScreen extends StatefulWidget {
   ForumsScreen({super.key, List<ForumPost>? posts}) : posts = posts;
-
+ 
   final List<ForumPost>? posts;
-
+ 
   @override
   State<ForumsScreen> createState() => _ForumsScreenState();
 }
-
+ 
 class _ForumsScreenState extends State<ForumsScreen> {
   late final List<ForumPost> _posts;
-
+ 
   final Map<ForumPost, List<_ForumReply>> _replies = Map.identity();
-
+ 
   @override
   void initState() {
     super.initState();
     _posts = List<ForumPost>.of(widget.posts ?? ForumPostService.samplePosts());
   }
-
+ 
   Future<void> _showNewPostDialog() async {
     final result = await showDialog<_NewPostData>(
       context: context,
       builder: (_) => const _NewPostDialog(),
     );
-
+ 
     if (result == null || !mounted) return;
-
+ 
     setState(() {
       _posts.add(
         ForumPost(
@@ -57,22 +57,23 @@ class _ForumsScreenState extends State<ForumsScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Post published')));
   }
-
+ 
   Future<void> _openPost(ForumPost post) async {
     final replies = _replies.putIfAbsent(post, () => <_ForumReply>[]);
-
+ 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _ForumPostDetailScreen(post: post, replies: replies),
       ),
     );
-
+ 
     if (mounted) setState(() {});
   }
-
+ 
   Future<void> _deletePost(ForumPost post) async {
     if (!AuthService.isAdmin) return;
-
+    final colors = AccessibilityColors.of(context);
+ 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -83,16 +84,20 @@ class _ForumsScreenState extends State<ForumsScreen> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.destructive,
+              foregroundColor: colors.onPrimary,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
-
+ 
     if (confirmed != true || !mounted) return;
-
+ 
     setState(() {
       _posts.removeWhere((candidate) => identical(candidate, post));
       _replies.remove(post);
@@ -101,13 +106,13 @@ class _ForumsScreenState extends State<ForumsScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Post deleted')));
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     final newestFirst = List<ForumPost>.of(_posts)
       ..sort((first, second) => second.postedAt.compareTo(first.postedAt));
     final isAdmin = AuthService.isAdmin;
-
+ 
     return HamburgerMenu(
       title: 'Forums',
       actions: [
@@ -137,7 +142,7 @@ class _ForumsScreenState extends State<ForumsScreen> {
     );
   }
 }
-
+ 
 class _ForumPostTile extends StatelessWidget {
   const _ForumPostTile({
     required this.post,
@@ -146,26 +151,26 @@ class _ForumPostTile extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
   });
-
+ 
   final ForumPost post;
   final int replyCount;
   final bool showDelete;
   final VoidCallback onTap;
   final VoidCallback onDelete;
-
+ 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final colors = AccessibilityColors.of(context);
     final postedAt = post.postedAt.toLocal();
     final localizations = MaterialLocalizations.of(context);
     final postedDate = localizations.formatMediumDate(postedAt);
     final postedTime = localizations.formatTimeOfDay(
       TimeOfDay.fromDateTime(postedAt),
     );
-
+ 
     return Card(
       margin: EdgeInsets.zero,
-      color: colors.surfaceContainerLow,
+      color: colors.cardBackground,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
@@ -185,40 +190,47 @@ class _ForumPostTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: colors.primaryText,
                       ),
                     ),
                   ),
                   if (showDelete) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: 'Delete post',
+                      tooltip: 'Delete ${post.title}',
                       onPressed: onDelete,
                       constraints: const BoxConstraints(
                         minWidth: 48,
                         minHeight: 48,
                       ),
                       padding: EdgeInsets.zero,
-                      icon: Icon(Icons.delete_outline, color: colors.error),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: colors.destructive,
+                      ),
                     ),
                   ],
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'by ${post.author}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
+                  Text(
+                    'by ${post.author}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.secondaryText,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 4),
                   Text(
                     '$postedDate, $postedTime',
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.secondaryText,
+                    ),
                   ),
                 ],
               ),
@@ -251,10 +263,10 @@ class _ForumPostTile extends StatelessWidget {
     );
   }
 }
-
+ 
 class _EmptyForumsState extends StatelessWidget {
   const _EmptyForumsState();
-
+ 
   @override
   Widget build(BuildContext context) {
     return const Center(
@@ -262,32 +274,32 @@ class _EmptyForumsState extends StatelessWidget {
     );
   }
 }
-
+ 
 class _NewPostData {
   const _NewPostData({
     required this.title,
     required this.author,
     required this.body,
   });
-
+ 
   final String title;
   final String author;
   final String body;
 }
-
+ 
 class _NewPostDialog extends StatefulWidget {
   const _NewPostDialog();
-
+ 
   @override
   State<_NewPostDialog> createState() => _NewPostDialogState();
 }
-
+ 
 class _NewPostDialogState extends State<_NewPostDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _bodyController = TextEditingController();
-
+ 
   @override
   void dispose() {
     _titleController.dispose();
@@ -295,13 +307,13 @@ class _NewPostDialogState extends State<_NewPostDialog> {
     _bodyController.dispose();
     super.dispose();
   }
-
+ 
   String? _required(String? value) =>
       (value == null || value.trim().isEmpty) ? 'Required' : null;
-
+ 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-
+ 
     Navigator.of(context).pop(
       _NewPostData(
         title: _titleController.text.trim(),
@@ -310,7 +322,7 @@ class _NewPostDialogState extends State<_NewPostDialog> {
       ),
     );
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -362,38 +374,38 @@ class _NewPostDialogState extends State<_NewPostDialog> {
     );
   }
 }
-
+ 
 class _ForumReply {
   const _ForumReply({
     required this.author,
     required this.body,
     required this.postedAt,
   });
-
+ 
   final String author;
   final String body;
   final DateTime postedAt;
 }
-
+ 
 class _ForumPostDetailScreen extends StatefulWidget {
   const _ForumPostDetailScreen({required this.post, required this.replies});
-
+ 
   final ForumPost post;
   final List<_ForumReply> replies;
-
+ 
   @override
   State<_ForumPostDetailScreen> createState() => _ForumPostDetailScreenState();
 }
-
+ 
 class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
   Future<void> _showReplyDialog() async {
     final result = await showDialog<_ReplyData>(
       context: context,
       builder: (_) => _ReplyDialog(post: widget.post),
     );
-
+ 
     if (result == null || !mounted) return;
-
+ 
     setState(() {
       widget.replies.add(
         _ForumReply(
@@ -407,7 +419,7 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Reply posted')));
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -415,7 +427,7 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final totalReplies = post.replyCount + widget.replies.length;
-
+ 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: brand.primary,
@@ -494,17 +506,17 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
     );
   }
 }
-
+ 
 class _ReplyTile extends StatelessWidget {
   const _ReplyTile({required this.reply});
-
+ 
   final _ForumReply reply;
-
+ 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
+ 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: colors.surfaceContainerLow,
@@ -541,29 +553,29 @@ class _ReplyTile extends StatelessWidget {
     );
   }
 }
-
+ 
 class _ReplyData {
   const _ReplyData({required this.author, required this.body});
-
+ 
   final String author;
   final String body;
 }
-
+ 
 class _ReplyDialog extends StatefulWidget {
   const _ReplyDialog({required this.post});
-
+ 
   final ForumPost post;
-
+ 
   @override
   State<_ReplyDialog> createState() => _ReplyDialogState();
 }
-
+ 
 class _ReplyDialogState extends State<_ReplyDialog> {
   final _formKey = GlobalKey<FormState>();
   final _authorController = TextEditingController();
   final _bodyController = TextEditingController();
   final _originalScrollController = ScrollController();
-
+ 
   @override
   void dispose() {
     _authorController.dispose();
@@ -571,10 +583,10 @@ class _ReplyDialogState extends State<_ReplyDialog> {
     _originalScrollController.dispose();
     super.dispose();
   }
-
+ 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-
+ 
     final name = _authorController.text.trim();
     Navigator.of(context).pop(
       _ReplyData(
@@ -583,12 +595,12 @@ class _ReplyDialogState extends State<_ReplyDialog> {
       ),
     );
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
+ 
     return AlertDialog(
       title: const Text('Reply'),
       content: Form(

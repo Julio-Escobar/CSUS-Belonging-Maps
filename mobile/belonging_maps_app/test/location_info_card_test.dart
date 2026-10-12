@@ -28,9 +28,49 @@ void main() {
       expect(data.cardTitle, 'Food Pantry');
       expect(data.website, 'https://www.csus.edu/food-pantry');
     });
+
+    test('uses FACILITY_NAME for campus map details', () {
+      final data = LocationInfoData.fromAttributes({
+        'FACILITY_NAME': 'Coloma Community Center',
+        'ADDRESS': '4623 T Street',
+      });
+      expect(data.cardTitle, 'Coloma Community Center');
+      expect(data.address, '4623 T Street');
+    });
   });
 
   group('LocationInfoCard', () {
+    testWidgets('long campus name leaves more information reachable', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var opened = false;
+      final data = LocationInfoData.fromAttributes({
+        'FACILITY_NAME': 'Coloma Community Center',
+      }, fallbackCategory: 'Campus locations');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () => opened = true,
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('More information'));
+      expect(opened, isTrue);
+    });
+
     testWidgets(
       'shows location name, website, and contact info in expanded popup',
       (tester) async {
@@ -64,16 +104,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('PRIDE Center'), findsOneWidget);
-        expect(
-          find.byWidgetPredicate(
-            (widget) =>
-                widget is RichText &&
-                widget.text.toPlainText().contains('Website: Click Here'),
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Phone: 916-278-1234'), findsOneWidget);
-        expect(find.text('Email: pride-center@csus.edu'), findsOneWidget);
+        expect(find.text('Open website'), findsOneWidget);
+        expect(find.text('Call 916-278-1234'), findsOneWidget);
+        expect(find.text('Email pride-center@csus.edu'), findsOneWidget);
       },
     );
   });

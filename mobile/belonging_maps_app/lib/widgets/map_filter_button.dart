@@ -8,16 +8,24 @@ const Color _filterChipSelectedText = Colors.white;
 const Color _filterChipUnselectedText = Color(0xFF2F5F3E);
 
 class MapFilterButton extends StatefulWidget {
-  final FeatureLayer featureLayer;
+  final FeatureLayer? featureLayer;
   final String filterField;
   final String label;
+  final Future<List<String>> Function()? loadFilters;
+  final ValueChanged<String>? onDefinitionExpressionChanged;
 
   const MapFilterButton({
     super.key,
     required this.featureLayer,
     this.filterField = 'CATEGORY',
     this.label = 'Category',
-  });
+    this.loadFilters,
+    this.onDefinitionExpressionChanged,
+  }) : assert(
+         featureLayer != null ||
+             (loadFilters != null && onDefinitionExpressionChanged != null),
+         'Provide a feature layer or controlled filter callbacks.',
+       );
 
   @override
   State<MapFilterButton> createState() => _MapFilterButtonState();
@@ -35,47 +43,59 @@ class _MapFilterButtonState extends State<MapFilterButton> {
     _loadFilters();
   }
 
-Future<void> _loadFilters() async {
-  setState(() => _isLoading = true);
-  try {
-    final featureTable =
-        widget.featureLayer.featureTable as ServiceFeatureTable;
+  Future<void> _loadFilters() async {
+    setState(() => _isLoading = true);
+    try {
+      final values = widget.loadFilters == null
+          ? await _queryFilters()
+          : await widget.loadFilters!();
+      if (!mounted) return;
 
-    final queryParams = QueryParameters()
-      ..whereClause = '1=1';
+      setState(() {
+        _availableFilters = values.toSet().toList()..sort();
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading filters: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+  }
 
+  Future<List<String>> _queryFilters() async {
+    final layer = widget.featureLayer;
+    if (layer == null) {
+      throw StateError('A feature layer is required to load filters.');
+    }
+    final featureTable = layer.featureTable as ServiceFeatureTable;
+    final queryParams = QueryParameters()..whereClause = '1=1';
     final result = await featureTable.queryFeatures(queryParams);
     final values = <String>{};
 
     for (final feature in result.features()) {
-      final value =
-          feature.attributes[widget.filterField]?.toString().trim();
+      final value = feature.attributes[widget.filterField]?.toString().trim();
       if (value != null && value.isNotEmpty && value != 'null') {
         values.add(value);
       }
     }
 
-    setState(() {
-      _availableFilters = values.toList()..sort();
-      _isLoading = false;
-    });
-  } catch (e) {
-    debugPrint('Error loading filters: $e');
-    setState(() => _isLoading = false);
+    return values.toList()..sort();
   }
-}
 
   void _applyFilter() {
     if (_selectedFilters.isEmpty) {
-      widget.featureLayer.definitionExpression = '';
+      _updateDefinitionExpression('');
       setState(() => _isActive = false);
     } else {
-      final quoted =
-          _selectedFilters.map((f) => "'$f'").join(', ');
-      widget.featureLayer.definitionExpression =
-          '${widget.filterField} IN ($quoted)';
+      final quoted = _selectedFilters.map((f) => "'$f'").join(', ');
+      _updateDefinitionExpression('${widget.filterField} IN ($quoted)');
       setState(() => _isActive = true);
     }
+  }
+
+  void _updateDefinitionExpression(String expression) {
+    widget.featureLayer?.definitionExpression = expression;
+    widget.onDefinitionExpressionChanged?.call(expression);
   }
 
   void _resetFilter() {
@@ -83,7 +103,7 @@ Future<void> _loadFilters() async {
       _selectedFilters.clear();
       _isActive = false;
     });
-    widget.featureLayer.definitionExpression = '';
+    _updateDefinitionExpression('');
   }
 
   void _showFilterSheet(BuildContext context) {
@@ -233,53 +253,69 @@ Future<void> _loadFilters() async {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showFilterSheet(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: _isActive ? const Color(0xFF2F5F3E) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.filter_list,
-              size: 18,
-              color: _isActive ? Colors.white : const Color(0xFF2F5F3E),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              _isActive
-                  ? 'Filtered (${_selectedFilters.length})'
-                  : 'Filter',
-              style: TextStyle(
-                color: _isActive ? Colors.white : const Color(0xFF2F5F3E),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            if (_isActive) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: _resetFilter,
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: Colors.white,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: _isActive ? const Color(0xFF2F5F3E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () => _showFilterSheet(context),
+            child: Semantics(
+              button: true,
+              label: 'Filter map locations by ${widget.label}',
+              child: ExcludeSemantics(
+                child: SizedBox(
+                  height: 48,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.filter_list,
+                        size: 18,
+                        color: _isActive
+                            ? Colors.white
+                            : const Color(0xFF2F5F3E),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isActive
+                            ? 'Filtered (${_selectedFilters.length})'
+                            : 'Filter',
+                        style: TextStyle(
+                          color: _isActive
+                              ? Colors.white
+                              : const Color(0xFF2F5F3E),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
+          ),
+          if (_isActive) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              onPressed: _resetFilter,
+              tooltip: 'Clear map location filters',
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.close, size: 16, color: Colors.white),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

@@ -1,9 +1,12 @@
 import 'package:belonging_maps_app/screens/opportunities.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
+import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers/semantics_finders.dart';
 
 void main() {
   Future<void> pumpOpportunities(
@@ -11,6 +14,8 @@ void main() {
     bool highContrast = false,
     double textScale = 1.0,
   }) async {
+    AuthService.isAdmin = true;
+    addTearDown(() => AuthService.isAdmin = false);
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final controller = AccessibilitySettingsController(preferences);
@@ -52,20 +57,23 @@ void main() {
   testWidgets('opens the add opportunity dialog from the app bar', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await pumpOpportunities(tester);
 
-    await tester.tap(find.byTooltip('Add opportunity'));
+    tester.semantics.tap(semanticTapByTooltip('Add opportunity'));
     await tester.pumpAndSettle();
 
     expect(find.text('Add Opportunity'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('opens opportunity details through its semantic action', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await pumpOpportunities(tester);
 
-    await tester.tap(find.bySemanticsLabel(RegExp('SOMOS Scholarships')));
+    tester.semantics.tap(semanticTapByLabel(RegExp('^SOMOS Scholarships')));
     await tester.pumpAndSettle();
 
     expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
@@ -86,6 +94,36 @@ void main() {
       tester.widget<Semantics>(linkSemantics).properties.label,
       'Open Chicana Latina',
     );
+    semantics.dispose();
+  });
+
+  testWidgets('named edit and delete actions affect the matching opportunity', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpOpportunities(tester);
+
+    tester.semantics.tap(semanticTapByTooltip('Edit SOMOS Scholarships'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Opportunity'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).first)
+          .controller!
+          .text,
+      'SOMOS Scholarships',
+    );
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    tester.semantics.tap(semanticTapByTooltip('Delete SOMOS Scholarships'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Opportunity'), findsOneWidget);
+    tester.semantics.tap(semanticTapByLabel('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('SOMOS Scholarships'), findsNothing);
+    expect(find.text('Opportunity deleted'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('retains content at larger text and high contrast settings', (

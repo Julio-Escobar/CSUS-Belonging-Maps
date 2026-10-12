@@ -19,6 +19,7 @@ class MapSearchBar extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         decoration: const InputDecoration(
+          labelText: 'Search map locations',
           hintText: 'Search locations...',
           prefixIcon: Icon(Icons.search),
           border: InputBorder.none,

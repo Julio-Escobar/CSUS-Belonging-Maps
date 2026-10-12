@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../models/location_attributes.dart';
+
 // Color constants
 const Color mapInfoCardColor = Color.fromARGB(255, 47, 95, 62);
 const Color mapInfoPrimaryTextColor = Colors.white;
@@ -42,11 +44,7 @@ class LocationInfoData {
   });
 
   static String cleanField(dynamic value) {
-    final text = value?.toString().trim() ?? '';
-    if (text.isEmpty) return '';
-    if (text.toLowerCase() == 'n/a') return '';
-    if (text.toLowerCase() == 'null') return '';
-    return text;
+    return cleanLocationAttribute(value);
   }
 
   static double? _toDouble(dynamic value) {
@@ -58,8 +56,6 @@ class LocationInfoData {
     Map<String, dynamic>? attributes, {
     String? fallbackCategory,
   }) {
-    final String companyName = cleanField(attributes?['Company_Name']);
-    final String name = cleanField(attributes?['Name']);
     final String categoryField = cleanField(attributes?['CATEGORY']);
 
     final String addressField = cleanField(attributes?['ADDRESS']);
@@ -74,16 +70,12 @@ class LocationInfoData {
     final String imageField = cleanField(attributes?['IMAGE_URL']);
 
     return LocationInfoData(
-      cardTitle: companyName.isNotEmpty
-          ? companyName
-          : name.isNotEmpty
-              ? name
-              : 'Location Info',
+      cardTitle: locationTitleFromAttributes(attributes),
       address: addressField.isNotEmpty
           ? addressField
           : locationField.isNotEmpty
-              ? locationField
-              : '',
+          ? locationField
+          : '',
       category: categoryField.isNotEmpty
           ? categoryField
           : cleanField(fallbackCategory),
@@ -94,8 +86,8 @@ class LocationInfoData {
       description: descriptionField.isNotEmpty
           ? descriptionField
           : detailsField.isNotEmpty
-              ? detailsField
-              : 'No description available.',
+          ? detailsField
+          : 'No description available.',
       imageUrl: imageField.isNotEmpty ? imageField : null,
       socialLinks: {
         'Instagram': cleanField(attributes?['Instagram']),
@@ -182,9 +174,7 @@ class LocationInfoCard extends StatelessWidget {
             'https://www.google.com/maps/dir/?api=1&destination=$encodedDestination',
           );
         } else {
-          primaryUri = Uri.parse(
-            'geo:0,0?q=$encodedDestination',
-          );
+          primaryUri = Uri.parse('geo:0,0?q=$encodedDestination');
           fallbackUri = Uri.parse(
             'https://www.google.com/maps/dir/?api=1&destination=$encodedDestination&travelmode=driving',
           );
@@ -217,9 +207,7 @@ class LocationInfoCard extends StatelessWidget {
             'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
           );
         } else {
-          primaryUri = Uri.parse(
-            'geo:$lat,$lng?q=$lat,$lng($label)',
-          );
+          primaryUri = Uri.parse('geo:$lat,$lng?q=$lat,$lng($label)');
           fallbackUri = Uri.parse(
             'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
           );
@@ -268,7 +256,7 @@ class LocationInfoCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOut,
-        height: showFullInfo ? expandedHeight : 190,
+        height: showFullInfo ? expandedHeight : 260,
         margin: const EdgeInsets.all(12),
         child: Card(
           color: mapInfoCardColor,
@@ -319,91 +307,90 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasCategory = category.trim().isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (orgLogo != null) ...[
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.white,
-                  backgroundImage: AssetImage(orgLogo!),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: Text(
-                    cardTitle,
-                    maxLines: hasCategory ? 3 : 4,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (orgLogo != null) ...[
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.white,
+                    backgroundImage: AssetImage(orgLogo!),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Text(
+                      cardTitle,
+                      maxLines: hasCategory ? 3 : 4,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      style: const TextStyle(
+                        color: mapInfoPrimaryTextColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              IconButton(
-                onPressed: onClose,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
+                IconButton(
+                  onPressed: onClose,
+                  tooltip: 'Close location details',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
                 ),
-                icon: const Icon(
-                  Icons.close,
-                  color: mapInfoPrimaryTextColor,
+              ],
+            ),
+            if (hasCategory) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  category,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: mapInfoSecondaryTextColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
-          ),
-          if (hasCategory) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                category,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: mapInfoSecondaryTextColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              child: TextButton(
+                onPressed: onShowMore,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 48),
+                ),
+                child: const Text(
+                  'More information',
+                  style: TextStyle(
+                    color: mapInfoPrimaryTextColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: onShowMore,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                'Click here for more information',
-                style: TextStyle(
-                  color: mapInfoPrimaryTextColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -492,15 +479,10 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
               ),
               IconButton(
                 onPressed: onClose,
+                tooltip: 'Close location details',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
-                icon: const Icon(
-                  Icons.close,
-                  color: mapInfoPrimaryTextColor,
-                ),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
               ),
             ],
           ),
@@ -563,54 +545,38 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   const SizedBox(height: 22),
                 ],
                 if (_hasValue(data.website)) ...[
-                  GestureDetector(
-                    onTap: () => launchUrl(data.website),
-                    child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                          color: mapInfoPrimaryTextColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        children: [
-                          TextSpan(text: 'Website: '),
-                          TextSpan(
-                            text: 'Click Here',
-                            style: TextStyle(
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
+                  TextButton(
+                    onPressed: () => launchUrl(data.website),
+                    child: const Text(
+                      'Open website',
+                      style: TextStyle(color: mapInfoPrimaryTextColor),
                     ),
                   ),
                   const SizedBox(height: 22),
                 ],
                 if (_hasValue(data.phone)) ...[
-                  GestureDetector(
-                    onTap: () => launchUrl('tel:${data.phone}'),
+                  TextButton(
+                    onPressed: () => launchUrl('tel:${data.phone}'),
                     child: Text(
-                      'Phone: ${data.phone}',
+                      'Call ${data.phone}',
                       style: const TextStyle(
                         color: mapInfoPrimaryTextColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
                 ],
                 if (_hasValue(data.email)) ...[
-                  GestureDetector(
-                    onTap: () => launchUrl('mailto:${data.email}'),
+                  TextButton(
+                    onPressed: () => launchUrl('mailto:${data.email}'),
                     child: Text(
-                      'Email: ${data.email}',
+                      'Email ${data.email}',
                       style: const TextStyle(
                         color: mapInfoPrimaryTextColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
@@ -651,17 +617,14 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     spacing: 16,
                     runSpacing: 15,
                     children: validSocialLinks.entries.map((entry) {
-                      return GestureDetector(
-                        onTap: () => launchUrl(entry.value),
-                        child: CircleAvatar(
-                          radius: 28,
+                      return IconButton.filled(
+                        onPressed: () => launchUrl(entry.value),
+                        tooltip: 'Open ${entry.key}',
+                        style: IconButton.styleFrom(
                           backgroundColor: Colors.white,
-                          child: Icon(
-                            getSocialIcon(entry.key),
-                            color: mapInfoCardColor,
-                            size: 28,
-                          ),
+                          foregroundColor: mapInfoCardColor,
                         ),
+                        icon: Icon(getSocialIcon(entry.key)),
                       );
                     }).toList(),
                   ),
@@ -708,7 +671,8 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (data.imageUrl != null && data.imageUrl!.trim().isNotEmpty) ...[
+                if (data.imageUrl != null &&
+                    data.imageUrl!.trim().isNotEmpty) ...[
                   const SizedBox(height: 18),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),

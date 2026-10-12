@@ -15,11 +15,12 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
+        db.Database.Migrate();
         DbSeeder.SeedAdmin(db);
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Admin seeding skipped: database unavailable.");
+        app.Logger.LogWarning(ex, "Migration/admin seeding skipped: database unavailable.");
     }
 }
 

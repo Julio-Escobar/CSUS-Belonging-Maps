@@ -163,16 +163,50 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: colors.cardBackground,
         surfaceTintColor: Colors.transparent,
-        shape: highContrast
-            ? RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: colors.outline, width: 1.5),
-              )
-            : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: highContrast
+              ? BorderSide(color: colors.outline, width: 1.5)
+              : BorderSide.none,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.cardBackground,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: highContrast
+              ? BorderSide(color: colors.outline, width: 1.5)
+              : BorderSide.none,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: colors.primaryText,
+        contentTextStyle: TextStyle(color: colors.cardBackground),
+        behavior: SnackBarBehavior.floating,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: colors.action),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          foregroundColor: colors.action,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         labelStyle: TextStyle(color: colors.secondaryText),
         floatingLabelStyle: TextStyle(color: colors.primary),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: colors.outline),
+        ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(color: colors.primary, width: 2),
         ),

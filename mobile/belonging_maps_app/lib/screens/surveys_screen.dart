@@ -249,7 +249,6 @@ class _SurveyCard extends StatelessWidget {
       color: colors.cardBackground,
       elevation: 2,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -258,11 +257,7 @@ class _SurveyCard extends StatelessWidget {
             if (survey.description.isNotEmpty) ...[
               Text(
                 survey.description,
-                style: TextStyle(
-                  color: colors.secondaryText,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
+                style: TextStyle(color: colors.secondaryText, height: 1.4),
               ),
               const SizedBox(height: 12),
             ],

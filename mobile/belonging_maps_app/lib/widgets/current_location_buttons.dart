@@ -12,6 +12,7 @@ class CurrentLocationButton extends StatelessWidget {
       right: 16,
       child: FloatingActionButton(
         backgroundColor: Color(0xFF2F5F3E),
+        tooltip: 'Go to current location',
         onPressed: onPressed,
         child: Icon(Icons.my_location),
       ),
