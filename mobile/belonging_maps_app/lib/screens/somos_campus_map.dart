@@ -5,6 +5,8 @@ import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
 import '/widgets/map_filter_button.dart';
+import '/widgets/map_search_bar.dart';
+import '/services/layer_search.dart';
 
 class SomosCampusMap extends StatefulWidget {
   const SomosCampusMap({super.key});
@@ -16,6 +18,7 @@ class SomosCampusMap extends StatefulWidget {
 class _SomosCampusMapState extends State<SomosCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
+  final TextEditingController _searchController = TextEditingController();
 
   Map<String, dynamic>? _selectedAttributes;
   double? _selectedLat;
@@ -44,6 +47,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     map.operationalLayers.add(_featureLayer);
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onSearchChanged(String query) {
+    return applyLayerSearch([_featureLayer], query);
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
@@ -223,12 +236,28 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             ),
             Positioned(
               top: 16,
+              left: 16,
               right: 16,
               child: SafeArea(
-                child: MapFilterButton(
-                  featureLayer: _featureLayer,
-                  filterField: 'CATEGORY',
-                  label: 'Category',
+                bottom: false,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 72),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: MapSearchBar(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    MapFilterButton(
+                      featureLayer: _featureLayer,
+                      filterField: 'CATEGORY',
+                      label: 'Category',
+                    ),
+                  ],
                 ),
               ),
             ),
