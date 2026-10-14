@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 import '/widgets/map_filter_button.dart';
+import '/widgets/map_search_bar.dart';
+import '/services/layer_search.dart';
+import '/widgets/map_zoom_controls.dart';
+import '/widgets/hamburger_menu.dart';
 
 class UbuntuCampusMap extends StatefulWidget {
   const UbuntuCampusMap({super.key});
@@ -12,6 +16,8 @@ class UbuntuCampusMap extends StatefulWidget {
 class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   late ArcGISMapViewController _mapController;
   late FeatureLayer _featureLayer;
+  final TextEditingController _searchController = TextEditingController();
+
   Map<String, dynamic>? _selectedAttributes;
 
   @override
@@ -35,6 +41,16 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     _mapController = ArcGISMapView.createController()..arcGISMap = map;
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onSearchChanged(String query) {
+    return applyLayerSearch([_featureLayer], query);
+  }
+
   Future<void> _handleMapTap(Offset screenPoint) async {
     final result = await _mapController.identifyLayer(
       _featureLayer,
@@ -48,29 +64,59 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     });
   }
 
+  Future<void> _zoomIn() async {
+    final currentScale = _mapController.scale;
+    if (currentScale.isNaN) return;
+    await _mapController.setViewpointScale(currentScale / 2);
+  }
+
+  Future<void> _zoomOut() async {
+    final currentScale = _mapController.scale;
+    if (currentScale.isNaN) return;
+    await _mapController.setViewpointScale(currentScale * 2);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          ArcGISMapView(
-            controllerProvider: () => _mapController,
-            onTap: _handleMapTap,
-          ),
-          if (_selectedAttributes != null) _buildCard(),
-          // Filter button
-          Positioned(
-            top: 16,
-            right: 16,
-            child: SafeArea(
-              child: MapFilterButton(
-                featureLayer: _featureLayer,
-                filterField: 'CATEGORY',
-                label: 'Category',
+      return HamburgerMenu(
+        body: Scaffold(
+        body: Stack(
+          children: [
+            ArcGISMapView(
+              controllerProvider: () => _mapController,
+              onTap: _handleMapTap,
+            ),
+            MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
+            if (_selectedAttributes != null) _buildCard(),
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 72),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: MapSearchBar(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    MapFilterButton(
+                      featureLayer: _featureLayer,
+                      filterField: 'CATEGORY',
+                      label: 'Category',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -90,6 +136,11 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  backgroundImage: AssetImage('assets/ubuntu_logo_temp.png'),
+                ),
                 title: Text(
                   cardTitle,
                   style: TextStyle(

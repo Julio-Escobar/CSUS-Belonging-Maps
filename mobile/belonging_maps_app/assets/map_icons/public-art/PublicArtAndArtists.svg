@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 121 121">
+  <!-- Generator: Adobe Illustrator 30.3.0, SVG Export Plug-In . SVG Version: 2.1.3 Build 182)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #f2f2f3;
+      }
+
+      .st1 {
+        stroke-width: 3.5px;
+      }
+
+      .st1, .st2 {
+        fill: none;
+        stroke: #f2f2f3;
+        stroke-miterlimit: 10;
+      }
+
+      .st3 {
+        fill: #7a0391;
+      }
+    </style>
+  </defs>
+  <g id="Layer_2-2">
+    <g id="MIC11px">
+      <g>
+        <path class="st0" d="M60.4,117.2c-31.1,0-56.5-25.3-56.5-56.5S29.3,4.2,60.4,4.2s56.5,25.4,56.5,56.5-25.3,56.5-56.5,56.5Z"/>
+        <path class="st3" d="M60.5,8.1c28.9,0,52.5,23.5,52.5,52.5s-23.6,52.5-52.5,52.5S8,89.5,8,60.6,31.5,8.1,60.5,8.1M60.5.1C27.1.1,0,27.2,0,60.6s27.1,60.5,60.5,60.5,60.5-27.1,60.5-60.5S93.9.1,60.5.1h0Z"/>
+      </g>
+    </g>
+  </g>
+  <path class="st3" d="M50.1,87.1l20-.2c-.5.5-1,1-1.7,1.4-1.6,1.2-3.2,1.9-4.4,2.3l6.2-.2c0,.3,0,.8,0,1.4-.2.7-.5,1.2-.7,1.5-.7.4-1.5.9-2.5,1.3-1.3.5-2.5,1.5-3.4,1.7,0,.5,0,.4,0,.9h6.8c0-.1,0,4.2,0,4.2l-5.2,6.1c-1,.3-2.2.9-3.7.9-2,0-4.5-1.1-5.6-1.4-1.9-1.8-3.8-3.6-5.7-5.4v-14.6Z"/>
+  <path class="st3" d="M49.8,30.2c-3.8,2.2-7.2,4.1-9.8,7.5-1.8,2.4-2.5,4.7-2.7,5.6-2,6.8-.2,15.3,4.3,21.2,2.1,2.8,4.2,4.3,5.6,8.4.8,2.3,1.8,4.6,1.8,6l1,5.8h10.5s10.2,0,10.2,0l1.4-6.7c0-1.4,1-2.7,1.8-5.1,1.4-4.1,3.6-5.6,5.6-8.4,4.4-5.9,6.3-14.4,4.3-21.2-.3-1-1-3.2-2.7-5.6-2.5-3.4-5.9-5.4-9.8-7.5l-.5-.2c-6.9-2.3-14.3-2.2-21.1.1h0Z"/>
+  <path class="st1" d="M55.8,85.4l-6.7-29.7c0-.3.3-.4.4-.2.8,1,1.9,1.8,3.1,2,2.3.4,4.7-1.1,5.6-3.5s.3-.2.4,0l1.3,1.4c0,0,.2.1.3,0l1.7-1.5c.1-.1.3,0,.4.1.9,2.5,3.3,3.9,5.6,3.6,1.2-.2,2.4-.9,3.1-2s.5,0,.4.2l-6.7,29.7"/>
+  <rect class="st3" x="26.6" y="27.2" width="4" height="14.7" rx="2" ry="2" transform="translate(-15.8 41.2) rotate(-58.9)"/>
+  <rect class="st3" x="22.1" y="42.8" width="4" height="15.4" rx="2" ry="2" transform="translate(-26.6 74.3) rotate(-89.6)"/>
+  <rect class="st3" x="43" y="14" width="4" height="14.5" rx="2" ry="2" transform="translate(-4.7 23.5) rotate(-27.8)"/>
+  <rect class="st3" x="23.8" y="68" width="14.2" height="4" rx="2" ry="2" transform="translate(-34.7 30.5) rotate(-35.1)"/>
+  <rect class="st3" x="83.6" y="32" width="14.7" height="4" rx="2" ry="2" transform="translate(-4.5 51.9) rotate(-31.1)"/>
+  <rect class="st3" x="87.8" y="48" width="15.4" height="4" rx="2" ry="2" transform="translate(-.4 .7) rotate(-.4)"/>
+  <rect class="st3" x="67.3" y="18.6" width="14.5" height="4" rx="2" ry="2" transform="translate(21.5 76.9) rotate(-62.2)"/>
+  <rect class="st3" x="86.7" y="62.3" width="4" height="14.2" rx="2" ry="2" transform="translate(-19.1 102) rotate(-54.9)"/>
+  <line class="st2" x1="54.6" y1="106.9" x2="66.7" y2="106.8"/>
+</svg>
