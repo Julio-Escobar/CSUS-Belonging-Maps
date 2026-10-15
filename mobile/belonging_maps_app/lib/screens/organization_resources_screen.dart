@@ -318,7 +318,7 @@ class _OrganizationResourcesScreenState
             child: const Text('Close'),
           ),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen),
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary),
             onPressed: () {
               Navigator.of(dialogContext).pop();
               final mapBuilder = _orgMapBuilders[resource.orgKey];
