@@ -53,8 +53,9 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       super.dispose();
     }
 
-    Future<void> _onSearchChanged(String query) {
-      return applyLayerSearch([_featureLayer], query);
+    Future<void> _onSearchChanged(String query) async {
+      final searchClause = await buildLayerSearchClause(_featureLayer, query);
+      _featureLayer.definitionExpression = searchClause;
     }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
