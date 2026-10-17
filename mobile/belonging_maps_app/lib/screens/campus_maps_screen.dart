@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../widgets/map_selection_card.dart';
@@ -6,8 +7,56 @@ import 'somos_campus_map.dart';
 import 'ummah_campus_map.dart';
 import 'ubuntu_campus_map.dart';
 
+/// Official Sacramento State interactive campus map.
+const String interactiveCampusMapUrl =
+    'https://map.csus.edu/?id=2324#!ct/103755,103756,103757,106981?s/';
+
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});
+
+  /// Opens the map site in a browser rendered inside the app (Android Custom
+  /// Tabs / iOS Safari view controller).
+  Future<void> _openInteractiveCampusMap(BuildContext context) async {
+    var launched = false;
+    try {
+      launched = await launchUrl(
+        Uri.parse(interactiveCampusMapUrl),
+        mode: LaunchMode.inAppBrowserView,
+      );
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!launched && context.mounted) {
+      await _showMapErrorDialog(context);
+    }
+  }
+
+  Future<void> _showMapErrorDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Unable to open the campus map'),
+        content: const Text(
+          "The interactive campus map couldn't be loaded. "
+          'Check your internet connection and try again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Go Back'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _openInteractiveCampusMap(context);
+            },
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +90,47 @@ class CampusMapsScreen extends StatelessWidget {
                 'Select a map to get started',
                 style: TextStyle(color: colors.secondaryText),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+              Semantics(
+                hint: 'Opens the interactive campus map in a browser in the app',
+                child: ElevatedButton(
+                  onPressed: () => _openInteractiveCampusMap(context),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.public),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Interactive Campus Map',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: colors.outline.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 24),
               MapSelectionCard(
                 label: 'SOMOS Campus Map',
                 subtitle: 'SOMOS Campus',
