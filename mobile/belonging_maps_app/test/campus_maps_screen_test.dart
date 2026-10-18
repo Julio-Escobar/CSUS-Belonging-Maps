@@ -44,6 +44,9 @@ Future<void> pumpCampusMaps(WidgetTester tester) async {
 Finder get interactiveMapButton =>
     find.widgetWithText(ElevatedButton, 'Interactive Campus Map');
 
+Finder get genderNeutralBathroomsButton =>
+    find.widgetWithText(ElevatedButton, 'Gender Neutral Bathrooms');
+
 void main() {
   late FakeUrlLauncherPlatform launcher;
   late UrlLauncherPlatform originalLauncher;
@@ -58,19 +61,24 @@ void main() {
     UrlLauncherPlatform.instance = originalLauncher;
   });
 
-  testWidgets('shows the interactive map button above the campus map cards', (
+  testWidgets('shows the map launch buttons above the campus map cards', (
     tester,
   ) async {
     await pumpCampusMaps(tester);
 
     expect(interactiveMapButton, findsOneWidget);
+    expect(genderNeutralBathroomsButton, findsOneWidget);
     // Three campus maps plus the duplicated SOMOS card lower on the page.
     expect(find.byType(MapSelectionCard), findsNWidgets(4));
 
     final buttonRect = tester.getRect(interactiveMapButton);
+    final bathroomsButtonRect = tester.getRect(genderNeutralBathroomsButton);
     final firstCardRect = tester.getRect(find.byType(MapSelectionCard).first);
     expect(buttonRect.top, lessThan(firstCardRect.top));
     expect(buttonRect.height, greaterThanOrEqualTo(48));
+    expect(bathroomsButtonRect.top, greaterThan(buttonRect.bottom));
+    expect(bathroomsButtonRect.top, lessThan(firstCardRect.top));
+    expect(bathroomsButtonRect.height, greaterThanOrEqualTo(48));
   });
 
   testWidgets('opens the map site in the in-app browser', (tester) async {
@@ -155,6 +163,15 @@ void main() {
     expect(rect.width, greaterThanOrEqualTo(48));
     expect(rect.height, greaterThanOrEqualTo(48));
     expect(interactiveMapButton.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(genderNeutralBathroomsButton);
+    final bathroomsRect = tester.getRect(genderNeutralBathroomsButton);
+    expect(bathroomsRect.left, greaterThanOrEqualTo(0));
+    expect(bathroomsRect.right, lessThanOrEqualTo(320));
+    expect(bathroomsRect.width, greaterThanOrEqualTo(48));
+    expect(bathroomsRect.height, greaterThanOrEqualTo(48));
+    expect(genderNeutralBathroomsButton.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));

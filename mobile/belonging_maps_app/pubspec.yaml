@@ -112,6 +112,7 @@ flutter:
     - assets/map_icons/community-service/
     - assets/map_icons/edcuation/
     - assets/map_icons/food/
+    - assets/map_icons/general/
     - assets/map_icons/public-art/
     - assets/map_icons/religious/
 

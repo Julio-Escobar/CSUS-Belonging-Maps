@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../widgets/map_selection_card.dart';
+import 'gender_neutral_bathrooms_map.dart';
 import 'somos_campus_map.dart';
 import 'ummah_campus_map.dart';
 import 'ubuntu_campus_map.dart';
@@ -92,7 +93,8 @@ class CampusMapsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Semantics(
-                hint: 'Opens the interactive campus map in a browser in the app',
+                hint:
+                    'Opens the interactive campus map in a browser in the app',
                 child: ElevatedButton(
                   onPressed: () => _openInteractiveCampusMap(context),
                   style: ElevatedButton.styleFrom(
@@ -117,6 +119,45 @@ class CampusMapsScreen extends StatelessWidget {
                       Flexible(
                         child: Text(
                           'Interactive Campus Map',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Semantics(
+                hint: 'Opens the gender neutral bathrooms map',
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GenderNeutralBathroomsMap(),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.wc),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Gender Neutral Bathrooms',
                           textAlign: TextAlign.center,
                         ),
                       ),
