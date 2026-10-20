@@ -175,7 +175,7 @@ class CampusMapsScreen extends StatelessWidget {
               MapSelectionCard(
                 label: 'SOMOS Campus Map',
                 subtitle: 'SOMOS Campus',
-                imagePath: 'assets/somosCampusMap.png',
+                imagePath: 'assets/somoscampusmap.png',
                 logoPath: 'assets/somos_logo_temp.png',
                 onTap: () => Navigator.push(
                   context,

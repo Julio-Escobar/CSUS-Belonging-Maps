@@ -102,6 +102,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/
+    - assets/data/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.
