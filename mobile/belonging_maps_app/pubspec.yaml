@@ -54,6 +54,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  # Used to fake the platform browser in widget tests.
+  url_launcher_platform_interface: ^2.3.2
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.1
 
@@ -100,6 +102,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/
+    - assets/data/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.
@@ -110,6 +113,7 @@ flutter:
     - assets/map_icons/community-service/
     - assets/map_icons/edcuation/
     - assets/map_icons/food/
+    - assets/map_icons/general/
     - assets/map_icons/public-art/
     - assets/map_icons/religious/
 
