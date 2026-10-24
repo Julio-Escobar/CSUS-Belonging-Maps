@@ -5,6 +5,7 @@ import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'helpers/fake_community_resources_api.dart';
 import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -13,6 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  setUp(useFakeCommunityResourcesApi);
   tearDown(() => AuthService.isAdmin = false);
 
   testWidgets(
@@ -23,6 +25,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: CommunityResourcesScreen()),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.bySemanticsLabel(RegExp('View information for Food Pantry')),
@@ -48,6 +51,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: CommunityResourcesScreen()),
     );
+    await tester.pumpAndSettle();
     tester.semantics.tap(semanticTapByTooltip('Edit Food Pantry'));
     await tester.pumpAndSettle();
     expect(find.text('Edit Resource'), findsOneWidget);
@@ -114,6 +118,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: CommunityResourcesScreen()),
     );
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Edit ')), findsNothing);
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
