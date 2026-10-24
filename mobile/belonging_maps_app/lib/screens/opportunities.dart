@@ -1,12 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
-
-const String _storageKey = 'opportunities_resources_v1';
 
 const Map<String, IconData> _iconOptions = {
   'book': Icons.auto_stories,
@@ -18,16 +17,22 @@ const Map<String, IconData> _iconOptions = {
 };
 
 class OpportunitiesScreen extends StatefulWidget {
-  const OpportunitiesScreen({super.key});
+  final http.Client? client;
+
+  const OpportunitiesScreen({super.key, this.client});
 
   @override
   State<OpportunitiesScreen> createState() => _OpportunitiesScreenState();
 }
 
 class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
+  static const Duration _requestTimeout = Duration(seconds: 10);
+
   bool _isLoading = true;
-  List<_ScholarshipResource> _resources = [];
+  List<_ScholarshipResource> _resources = List.of(_defaultResources);
   String? _selectedCategory;
+  late final http.Client _client;
+  late final bool _ownsClient;
 
   static const List<_ScholarshipResource> _defaultResources = [
     _ScholarshipResource(
@@ -252,42 +257,69 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
+    _ownsClient = widget.client == null;
     _loadResources();
   }
 
-  Future<void> _loadResources() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedJson = prefs.getString(_storageKey);
-
-    if (storedJson != null && storedJson.isNotEmpty) {
-      try {
-        final List<dynamic> decoded = jsonDecode(storedJson);
-        setState(() {
-          _resources = decoded
-              .map(
-                (item) =>
-                    _ScholarshipResource.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-          _isLoading = false;
-        });
-        return;
-      } catch (_) {}
-    }
-
-    setState(() {
-      _resources = List<_ScholarshipResource>.from(_defaultResources);
-      _isLoading = false;
-    });
-    await _saveResources();
+  @override
+  void dispose() {
+    if (_ownsClient) _client.close();
+    super.dispose();
   }
 
-  Future<void> _saveResources() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _storageKey,
-      jsonEncode(_resources.map((res) => res.toJson()).toList()),
-    );
+  Future<void> _loadResources() async {
+    final uri = _apiUri('/api/opportunities');
+    if (uri == null) {
+      _finishLoadingWithError('API_BASE_URL is missing from .env.');
+      return;
+    }
+
+    try {
+      final response = await _client.get(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('GET returned ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      if (data is! List) throw const FormatException('Expected a list');
+
+      if (!mounted) return;
+      setState(() {
+        _resources = data
+            .map(
+              (item) => _ScholarshipResource.fromJson(
+                item as Map<String, dynamic>,
+              ),
+            )
+            .toList();
+        _isLoading = false;
+      });
+    } catch (_) {
+      _finishLoadingWithError('Could not load opportunities. Please try again.');
+    }
+  }
+
+  Uri? _apiUri(String path) {
+    final baseUrl = AuthService.baseUrl;
+    if (baseUrl == null) return null;
+    return Uri.parse('$baseUrl$path');
+  }
+
+  void _finishLoadingWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _resources = [];
+      _isLoading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    });
+  }
+
+  void _showRequestError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openLink(BuildContext context, String url) async {
@@ -325,7 +357,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     );
   }
 
-  void _showOpportunityDialog({int? index}) async {
+  Future<void> _showOpportunityDialog({int? index}) async {
     final isEditing = index != null;
     final target = isEditing ? _resources[index] : null;
 
@@ -335,30 +367,53 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
           _OpportunityEditorDialog(initialResource: target),
     );
 
-    if (result != null) {
+    if (result == null) return;
+
+    final uri = _apiUri(
+      isEditing ? '/api/opportunities/${result.id}' : '/api/opportunities',
+    );
+    if (uri == null) {
+      _showRequestError('API_BASE_URL is missing from .env.');
+      return;
+    }
+
+    try {
+      final body = jsonEncode(result.toJson());
+      final response = isEditing
+          ? await _client
+                .put(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .timeout(_requestTimeout)
+          : await _client
+                .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}');
+      }
+
+      final saved = _ScholarshipResource.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+      if (!mounted) return;
       setState(() {
         if (isEditing) {
-          _resources[index] = result;
+          _resources[index] = saved;
         } else {
-          _resources.add(result);
+          _resources.add(saved);
         }
       });
-
-      await _saveResources();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Opportunity updated' : 'Opportunity added',
-            ),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEditing ? 'Opportunity updated' : 'Opportunity added')),
+      );
+    } catch (_) {
+      _showRequestError(
+        isEditing
+            ? 'Could not update the opportunity. Please try again.'
+            : 'Could not add the opportunity. Please try again.',
+      );
     }
   }
 
-  void _deleteResource(int index) async {
+  Future<void> _deleteResource(int index) async {
     final colors = AccessibilityColors.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -384,15 +439,28 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
     );
 
-    if (shouldDelete == true) {
-      setState(() => _resources.removeAt(index));
-      await _saveResources();
+    if (shouldDelete != true) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
+    final id = _resources[index].id;
+    final uri = id == null ? null : _apiUri('/api/opportunities/$id');
+    if (uri == null) {
+      _showRequestError('Could not delete the opportunity. Please try again.');
+      return;
+    }
+
+    try {
+      final response = await _client.delete(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('DELETE returned ${response.statusCode}');
       }
+
+      if (!mounted) return;
+      setState(() => _resources.removeAt(index));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Opportunity deleted')),
+      );
+    } catch (_) {
+      _showRequestError('Could not delete the opportunity. Please try again.');
     }
   }
 
@@ -838,6 +906,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                 .toList();
 
             final newResource = _ScholarshipResource(
+              id: widget.initialResource?.id,
               title: titleController.text.trim(),
               description: descriptionController.text.trim(),
               iconKey: selectedIcon,
@@ -884,6 +953,7 @@ class _ScholarshipLink {
 }
 
 class _ScholarshipResource {
+  final int? id;
   final String title;
   final String description;
   final List<_ScholarshipLink> links;
@@ -891,6 +961,7 @@ class _ScholarshipResource {
   final String category;
 
   const _ScholarshipResource({
+    this.id,
     required this.title,
     required this.description,
     required this.links,
@@ -910,6 +981,7 @@ class _ScholarshipResource {
 
   factory _ScholarshipResource.fromJson(Map<String, dynamic> json) =>
       _ScholarshipResource(
+        id: json['id'] as int?,
         title: json['title'] as String? ?? '',
         description: json['description'] as String? ?? '',
         iconKey: json['iconKey'] as String? ?? 'book',
