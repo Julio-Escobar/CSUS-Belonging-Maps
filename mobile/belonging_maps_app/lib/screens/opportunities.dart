@@ -27,10 +27,12 @@ class OpportunitiesScreen extends StatefulWidget {
 class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   bool _isLoading = true;
   List<_ScholarshipResource> _resources = [];
+  String? _selectedCategory;
 
   static const List<_ScholarshipResource> _defaultResources = [
     _ScholarshipResource(
       title: 'SOMOS Scholarships',
+      category: 'SOMOS',
       description:
           'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
       iconKey: 'book',
@@ -102,6 +104,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     ),
     _ScholarshipResource(
       title: 'Ummah Scholarships',
+      category: 'Ummah',
       description: 'List of scholarships and opportunities for Ummah students.',
       iconKey: 'book',
       links: [
@@ -171,6 +174,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     ),
     _ScholarshipResource(
       title: 'Ubuntu Scholarships',
+      category: 'Ubuntu',
       description:
           'List of scholarships and opportunities for Ubuntu students.',
       iconKey: 'book',
@@ -397,6 +401,21 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final colors = AccessibilityColors.of(context);
     final isAdmin = AuthService.isAdmin;
 
+    final categories = _resources
+        .map((r) => r.category)
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList();
+    // Fall back to "All" if the selected category no longer exists.
+    final selected = categories.contains(_selectedCategory)
+        ? _selectedCategory
+        : null;
+    // Keep original indexes so edit/delete target the right resource.
+    final visibleIndexes = [
+      for (var i = 0; i < _resources.length; i++)
+        if (selected == null || _resources[i].category == selected) i,
+    ];
+
     return Scaffold(
       backgroundColor: colors.pageBackground,
       appBar: AppBar(
@@ -418,20 +437,47 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _resources.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final resource = _resources[index];
-                return _ResourceCard(
-                  resource: resource,
-                  isAdmin: isAdmin,
-                  onTap: () => _showResourceInformation(context, resource),
-                  onDelete: () => _deleteResource(index),
-                  onEdit: () => _showOpportunityDialog(index: index),
-                );
-              },
+          : Column(
+              children: [
+                if (categories.isNotEmpty)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        for (final category in [null, ...categories])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(category ?? 'All'),
+                              selected: selected == category,
+                              onSelected: (_) =>
+                                  setState(() => _selectedCategory = category),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: visibleIndexes.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final index = visibleIndexes[i];
+                      final resource = _resources[index];
+                      return _ResourceCard(
+                        resource: resource,
+                        isAdmin: isAdmin,
+                        onTap: () =>
+                            _showResourceInformation(context, resource),
+                        onDelete: () => _deleteResource(index),
+                        onEdit: () => _showOpportunityDialog(index: index),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }
@@ -611,6 +657,7 @@ class _OpportunityEditorDialog extends StatefulWidget {
 class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
   late TextEditingController titleController;
   late TextEditingController descriptionController;
+  late TextEditingController categoryController;
   late String selectedIcon;
   late List<_LinkEditorModel> linkEditors;
 
@@ -624,6 +671,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
     descriptionController = TextEditingController(
       text: target?.description ?? '',
     );
+    categoryController = TextEditingController(text: target?.category ?? '');
     selectedIcon = target?.iconKey ?? 'book';
     linkEditors =
         target?.links
@@ -636,6 +684,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
+    categoryController.dispose();
     for (var editor in linkEditors) {
       editor.dispose();
     }
@@ -672,6 +721,10 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'Required'
                       : null,
+                ),
+                TextFormField(
+                  controller: categoryController,
+                  decoration: const InputDecoration(labelText: 'Category'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -788,6 +841,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
               title: titleController.text.trim(),
               description: descriptionController.text.trim(),
               iconKey: selectedIcon,
+              category: categoryController.text.trim(),
               links: parsedLinks,
             );
 
@@ -834,12 +888,14 @@ class _ScholarshipResource {
   final String description;
   final List<_ScholarshipLink> links;
   final String iconKey;
+  final String category;
 
   const _ScholarshipResource({
     required this.title,
     required this.description,
     required this.links,
     this.iconKey = 'book',
+    this.category = '',
   });
 
   IconData get icon => _iconOptions[iconKey] ?? Icons.auto_stories;
@@ -848,6 +904,7 @@ class _ScholarshipResource {
     'title': title,
     'description': description,
     'iconKey': iconKey,
+    'category': category,
     'links': links.map((l) => l.toJson()).toList(),
   };
 
@@ -856,6 +913,7 @@ class _ScholarshipResource {
         title: json['title'] as String? ?? '',
         description: json['description'] as String? ?? '',
         iconKey: json['iconKey'] as String? ?? 'book',
+        category: json['category'] as String? ?? '',
         links:
             (json['links'] as List<dynamic>?)
                 ?.map(

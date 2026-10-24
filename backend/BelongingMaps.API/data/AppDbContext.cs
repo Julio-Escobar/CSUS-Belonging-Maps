@@ -11,6 +11,8 @@ namespace BelongingMaps.API.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<Survey> Surveys { get; set; }
+        public DbSet<Opportunity> Opportunities { get; set; }
+        public DbSet<OpportunityLink> OpportunityLinks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

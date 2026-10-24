@@ -60,6 +60,61 @@ namespace BelongingMaps.API.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BelongingMaps.API.Models.Opportunity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Opportunities");
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.OpportunityLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpportunityId");
+
+                    b.ToTable("OpportunityLinks");
+                });
+
             modelBuilder.Entity("BelongingMaps.API.Models.Survey", b =>
                 {
                     b.Property<int>("Id")
@@ -108,6 +163,20 @@ namespace BelongingMaps.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.OpportunityLink", b =>
+                {
+                    b.HasOne("BelongingMaps.API.Models.Opportunity", null)
+                        .WithMany("Links")
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.Opportunity", b =>
+                {
+                    b.Navigation("Links");
                 });
 #pragma warning restore 612, 618
         }
