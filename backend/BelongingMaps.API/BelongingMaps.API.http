@@ -1,6 +1,36 @@
 @BelongingMaps.API_HostAddress = http://localhost:5162
 
-GET {{BelongingMaps.API_HostAddress}}/weatherforecast/
+### Community resources (P1-220)
+GET {{BelongingMaps.API_HostAddress}}/api/communityresources
 Accept: application/json
+
+###
+GET {{BelongingMaps.API_HostAddress}}/api/communityresources/1
+Accept: application/json
+
+###
+POST {{BelongingMaps.API_HostAddress}}/api/communityresources
+Content-Type: application/json
+
+{
+  "title": "Test Resource",
+  "category": "Health",
+  "description": "Created from the .http file",
+  "iconKey": "health"
+}
+
+###
+PUT {{BelongingMaps.API_HostAddress}}/api/communityresources/9
+Content-Type: application/json
+
+{
+  "title": "Test Resource (edited)",
+  "category": "Health",
+  "description": "Edited from the .http file",
+  "iconKey": "health"
+}
+
+###
+DELETE {{BelongingMaps.API_HostAddress}}/api/communityresources/9
 
 ###

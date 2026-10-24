@@ -21,6 +21,101 @@ namespace BelongingMaps.API.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("BelongingMaps.API.Models.CommunityResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CommunityResources");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "Food",
+                            Description = "Free food resources available for students and community members.",
+                            IconKey = "food",
+                            Title = "Food Pantry"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "Health",
+                            Description = "Counseling and mental health support for students.",
+                            IconKey = "health",
+                            Title = "Mental Health Services"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "Housing",
+                            Description = "Resources and support for students experiencing housing insecurity.",
+                            IconKey = "housing",
+                            Title = "Housing Assistance"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Education",
+                            Description = "Free academic tutoring and support services on campus.",
+                            IconKey = "education",
+                            Title = "Tutoring Center"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Financial",
+                            Description = "Help with scholarships, grants, and financial assistance.",
+                            IconKey = "financial",
+                            Title = "Financial Aid Office"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Career",
+                            Description = "Job placement, resume help, and career counseling services.",
+                            IconKey = "career",
+                            Title = "Career Center"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Transportation",
+                            Description = "Bus passes and transportation assistance for students.",
+                            IconKey = "transportation",
+                            Title = "Transportation Services"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Family",
+                            Description = "Affordable childcare options available for student parents.",
+                            IconKey = "family",
+                            Title = "Childcare Services"
+                        });
+                });
+
             modelBuilder.Entity("BelongingMaps.API.Models.Location", b =>
                 {
                     b.Property<int>("Id")

@@ -9,10 +9,13 @@ import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
+import 'helpers/fake_community_resources_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(useFakeCommunityResourcesApi);
+
   final screens = <_AdminScreenCase>[
     _AdminScreenCase(
       name: 'Opportunities',
