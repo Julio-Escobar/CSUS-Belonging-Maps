@@ -149,6 +149,66 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('shows a matching suggestion and opens its opportunity', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpOpportunities(tester);
+
+    final searchField = find.byType(TextField);
+    await tester.enterText(searchField, '  chicana latina  ');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 opportunity found'), findsOneWidget);
+    expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
+    expect(find.text('Ummah Scholarships'), findsNothing);
+    expect(find.text('Ubuntu Scholarships'), findsNothing);
+    expect(find.byTooltip('Clear opportunity search'), findsOneWidget);
+
+    tester.semantics.tap(
+      semanticTapByLabel(RegExp('^Open SOMOS Scholarships, SOMOS\$')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chicana Latina'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets(
+    'combines category and keyword filters and recovers from no results',
+    (tester) async {
+      await pumpOpportunities(tester);
+
+      await tester.enterText(find.byType(TextField), 'scholarships');
+      await tester.pumpAndSettle();
+      expect(find.text('3 opportunities found'), findsOneWidget);
+
+      final somosFilter = find.byWidgetPredicate(
+        (widget) =>
+            widget is ChoiceChip &&
+            widget.label is Text &&
+            (widget.label as Text).data == 'SOMOS',
+      );
+      await tester.tap(somosFilter);
+      await tester.pumpAndSettle();
+      expect(find.text('1 opportunity found'), findsOneWidget);
+      expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
+      expect(find.text('Ummah Scholarships'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'no matching opportunity');
+      await tester.pumpAndSettle();
+      expect(find.text('No opportunities found.'), findsOneWidget);
+      expect(find.text('Clear filters'), findsOneWidget);
+
+      await tester.tap(find.text('Clear filters'));
+      await tester.pumpAndSettle();
+      expect(find.text('3 opportunities found'), findsOneWidget);
+      expect(find.text('SOMOS Scholarships'), findsOneWidget);
+      expect(find.text('Ummah Scholarships'), findsOneWidget);
+      expect(find.text('Ubuntu Scholarships'), findsOneWidget);
+    },
+  );
+
   testWidgets('named edit and delete actions affect the matching opportunity', (
     tester,
   ) async {
@@ -183,7 +243,7 @@ void main() {
   ) async {
     await pumpOpportunities(tester, highContrast: true, textScale: 1.8);
 
-    expect(find.text('SOMOS Scholarships'), findsOneWidget);
+    expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
     expect(find.text('Ummah Scholarships'), findsOneWidget);
     expect(find.text('Ubuntu Scholarships'), findsOneWidget);
   });
@@ -191,7 +251,10 @@ void main() {
   testWidgets('shows an error when opportunities cannot be loaded', (
     tester,
   ) async {
-    await pumpOpportunities(tester, client: _opportunitiesClient(getStatus: 500));
+    await pumpOpportunities(
+      tester,
+      client: _opportunitiesClient(getStatus: 500),
+    );
 
     expect(
       find.text('Could not load opportunities. Please try again.'),

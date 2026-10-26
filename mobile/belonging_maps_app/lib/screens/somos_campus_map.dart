@@ -4,14 +4,16 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
 import '/services/current_location.dart';
+import '/services/map_location_source.dart';
 import '/services/somos_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
 import '/widgets/location_info_card.dart';
 import '/widgets/map_filter_button.dart';
+import '/widgets/map_location_browser.dart';
 import '/widgets/map_search_bar.dart';
-import '/widgets/somos_campus_resource_list.dart';
+import '/widgets/search_suggestion_list.dart';
 
 const String somosCampusBasemapUrl =
     'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
@@ -54,6 +56,13 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   bool _loadFailed = false;
   String _searchQuery = '';
   Set<String> _selectedCategories = const <String>{};
+  bool _showSearchSuggestions = true;
+
+  List<SomosCampusResource> get _visibleResources => filterSomosCampusResources(
+    _resources,
+    query: _searchQuery,
+    categories: _selectedCategories,
+  );
 
   @override
   void initState() {
@@ -147,7 +156,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     final normalizedQuery = query.trim();
     if (normalizedQuery == _searchQuery) return;
 
-    _searchQuery = normalizedQuery;
+    setState(() {
+      _searchQuery = normalizedQuery;
+      _showSearchSuggestions = true;
+    });
     _refreshResourceMarkers();
   }
 
@@ -158,7 +170,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       return;
     }
 
-    _selectedCategories = categories;
+    setState(() => _selectedCategories = categories);
     _refreshResourceMarkers();
   }
 
@@ -173,11 +185,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _resourcesOverlay.graphics.clear();
     _selectionOverlay.graphics.clear();
 
-    final visibleResources = filterSomosCampusResources(
-      _resources,
-      query: _searchQuery,
-      categories: _selectedCategories,
-    );
+    final visibleResources = _visibleResources;
 
     for (final resource in visibleResources) {
       final point = ArcGISPoint(
@@ -273,13 +281,40 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     return showCurrentLocation(_mapController, _userOverlay);
   }
 
-  Future<void> _showResourceList() async {
+  Future<void> _browseLocations() async {
     if (_resources.isEmpty) return;
 
-    final resource = await showSomosCampusResourceList(context, _resources);
-    if (!mounted || resource == null) return;
+    final visibleResources = _visibleResources;
+    final location = await showMapLocationBrowser(context, [
+      MapLocationSource(
+        name: 'Campus locations',
+        loadPage: (offset) async {
+          final locations = visibleResources
+              .skip(offset)
+              .take(mapLocationPageSize)
+              .map(
+                (resource) => MapLocation.fromAttributes(
+                  resource.toAttributes(),
+                  category: resource.category,
+                ),
+              )
+              .toList(growable: false);
+          return MapLocationPage(
+            locations,
+            hasMore: offset + locations.length < visibleResources.length,
+          );
+        },
+      ),
+    ]);
+    if (!mounted || location == null) return;
 
-    await _showResourceOnMap(resource);
+    final number = location.attributes['NUMBER']?.toString();
+    for (final resource in _resources) {
+      if (resource.number.toString() == number) {
+        await _showResourceOnMap(resource);
+        return;
+      }
+    }
   }
 
   Future<void> _showResourceOnMap(SomosCampusResource resource) async {
@@ -308,6 +343,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     );
 
     await _mapController.setViewpointCenter(point, scale: 5000);
+  }
+
+  Future<void> _selectSearchSuggestion(SomosCampusResource resource) async {
+    _searchController.text = resource.name;
+    setState(() {
+      _searchQuery = resource.name;
+      _showSearchSuggestions = false;
+    });
+    _renderResourceMarkers();
+    await _showResourceOnMap(resource);
   }
 
   Future<void> _zoomIn() async {
@@ -423,6 +468,20 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               child: MapSearchBar(
                 controller: _searchController,
                 onChanged: _onSearchChanged,
+                suggestions: _searchQuery.isEmpty || !_showSearchSuggestions
+                    ? const []
+                    : _visibleResources
+                          .take(5)
+                          .map(
+                            (resource) => SearchSuggestion(
+                              title: resource.name,
+                              subtitle: resource.locationLabel,
+                              onSelected: () {
+                                _selectSearchSuggestion(resource);
+                              },
+                            ),
+                          )
+                          .toList(growable: false),
               ),
             ),
             if (_resources.isNotEmpty) ...[
@@ -473,9 +532,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                       left: 16,
                       child: SafeArea(
                         child: ElevatedButton.icon(
-                          onPressed: _showResourceList,
+                          onPressed: _browseLocations,
                           icon: const Icon(Icons.list),
-                          label: const Text('List'),
+                          label: const Text('Browse locations'),
                         ),
                       ),
                     ),

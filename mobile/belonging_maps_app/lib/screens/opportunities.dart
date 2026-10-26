@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/search_suggestion_list.dart';
 
 const Map<String, IconData> _iconOptions = {
   'book': Icons.auto_stories,
@@ -31,6 +32,8 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   bool _isLoading = true;
   List<_ScholarshipResource> _resources = List.of(_defaultResources);
   String? _selectedCategory;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   late final http.Client _client;
   late final bool _ownsClient;
 
@@ -264,8 +267,22 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     if (_ownsClient) _client.close();
     super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedCategory = null;
+    });
   }
 
   Future<void> _loadResources() async {
@@ -288,15 +305,16 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       setState(() {
         _resources = data
             .map(
-              (item) => _ScholarshipResource.fromJson(
-                item as Map<String, dynamic>,
-              ),
+              (item) =>
+                  _ScholarshipResource.fromJson(item as Map<String, dynamic>),
             )
             .toList();
         _isLoading = false;
       });
     } catch (_) {
-      _finishLoadingWithError('Could not load opportunities. Please try again.');
+      _finishLoadingWithError(
+        'Could not load opportunities. Please try again.',
+      );
     }
   }
 
@@ -313,13 +331,18 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       _isLoading = false;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
     });
   }
 
   void _showRequestError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openLink(BuildContext context, String url) async {
@@ -381,13 +404,23 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       final body = jsonEncode(result.toJson());
       final response = isEditing
           ? await _client
-                .put(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .put(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
                 .timeout(_requestTimeout)
           : await _client
-                .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
                 .timeout(_requestTimeout);
       if (response.statusCode != 200) {
-        throw StateError('${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}');
+        throw StateError(
+          '${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}',
+        );
       }
 
       final saved = _ScholarshipResource.fromJson(
@@ -402,7 +435,11 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isEditing ? 'Opportunity updated' : 'Opportunity added')),
+        SnackBar(
+          content: Text(
+            isEditing ? 'Opportunity updated' : 'Opportunity added',
+          ),
+        ),
       );
     } catch (_) {
       _showRequestError(
@@ -456,9 +493,9 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
 
       if (!mounted) return;
       setState(() => _resources.removeAt(index));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Opportunity deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
     } catch (_) {
       _showRequestError('Could not delete the opportunity. Please try again.');
     }
@@ -481,8 +518,29 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     // Keep original indexes so edit/delete target the right resource.
     final visibleIndexes = [
       for (var i = 0; i < _resources.length; i++)
-        if (selected == null || _resources[i].category == selected) i,
+        if ((selected == null || _resources[i].category == selected) &&
+            _resources[i].matchesKeyword(_searchQuery))
+          i,
     ];
+    final resultLabel = visibleIndexes.length == 1
+        ? '1 opportunity found'
+        : '${visibleIndexes.length} opportunities found';
+    final suggestions = _searchQuery.trim().isEmpty
+        ? const <SearchSuggestion>[]
+        : visibleIndexes
+              .take(5)
+              .map((index) {
+                final resource = _resources[index];
+                return SearchSuggestion(
+                  title: resource.title,
+                  subtitle: resource.category.isEmpty
+                      ? null
+                      : resource.category,
+                  onSelected: () => _showResourceInformation(context, resource),
+                );
+              })
+              .toList(growable: false);
+    final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: colors.pageBackground,
@@ -507,6 +565,34 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          labelText: 'Search opportunities',
+                          hintText: 'Search programs or organizations',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchQuery.trim().isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  tooltip: 'Clear opportunity search',
+                                  onPressed: _clearSearch,
+                                ),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      SearchSuggestionList(suggestions: suggestions),
+                    ],
+                  ),
+                ),
                 if (categories.isNotEmpty)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -526,24 +612,63 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                       ],
                     ),
                   ),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: visibleIndexes.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final index = visibleIndexes[i];
-                      final resource = _resources[index];
-                      return _ResourceCard(
-                        resource: resource,
-                        isAdmin: isAdmin,
-                        onTap: () =>
-                            _showResourceInformation(context, resource),
-                        onDelete: () => _deleteResource(index),
-                        onEdit: () => _showOpportunityDialog(index: index),
-                      );
-                    },
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(resultLabel),
+                    ),
                   ),
+                ),
+                Expanded(
+                  child: visibleIndexes.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'No opportunities found.',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Try another keyword or clear your filters.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                if (hasActiveFilters)
+                                  TextButton.icon(
+                                    onPressed: _clearFilters,
+                                    icon: const Icon(Icons.clear),
+                                    label: const Text('Clear filters'),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: visibleIndexes.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final index = visibleIndexes[i];
+                            final resource = _resources[index];
+                            return _ResourceCard(
+                              resource: resource,
+                              isAdmin: isAdmin,
+                              onTap: () =>
+                                  _showResourceInformation(context, resource),
+                              onDelete: () => _deleteResource(index),
+                              onEdit: () =>
+                                  _showOpportunityDialog(index: index),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -970,6 +1095,19 @@ class _ScholarshipResource {
   });
 
   IconData get icon => _iconOptions[iconKey] ?? Icons.auto_stories;
+
+  bool matchesKeyword(String query) {
+    final keyword = query.trim().toLowerCase();
+    if (keyword.isEmpty) return true;
+
+    final searchableText = <String>[
+      title,
+      category,
+      description,
+      ...links.map((link) => link.name),
+    ].join(' ').toLowerCase();
+    return searchableText.contains(keyword);
+  }
 
   Map<String, dynamic> toJson() => {
     'title': title,
