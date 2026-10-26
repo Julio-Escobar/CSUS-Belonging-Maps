@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
@@ -7,8 +11,21 @@ import 'somos_community_map.dart';
 import 'ummah_community_map.dart';
 import 'ubuntu_community_map.dart';
 
+const Map<String, IconData> _iconOptions = {
+  'groups': Icons.groups_outlined,
+  'school': Icons.school_outlined,
+  'diversity': Icons.diversity_3,
+  'home': Icons.home_outlined,
+  'public': Icons.public_outlined,
+  'star': Icons.star_outline,
+  'event': Icons.event_outlined,
+  'mail': Icons.mail_outline,
+};
+
 class OrganizationResourcesScreen extends StatefulWidget {
-  const OrganizationResourcesScreen({super.key});
+  final http.Client? client;
+
+  const OrganizationResourcesScreen({super.key, this.client});
 
   @override
   State<OrganizationResourcesScreen> createState() =>
@@ -17,6 +34,13 @@ class OrganizationResourcesScreen extends StatefulWidget {
 
 class _OrganizationResourcesScreenState
     extends State<OrganizationResourcesScreen> {
+  static const Duration _requestTimeout = Duration(seconds: 10);
+
+  bool _isLoading = true;
+  List<_OrganizationResource> _resources = [];
+  late final http.Client _client;
+  late final bool _ownsClient;
+
   // Maps each org key to the community map screen it should link to.
   // TODO: contact emails and meeting times below are placeholders —
   // swap in the real details before shipping.
@@ -32,106 +56,83 @@ class _OrganizationResourcesScreenState
     'ubuntu': 'Ubuntu',
   };
 
-  final List<_OrganizationResource> _resources = [
-    const _OrganizationResource(
-      title: 'SOMOS Student Organization',
-      category: 'SOMOS',
-      description: 'Resources and support for SOMOS community members.',
-      icon: Icons.groups_outlined,
-      orgKey: 'somos',
-    ),
-    const _OrganizationResource(
-      title: 'SOMOS Meeting Times',
-      category: 'SOMOS',
-      description:
-          'TODO: replace with real meeting schedule, e.g. "Weekly meetings '
-          'every Thursday at 5:00 PM in the Multicultural Center."',
-      icon: Icons.event_outlined,
-      orgKey: 'somos',
-    ),
-    const _OrganizationResource(
-      title: 'SOMOS Contact Info',
-      category: 'SOMOS',
-      description:
-          'TODO: replace with real contact details, e.g. an email address '
-          'or social media handle for the SOMOS Student Organization.',
-      icon: Icons.mail_outline,
-      orgKey: 'somos',
-    ),
-    const _OrganizationResource(
-      title: 'Ummah Student Organization',
-      category: 'Ummah',
-      description: 'Resources and support for the Ummah community.',
-      icon: Icons.groups_outlined,
-      orgKey: 'ummah',
-    ),
-    const _OrganizationResource(
-      title: 'Ummah Meeting Times',
-      category: 'Ummah',
-      description:
-          'TODO: replace with real meeting schedule, e.g. "Jummah gathering '
-          'every Friday at 1:00 PM, followed by a general meeting."',
-      icon: Icons.event_outlined,
-      orgKey: 'ummah',
-    ),
-    const _OrganizationResource(
-      title: 'Ummah Contact Info',
-      category: 'Ummah',
-      description:
-          'TODO: replace with real contact details, e.g. an email address '
-          'or social media handle for the Ummah Student Organization.',
-      icon: Icons.mail_outline,
-      orgKey: 'ummah',
-    ),
-    const _OrganizationResource(
-      title: 'Ubuntu Student Organization',
-      category: 'Ubuntu',
-      description: 'Resources and support for the Ubuntu community.',
-      icon: Icons.groups_outlined,
-      orgKey: 'ubuntu',
-    ),
-    const _OrganizationResource(
-      title: 'Ubuntu Meeting Times',
-      category: 'Ubuntu',
-      description:
-          'TODO: replace with real meeting schedule, e.g. "Meetings held '
-          'biweekly on Wednesdays at 4:00 PM."',
-      icon: Icons.event_outlined,
-      orgKey: 'ubuntu',
-    ),
-    const _OrganizationResource(
-      title: 'Ubuntu Contact Info',
-      category: 'Ubuntu',
-      description:
-          'TODO: replace with real contact details, e.g. an email address '
-          'or social media handle for the Ubuntu Student Organization.',
-      icon: Icons.mail_outline,
-      orgKey: 'ubuntu',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _client = widget.client ?? http.Client();
+    _ownsClient = widget.client == null;
+    _loadResources();
+  }
 
-  static const Map<String, IconData> _iconOptions = {
-    'groups': Icons.groups_outlined,
-    'school': Icons.school_outlined,
-    'diversity': Icons.diversity_3,
-    'home': Icons.home_outlined,
-    'public': Icons.public_outlined,
-    'star': Icons.star_outline,
-    'event': Icons.event_outlined,
-    'mail': Icons.mail_outline,
-  };
+  @override
+  void dispose() {
+    if (_ownsClient) _client.close();
+    super.dispose();
+  }
 
-  static String _keyForIcon(IconData icon) {
-    return _iconOptions.entries
-        .firstWhere(
-          (entry) => entry.value == icon,
-          orElse: () => _iconOptions.entries.first,
-        )
-        .key;
+  Future<void> _loadResources() async {
+    final uri = _apiUri('/api/organizationresources');
+    if (uri == null) {
+      _finishLoadingWithError('API_BASE_URL is missing from .env.');
+      return;
+    }
+
+    try {
+      final response = await _client.get(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('GET returned ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      if (data is! List) throw const FormatException('Expected a list');
+
+      if (!mounted) return;
+      setState(() {
+        _resources = data
+            .map(
+              (item) =>
+                  _OrganizationResource.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+        _isLoading = false;
+      });
+    } catch (_) {
+      _finishLoadingWithError(
+        'Could not load organization resources. Please try again.',
+      );
+    }
+  }
+
+  Uri? _apiUri(String path) {
+    final baseUrl = AuthService.baseUrl;
+    if (baseUrl == null) return null;
+    return Uri.parse('$baseUrl$path');
+  }
+
+  void _finishLoadingWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _resources = [];
+      _isLoading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+  }
+
+  void _showRequestError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // Admin only. Pass an index to edit that resource; omit it to add a new one.
-  void _showResourceDialog({int? index}) {
+  Future<void> _showResourceDialog({int? index}) async {
     final colors = AccessibilityColors.of(context);
     final isEditing = index != null;
     final existing = isEditing ? _resources[index] : null;
@@ -141,13 +142,11 @@ class _OrganizationResourcesScreenState
     final descriptionController = TextEditingController(
       text: existing?.description,
     );
-    String selectedIcon = existing != null
-        ? _keyForIcon(existing.icon)
-        : 'groups';
+    String selectedIcon = existing?.iconKey ?? 'groups';
     String selectedOrgKey = existing?.orgKey ?? _orgLabels.keys.first;
     final formKey = GlobalKey<FormState>();
 
-    showDialog<void>(
+    final result = await showDialog<_OrganizationResource>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
@@ -257,25 +256,14 @@ class _OrganizationResourcesScreenState
                   onPressed: () {
                     if (!formKey.currentState!.validate()) return;
                     final resource = _OrganizationResource(
+                      id: existing?.id,
                       title: titleController.text.trim(),
                       category: categoryController.text.trim(),
                       description: descriptionController.text.trim(),
-                      icon: _iconOptions[selectedIcon]!,
+                      iconKey: selectedIcon,
                       orgKey: selectedOrgKey,
                     );
-                    setState(() {
-                      if (isEditing) {
-                        _resources[index] = resource;
-                      } else {
-                        _resources.add(resource);
-                      }
-                    });
-                    Navigator.of(dialogContext).pop();
-                    if (isEditing) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Resource updated')),
-                      );
-                    }
+                    Navigator.of(dialogContext).pop(resource);
                   },
                   child: Text(isEditing ? 'Update' : 'Add'),
                 ),
@@ -285,6 +273,66 @@ class _OrganizationResourcesScreenState
         );
       },
     );
+
+    if (result == null) return;
+
+    final uri = _apiUri(
+      isEditing
+          ? '/api/organizationresources/${result.id}'
+          : '/api/organizationresources',
+    );
+    if (uri == null || (isEditing && result.id == null)) {
+      _showRequestError(
+        'Could not save the organization resource. Please try again.',
+      );
+      return;
+    }
+
+    try {
+      final response = isEditing
+          ? await _client
+                .put(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode(result.toJson()),
+                )
+                .timeout(_requestTimeout)
+          : await _client
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode(result.toJson()),
+                )
+                .timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError(
+          '${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}',
+        );
+      }
+
+      final saved = _OrganizationResource.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (isEditing) {
+          _resources[index] = saved;
+        } else {
+          _resources.add(saved);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEditing ? 'Resource updated' : 'Resource added'),
+        ),
+      );
+    } catch (_) {
+      _showRequestError(
+        isEditing
+            ? 'Could not update the organization resource. Please try again.'
+            : 'Could not add the organization resource. Please try again.',
+      );
+    }
   }
 
   void _showResourceInformation(_OrganizationResource resource) {
@@ -323,9 +371,9 @@ class _OrganizationResourcesScreenState
               Navigator.of(dialogContext).pop();
               final mapBuilder = _orgMapBuilders[resource.orgKey];
               if (mapBuilder == null) return;
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => mapBuilder()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => mapBuilder()));
             },
             icon: const Icon(Icons.map_outlined, color: Colors.white),
             label: const Text(
@@ -338,9 +386,9 @@ class _OrganizationResourcesScreenState
     );
   }
 
-  void _deleteResource(int index) {
+  Future<void> _deleteResource(int index) async {
     final colors = AccessibilityColors.of(context);
-    showDialog<void>(
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Resource'),
@@ -355,18 +403,42 @@ class _OrganizationResourcesScreenState
               backgroundColor: colors.destructive,
               foregroundColor: colors.onPrimary,
             ),
-            onPressed: () {
-              setState(() => _resources.removeAt(index));
-              Navigator.of(dialogContext).pop();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Resource deleted')));
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (shouldDelete != true) return;
+
+    final resource = _resources[index];
+    final uri = resource.id == null
+        ? null
+        : _apiUri('/api/organizationresources/${resource.id}');
+    if (uri == null) {
+      _showRequestError(
+        'Could not delete the organization resource. Please try again.',
+      );
+      return;
+    }
+
+    try {
+      final response = await _client.delete(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('DELETE returned ${response.statusCode}');
+      }
+
+      if (!mounted) return;
+      setState(() => _resources.removeAt(index));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Resource deleted')));
+    } catch (_) {
+      _showRequestError(
+        'Could not delete the organization resource. Please try again.',
+      );
+    }
   }
 
   @override
@@ -388,40 +460,65 @@ class _OrganizationResourcesScreenState
       ],
       body: Scaffold(
         backgroundColor: colors.pageBackground,
-        body: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: _resources.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final resource = _resources[index];
-            return _ResourceCard(
-              resource: resource,
-              isAdmin: isAdmin,
-              onTap: () => _showResourceInformation(resource),
-              onEdit: () => _showResourceDialog(index: index),
-              onDelete: () => _deleteResource(index),
-            );
-          },
-        ),
+        body: _isLoading
+            ? Center(child: CircularProgressIndicator(color: colors.primary))
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _resources.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final resource = _resources[index];
+                  return _ResourceCard(
+                    resource: resource,
+                    isAdmin: isAdmin,
+                    onTap: () => _showResourceInformation(resource),
+                    onEdit: () => _showResourceDialog(index: index),
+                    onDelete: () => _deleteResource(index),
+                  );
+                },
+              ),
       ),
     );
   }
 }
 
 class _OrganizationResource {
+  final int? id;
   final String title;
   final String category;
   final String description;
-  final IconData icon;
+  final String iconKey;
   final String orgKey;
 
   const _OrganizationResource({
+    this.id,
     required this.title,
     required this.category,
     required this.description,
-    required this.icon,
+    required this.iconKey,
     required this.orgKey,
   });
+
+  IconData get icon => _iconOptions[iconKey] ?? Icons.groups_outlined;
+
+  factory _OrganizationResource.fromJson(Map<String, dynamic> json) {
+    return _OrganizationResource(
+      id: json['id'] as int?,
+      title: json['title'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      iconKey: json['iconKey'] as String? ?? 'groups',
+      orgKey: json['orgKey'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'category': category,
+    'description': description,
+    'iconKey': iconKey,
+    'orgKey': orgKey,
+  };
 }
 
 class _ResourceCard extends StatelessWidget {
