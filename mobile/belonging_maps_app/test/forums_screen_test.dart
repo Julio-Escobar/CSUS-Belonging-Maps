@@ -1,14 +1,54 @@
+import 'dart:convert';
+
 import 'package:belonging_maps_app/models/forum_post.dart';
 import 'package:belonging_maps_app/screens/forums_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
+import 'package:belonging_maps_app/services/forum_api_service.dart';
+import 'package:belonging_maps_app/services/forum_post_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'helpers/semantics_finders.dart';
 
+http.Client _fakeForumServer() => MockClient((request) async {
+  final samples = ForumPostService.samplePosts();
+  final now = DateTime.now().toUtc().toIso8601String();
+  final posts = [
+    for (var i = 0; i < samples.length; i++)
+      {
+        'id': i + 1,
+        'title': samples[i].title,
+        'author': samples[i].author,
+        'body': samples[i].bodyPreview,
+        'postedAt': samples[i].postedAt.toUtc().toIso8601String(),
+        'replies': List.generate(
+          samples[i].replyCount,
+          (r) => {
+            'id': r + 1,
+            'author': 'Student',
+            'body': 'Reply ${r + 1}',
+            'postedAt': now,
+          },
+        ),
+      },
+  ];
+  return http.Response(jsonEncode(posts), 200);
+});
+
 void main() {
-  tearDown(() => AuthService.isAdmin = false);
+  setUp(() {
+    dotenv.loadFromString(envString: 'API_BASE_URL=http://localhost:5162');
+    ForumApiService.clientFactory = _fakeForumServer;
+  });
+
+  tearDown(() {
+    AuthService.isAdmin = false;
+    ForumApiService.clientFactory = () => http.Client();
+  });
 
   testWidgets('opens Forums from the hamburger menu', (tester) async {
     await tester.pumpWidget(
@@ -38,6 +78,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(MaterialApp(home: ForumsScreen()));
+    await tester.pumpAndSettle();
 
     expect(
       find.text('Where can I find affordable textbooks this semester?'),
@@ -140,10 +181,12 @@ void main() {
   testWidgets('only admins see the delete control', (tester) async {
     AuthService.isAdmin = false;
     await tester.pumpWidget(MaterialApp(home: ForumsScreen()));
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
     AuthService.isAdmin = true;
     await tester.pumpWidget(MaterialApp(home: ForumsScreen()));
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Delete ')), findsAtLeastNWidgets(1));
   });
 
