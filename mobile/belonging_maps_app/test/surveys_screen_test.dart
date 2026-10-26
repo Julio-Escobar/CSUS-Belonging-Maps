@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:belonging_maps_app/constants/strings.dart';
 import 'package:belonging_maps_app/screens/surveys_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
@@ -10,8 +11,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'helpers/semantics_finders.dart';
+
+class _RecordingUrlLauncher extends UrlLauncherPlatform {
+  final List<String> launchedUrls = [];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrls.add(url);
+    return true;
+  }
+}
 
 Future<void> _pumpSurveys(WidgetTester tester, {http.Client? client}) async {
   dotenv.loadFromString(envString: 'API_BASE_URL=http://example.test:5162');
@@ -63,7 +79,48 @@ http.Client _surveysClient({int getStatus = 200}) {
 }
 
 void main() {
-  tearDown(() => AuthService.isAdmin = false);
+  late UrlLauncherPlatform originalLauncher;
+  late _RecordingUrlLauncher launcher;
+
+  setUp(() {
+    originalLauncher = UrlLauncherPlatform.instance;
+    launcher = _RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+  });
+
+  tearDown(() {
+    UrlLauncherPlatform.instance = originalLauncher;
+    AuthService.isAdmin = false;
+  });
+
+  testWidgets('empty survey API shows and opens all nine sponsor links', (
+    tester,
+  ) async {
+    final emptyClient = MockClient((_) async => http.Response('[]', 200));
+    await _pumpSurveys(tester, client: emptyClient);
+
+    const surveys = <(String, String)>[
+      ('SOMOS Sac State', AppStrings.somosSacStateSurveyUrl),
+      ('SOMOS Sac Community', AppStrings.somosSacCommunitySurveyUrl),
+      ('UMMAH Sac State', AppStrings.ummahSacStateSurveyUrl),
+      ('UMMAH Sac Community', AppStrings.ummahSacCommunitySurveyUrl),
+      ('Ubuntu Sac State', AppStrings.ubuntuSacStateSurveyUrl),
+      ('Ubuntu Sac Community', AppStrings.ubuntuSacCommunitySurveyUrl),
+      ('SOMOS Something Missing?', AppStrings.somosSomethingMissingSurveyUrl),
+      ('UMMAH Something Missing?', AppStrings.ummahSomethingMissingSurveyUrl),
+      ('UBUNTU Something Missing?', AppStrings.ubuntuSomethingMissingSurveyUrl),
+    ];
+
+    for (final (title, url) in surveys) {
+      final button = find.widgetWithText(ElevatedButton, title);
+      expect(button, findsOneWidget);
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(launcher.launchedUrls.last, url);
+    }
+    expect(launcher.launchedUrls, surveys.map((survey) => survey.$2).toList());
+  });
 
   testWidgets('shows the Feedback and What is Missing survey buttons', (
     tester,
