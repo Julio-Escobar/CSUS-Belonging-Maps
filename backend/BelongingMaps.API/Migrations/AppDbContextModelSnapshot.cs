@@ -115,6 +115,122 @@ namespace BelongingMaps.API.Migrations
                     b.ToTable("OpportunityLinks");
                 });
 
+            modelBuilder.Entity("BelongingMaps.API.Models.OrganizationResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrgKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationResources");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "SOMOS",
+                            Description = "Resources and support for SOMOS community members.",
+                            IconKey = "groups",
+                            OrgKey = "somos",
+                            Title = "SOMOS Student Organization"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "SOMOS",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Weekly meetings every Thursday at 5:00 PM in the Multicultural Center.\"",
+                            IconKey = "event",
+                            OrgKey = "somos",
+                            Title = "SOMOS Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "SOMOS",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the SOMOS Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "somos",
+                            Title = "SOMOS Contact Info"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Ummah",
+                            Description = "Resources and support for the Ummah community.",
+                            IconKey = "groups",
+                            OrgKey = "ummah",
+                            Title = "Ummah Student Organization"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Ummah",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Jummah gathering every Friday at 1:00 PM, followed by a general meeting.\"",
+                            IconKey = "event",
+                            OrgKey = "ummah",
+                            Title = "Ummah Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Ummah",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the Ummah Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "ummah",
+                            Title = "Ummah Contact Info"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Ubuntu",
+                            Description = "Resources and support for the Ubuntu community.",
+                            IconKey = "groups",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Student Organization"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Ubuntu",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Meetings held biweekly on Wednesdays at 4:00 PM.\"",
+                            IconKey = "event",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "Ubuntu",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the Ubuntu Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Contact Info"
+                        });
+                });
+
             modelBuilder.Entity("BelongingMaps.API.Models.Survey", b =>
                 {
                     b.Property<int>("Id")
