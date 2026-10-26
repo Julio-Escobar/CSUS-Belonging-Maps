@@ -361,7 +361,10 @@ void main() {
           ('Campus Maps', CampusMapsScreen),
           ('Community Maps', CommunityMapsDirectory),
         ]) {
-          await tester.tap(find.widgetWithText(ElevatedButton, label));
+          final button = find.widgetWithText(ElevatedButton, label);
+          await tester.ensureVisible(button);
+          await tester.pumpAndSettle();
+          await tester.tap(button);
           await tester.pumpAndSettle();
           final context = tester.element(find.byType(type));
           expect(

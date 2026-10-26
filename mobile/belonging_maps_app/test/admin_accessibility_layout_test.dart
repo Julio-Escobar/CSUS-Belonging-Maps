@@ -12,18 +12,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_api.dart';
+
 void main() {
+  setUpAll(loadTestEnv);
+
   final screens = <_AdminScreenCase>[
     _AdminScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Add opportunity'),
       dialogTitle: 'Add Opportunity',
       addLink: true,
     ),
     _AdminScreenCase(
       name: 'Surveys',
-      build: () => const SurveysScreen(),
+      build: () => SurveysScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Add survey'),
       dialogTitle: 'Add Survey',
     ),
@@ -107,13 +111,13 @@ void main() {
   final editScreens = <_EditScreenCase>[
     _EditScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Edit SOMOS Scholarships'),
       dialogTitle: 'Edit Opportunity',
     ),
     _EditScreenCase(
       name: 'Surveys',
-      build: () => const SurveysScreen(),
+      build: () => SurveysScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Edit Feedback Survey'),
       dialogTitle: 'Edit Survey',
     ),
@@ -157,7 +161,7 @@ void main() {
   final detailsScreens = <_DetailsScreenCase>[
     _DetailsScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
       action: () => find.text('SOMOS Scholarships').first,
       details: 'Tap a scholarship to visit its website',
     ),
@@ -219,11 +223,11 @@ void main() {
   ) async {
     final deleteScreens = <_DeleteScreenCase>[
       _DeleteScreenCase(
-        build: () => const OpportunitiesScreen(),
+        build: () => OpportunitiesScreen(client: fakeApiClient()),
         action: () => find.byTooltip('Delete SOMOS Scholarships'),
       ),
       _DeleteScreenCase(
-        build: () => const SurveysScreen(),
+        build: () => SurveysScreen(client: fakeApiClient()),
         action: () => find.byTooltip('Delete Feedback Survey'),
       ),
       _DeleteScreenCase(
