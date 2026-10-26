@@ -31,15 +31,49 @@ class _SurveysScreenState extends State<SurveysScreen> {
 
   static const List<Survey> _defaultSurveys = [
     Survey(
-      title: 'Feedback Survey',
-      description: 'Tell us how the Belonging Maps app is working for you.',
-      url: AppStrings.feedbackSurveyUrl,
+      title: 'SOMOS Sac State',
+      description: '',
+      url: AppStrings.somosSacStateSurveyUrl,
     ),
     Survey(
-      title: 'What is Missing Survey',
-      description:
-          'Let us know about places, organizations, or resources we should add.',
-      url: AppStrings.whatIsMissingSurveyUrl,
+      title: 'SOMOS Sac Community',
+      description: '',
+      url: AppStrings.somosSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Sac State',
+      description: '',
+      url: AppStrings.ummahSacStateSurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Sac Community',
+      description: '',
+      url: AppStrings.ummahSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'Ubuntu Sac State',
+      description: '',
+      url: AppStrings.ubuntuSacStateSurveyUrl,
+    ),
+    Survey(
+      title: 'Ubuntu Sac Community',
+      description: '',
+      url: AppStrings.ubuntuSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'SOMOS Something Missing?',
+      description: '',
+      url: AppStrings.somosSomethingMissingSurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Something Missing?',
+      description: '',
+      url: AppStrings.ummahSomethingMissingSurveyUrl,
+    ),
+    Survey(
+      title: 'UBUNTU Something Missing?',
+      description: '',
+      url: AppStrings.ubuntuSomethingMissingSurveyUrl,
     ),
   ];
 
@@ -73,11 +107,12 @@ class _SurveysScreenState extends State<SurveysScreen> {
       final data = jsonDecode(response.body);
       if (data is! List) throw const FormatException('Expected a list');
 
+      final surveys = data
+          .map((item) => Survey.fromJson(item as Map<String, dynamic>))
+          .toList();
       if (!mounted) return;
       setState(() {
-        _surveys = data
-            .map((item) => Survey.fromJson(item as Map<String, dynamic>))
-            .toList();
+        _surveys = surveys.isEmpty ? List.of(_defaultSurveys) : surveys;
         _isLoading = false;
       });
     } catch (_) {
@@ -98,13 +133,19 @@ class _SurveysScreenState extends State<SurveysScreen> {
       _isLoading = false;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
     });
   }
 
   void _showRequestError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openSurvey(Survey survey) async {
@@ -149,13 +190,23 @@ class _SurveysScreenState extends State<SurveysScreen> {
       final body = jsonEncode(result.toJson());
       final response = isEditing
           ? await _client
-                .put(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .put(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
                 .timeout(_requestTimeout)
           : await _client
-                .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
                 .timeout(_requestTimeout);
       if (response.statusCode != 200) {
-        throw StateError('${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}');
+        throw StateError(
+          '${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}',
+        );
       }
 
       final saved = Survey.fromJson(
@@ -222,9 +273,9 @@ class _SurveysScreenState extends State<SurveysScreen> {
 
       if (!mounted) return;
       setState(() => _surveys.removeAt(index));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Survey deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Survey deleted')));
     } catch (_) {
       _showRequestError('Could not delete the survey. Please try again.');
     }
@@ -350,7 +401,7 @@ class _SurveyCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            if (isAdmin)
+            if (isAdmin && survey.id != null)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
