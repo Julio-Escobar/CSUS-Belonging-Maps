@@ -57,7 +57,7 @@ void main() {
         body: MapSelectionCard(
           label: 'SOMOS Campus Map',
           subtitle: 'SOMOS Campus',
-          imagePath: 'assets/somosCampusMap.png',
+          imagePath: 'assets/somoscampusmap.png',
           onTap: () => activations++,
         ),
       ),
