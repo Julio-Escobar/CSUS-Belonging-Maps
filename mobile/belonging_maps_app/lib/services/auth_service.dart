@@ -35,6 +35,7 @@ class AuthService {
 
   /// Base URL of the backend, read from .env (P1-214). Null when not set.
   static String? get baseUrl {
+    if (!dotenv.isInitialized) return null;
     final value = dotenv.env['API_BASE_URL']?.trim();
     if (value == null || value.isEmpty) return null;
     // Strip a trailing slash so we can safely append paths.
