@@ -12,6 +12,9 @@ namespace BelongingMaps.API.Data
         public DbSet<Location> Locations { get; set; }
         public DbSet<Survey> Surveys { get; set; }
 
+        public DbSet<ForumPost> ForumPosts { get; set;}
+        public DbSet<ForumReply> ForumReplies { get; set;}
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Location>().HasData(
