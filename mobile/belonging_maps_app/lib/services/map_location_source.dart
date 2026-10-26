@@ -46,6 +46,44 @@ class MapLocationSource {
   const MapLocationSource({required this.name, required this.loadPage});
 }
 
+bool mapLocationMatches(MapLocation location, String query) {
+  final keyword = query.trim().toLowerCase();
+  if (keyword.isEmpty) return false;
+
+  return <Object?>[
+    location.name,
+    location.category,
+    ...location.attributes.values,
+  ].any((value) => value?.toString().toLowerCase().contains(keyword) ?? false);
+}
+
+Future<List<MapLocation>> loadMapLocationSuggestions(
+  Iterable<MapLocationSource> sources, {
+  required String query,
+  int limit = 5,
+}) async {
+  if (query.trim().isEmpty || limit <= 0) return const [];
+
+  final matches = <MapLocation>[];
+  final seen = <String>{};
+  for (final source in sources) {
+    try {
+      final page = await source.loadPage(0);
+      for (final location in page.locations) {
+        if (!mapLocationMatches(location, query)) continue;
+        final key = '${location.category}|${location.name}'.toLowerCase();
+        if (!seen.add(key)) continue;
+        matches.add(location);
+        if (matches.length == limit) return matches;
+      }
+    } catch (_) {
+      // Suggestions should remain available from other map layers when one
+      // service is unavailable.
+    }
+  }
+  return matches;
+}
+
 MapLocationSource arcGisLocationSource({
   required String name,
   required FeatureLayer layer,
