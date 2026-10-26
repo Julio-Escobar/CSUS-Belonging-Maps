@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
- 
+
 import '../models/forum_post.dart';
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
-import '../services/forum_post_service.dart';
+import '../services/forum_api_service.dart';
 import '../widgets/hamburger_menu.dart';
- 
+
 String _formatPostedAt(BuildContext context, DateTime value) {
   final local = value.toLocal();
   final localizations = MaterialLocalizations.of(context);
@@ -13,67 +13,110 @@ String _formatPostedAt(BuildContext context, DateTime value) {
   final time = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(local));
   return '$date, $time';
 }
- 
+
 class ForumsScreen extends StatefulWidget {
-  ForumsScreen({super.key, List<ForumPost>? posts}) : posts = posts;
- 
+  ForumsScreen({super.key, List<ForumPost>? posts, this.service})
+    : posts = posts;
+
   final List<ForumPost>? posts;
- 
+
+  final ForumApiService? service;
+
   @override
   State<ForumsScreen> createState() => _ForumsScreenState();
 }
- 
+
 class _ForumsScreenState extends State<ForumsScreen> {
-  late final List<ForumPost> _posts;
- 
-  final Map<ForumPost, List<_ForumReply>> _replies = Map.identity();
- 
+  late final ForumApiService _service;
+  List<ForumPost> _posts = [];
+  bool _isLoading = true;
+  String? _loadError;
+
   @override
   void initState() {
     super.initState();
-    _posts = List<ForumPost>.of(widget.posts ?? ForumPostService.samplePosts());
+    _service = widget.service ?? ForumApiService();
+    final initialPosts = widget.posts;
+    if (initialPosts != null) {
+      _posts = List<ForumPost>.of(initialPosts);
+      _isLoading = false;
+    } else {
+      _loadPosts(showSpinner: false);
+    }
   }
- 
-  Future<void> _showNewPostDialog() async {
-    final result = await showDialog<_NewPostData>(
-      context: context,
-      builder: (_) => const _NewPostDialog(),
-    );
- 
-    if (result == null || !mounted) return;
- 
-    setState(() {
-      _posts.add(
-        ForumPost(
-          title: result.title,
-          author: result.author,
-          postedAt: DateTime.now(),
-          bodyPreview: result.body,
-          replyCount: 0,
-        ),
-      );
-    });
+
+  @override
+  void dispose() {
+    if (widget.service == null) _service.close();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Post published')));
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
- 
-  Future<void> _openPost(ForumPost post) async {
-    final replies = _replies.putIfAbsent(post, () => <_ForumReply>[]);
- 
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => _ForumPostDetailScreen(post: post, replies: replies),
+
+  Future<void> _loadPosts({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+      });
+    }
+
+    try {
+      final posts = await _service.fetchPosts();
+      if (!mounted) return;
+      setState(() {
+        _posts = posts;
+        _isLoading = false;
+        _loadError = null;
+      });
+    } on ForumApiException catch (error) {
+      if (!mounted) return;
+      final hasPosts = _posts.isNotEmpty;
+      setState(() {
+        _isLoading = false;
+        if (!hasPosts) _loadError = error.message;
+      });
+      if (hasPosts) _showMessage(error.message);
+    }
+  }
+
+  Future<void> _showNewPostDialog() async {
+    final created = await showDialog<ForumPost>(
+      context: context,
+      builder: (_) => _NewPostDialog(
+        onSubmit: (data) => _service.createPost(
+          title: data.title,
+          author: data.author,
+          body: data.body,
+        ),
       ),
     );
- 
+
+    if (created == null || !mounted) return;
+
+    setState(() => _posts.insert(0, created));
+    _showMessage('Post published');
+  }
+
+  Future<void> _openPost(ForumPost post) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ForumPostDetailScreen(post: post, service: _service),
+      ),
+    );
+
     if (mounted) setState(() {});
   }
- 
+
   Future<void> _deletePost(ForumPost post) async {
     if (!AuthService.isAdmin) return;
     final colors = AccessibilityColors.of(context);
- 
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -95,24 +138,68 @@ class _ForumsScreenState extends State<ForumsScreen> {
         ],
       ),
     );
- 
+
     if (confirmed != true || !mounted) return;
- 
+
+    final id = post.id;
+    if (id != null) {
+      try {
+        await _service.deletePost(id);
+      } on ForumApiException catch (error) {
+        _showMessage(error.message);
+        return;
+      }
+    }
+
+    if (!mounted) return;
     setState(() {
       _posts.removeWhere((candidate) => identical(candidate, post));
-      _replies.remove(post);
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Post deleted')));
+    _showMessage('Post deleted');
   }
- 
-  @override
-  Widget build(BuildContext context) {
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final loadError = _loadError;
+    if (loadError != null) {
+      return _ForumsErrorState(message: loadError, onRetry: () => _loadPosts());
+    }
+
     final newestFirst = List<ForumPost>.of(_posts)
       ..sort((first, second) => second.postedAt.compareTo(first.postedAt));
     final isAdmin = AuthService.isAdmin;
- 
+
+    return RefreshIndicator(
+      onRefresh: () => _loadPosts(showSpinner: false),
+      child: newestFirst.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [SizedBox(height: 120), _EmptyForumsState()],
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: newestFirst.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final post = newestFirst[index];
+                return _ForumPostTile(
+                  post: post,
+                  replyCount: post.replyCount,
+                  showDelete: isAdmin,
+                  onTap: () => _openPost(post),
+                  onDelete: () => _deletePost(post),
+                );
+              },
+            ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return HamburgerMenu(
       title: 'Forums',
       actions: [
@@ -122,27 +209,11 @@ class _ForumsScreenState extends State<ForumsScreen> {
           onPressed: _showNewPostDialog,
         ),
       ],
-      body: newestFirst.isEmpty
-          ? const _EmptyForumsState()
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              itemCount: newestFirst.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final post = newestFirst[index];
-                return _ForumPostTile(
-                  post: post,
-                  replyCount: post.replyCount + (_replies[post]?.length ?? 0),
-                  showDelete: isAdmin,
-                  onTap: () => _openPost(post),
-                  onDelete: () => _deletePost(post),
-                );
-              },
-            ),
+      body: _buildBody(),
     );
   }
 }
- 
+
 class _ForumPostTile extends StatelessWidget {
   const _ForumPostTile({
     required this.post,
@@ -151,13 +222,13 @@ class _ForumPostTile extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
   });
- 
+
   final ForumPost post;
   final int replyCount;
   final bool showDelete;
   final VoidCallback onTap;
   final VoidCallback onDelete;
- 
+
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
@@ -167,7 +238,7 @@ class _ForumPostTile extends StatelessWidget {
     final postedTime = localizations.formatTimeOfDay(
       TimeOfDay.fromDateTime(postedAt),
     );
- 
+
     return Card(
       margin: EdgeInsets.zero,
       color: colors.cardBackground,
@@ -263,10 +334,10 @@ class _ForumPostTile extends StatelessWidget {
     );
   }
 }
- 
+
 class _EmptyForumsState extends StatelessWidget {
   const _EmptyForumsState();
- 
+
   @override
   Widget build(BuildContext context) {
     return const Center(
@@ -274,32 +345,68 @@ class _EmptyForumsState extends StatelessWidget {
     );
   }
 }
- 
+
+class _ForumsErrorState extends StatelessWidget {
+  const _ForumsErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 48, color: colors.destructive),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NewPostData {
   const _NewPostData({
     required this.title,
     required this.author,
     required this.body,
   });
- 
+
   final String title;
   final String author;
   final String body;
 }
- 
+
 class _NewPostDialog extends StatefulWidget {
-  const _NewPostDialog();
- 
+  const _NewPostDialog({required this.onSubmit});
+
+  final Future<ForumPost> Function(_NewPostData data) onSubmit;
+
   @override
   State<_NewPostDialog> createState() => _NewPostDialogState();
 }
- 
+
 class _NewPostDialogState extends State<_NewPostDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _bodyController = TextEditingController();
- 
+  bool _isSubmitting = false;
+  String? _error;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -307,127 +414,160 @@ class _NewPostDialogState extends State<_NewPostDialog> {
     _bodyController.dispose();
     super.dispose();
   }
- 
+
   String? _required(String? value) =>
       (value == null || value.trim().isEmpty) ? 'Required' : null;
- 
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
- 
-    Navigator.of(context).pop(
-      _NewPostData(
-        title: _titleController.text.trim(),
-        author: _authorController.text.trim(),
-        body: _bodyController.text.trim(),
-      ),
-    );
+
+  Future<void> _submit() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    try {
+      final created = await widget.onSubmit(
+        _NewPostData(
+          title: _titleController.text.trim(),
+          author: _authorController.text.trim(),
+          body: _bodyController.text.trim(),
+        ),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(created);
+    } on ForumApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _error = error.message;
+      });
+    }
   }
- 
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('New Post'),
-      content: Form(
-        key: _formKey,
-        child: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                  textCapitalization: TextCapitalization.sentences,
-                  validator: _required,
-                ),
-                TextFormField(
-                  controller: _authorController,
-                  decoration: const InputDecoration(labelText: 'Author'),
-                  textCapitalization: TextCapitalization.words,
-                  validator: _required,
-                ),
-                TextFormField(
-                  controller: _bodyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Body',
-                    alignLabelWithHint: true,
+    final brand = AccessibilityColors.of(context);
+
+    return PopScope(
+      canPop: !_isSubmitting,
+      child: AlertDialog(
+        title: const Text('New Post'),
+        content: Form(
+          key: _formKey,
+          child: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    enabled: !_isSubmitting,
+                    decoration: const InputDecoration(labelText: 'Title'),
+                    textCapitalization: TextCapitalization.sentences,
+                    validator: _required,
                   ),
-                  textCapitalization: TextCapitalization.sentences,
-                  minLines: 4,
-                  maxLines: 8,
-                  validator: _required,
-                ),
-              ],
+                  TextFormField(
+                    controller: _authorController,
+                    enabled: !_isSubmitting,
+                    decoration: const InputDecoration(labelText: 'Author'),
+                    textCapitalization: TextCapitalization.words,
+                    validator: _required,
+                  ),
+                  TextFormField(
+                    controller: _bodyController,
+                    enabled: !_isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Body',
+                      alignLabelWithHint: true,
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 4,
+                    maxLines: 8,
+                    validator: _required,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, style: TextStyle(color: brand.destructive)),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: _isSubmitting ? null : _submit,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Post'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(onPressed: _submit, child: const Text('Post')),
-      ],
     );
   }
 }
- 
-class _ForumReply {
-  const _ForumReply({
-    required this.author,
-    required this.body,
-    required this.postedAt,
-  });
- 
-  final String author;
-  final String body;
-  final DateTime postedAt;
-}
- 
+
 class _ForumPostDetailScreen extends StatefulWidget {
-  const _ForumPostDetailScreen({required this.post, required this.replies});
- 
+  const _ForumPostDetailScreen({required this.post, required this.service});
+
   final ForumPost post;
-  final List<_ForumReply> replies;
- 
+  final ForumApiService service;
+
   @override
   State<_ForumPostDetailScreen> createState() => _ForumPostDetailScreenState();
 }
- 
+
 class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
-  Future<void> _showReplyDialog() async {
-    final result = await showDialog<_ReplyData>(
-      context: context,
-      builder: (_) => _ReplyDialog(post: widget.post),
-    );
- 
-    if (result == null || !mounted) return;
- 
-    setState(() {
-      widget.replies.add(
-        _ForumReply(
-          author: result.author,
-          body: result.body,
-          postedAt: DateTime.now(),
-        ),
+  Future<ForumReply> _submitReply(_ReplyData data) async {
+    final id = widget.post.id;
+    if (id == null) {
+      // Local-only post: nothing to send to the server.
+      return ForumReply(
+        author: data.author,
+        body: data.body,
+        postedAt: DateTime.now(),
       );
-    });
+    }
+    return widget.service.addReply(
+      postId: id,
+      author: data.author,
+      body: data.body,
+    );
+  }
+
+  Future<void> _showReplyDialog() async {
+    final reply = await showDialog<ForumReply>(
+      context: context,
+      builder: (_) => _ReplyDialog(post: widget.post, onSubmit: _submitReply),
+    );
+
+    if (reply == null || !mounted) return;
+
+    setState(() => widget.post.replies.add(reply));
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Reply posted')));
   }
- 
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
     final brand = AccessibilityColors.of(context);
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final totalReplies = post.replyCount + widget.replies.length;
- 
+    final totalReplies = post.replyCount;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: brand.primary,
@@ -484,13 +624,13 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
             style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          if (widget.replies.isEmpty)
+          if (post.replies.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Text('No replies to show yet.', style: textTheme.bodyMedium),
             )
           else
-            for (final reply in widget.replies) _ReplyTile(reply: reply),
+            for (final reply in post.replies) _ReplyTile(reply: reply),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -506,17 +646,17 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
     );
   }
 }
- 
+
 class _ReplyTile extends StatelessWidget {
   const _ReplyTile({required this.reply});
- 
-  final _ForumReply reply;
- 
+
+  final ForumReply reply;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
- 
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: colors.surfaceContainerLow,
@@ -553,29 +693,32 @@ class _ReplyTile extends StatelessWidget {
     );
   }
 }
- 
+
 class _ReplyData {
   const _ReplyData({required this.author, required this.body});
- 
+
   final String author;
   final String body;
 }
- 
+
 class _ReplyDialog extends StatefulWidget {
-  const _ReplyDialog({required this.post});
- 
+  const _ReplyDialog({required this.post, required this.onSubmit});
+
   final ForumPost post;
- 
+  final Future<ForumReply> Function(_ReplyData data) onSubmit;
+
   @override
   State<_ReplyDialog> createState() => _ReplyDialogState();
 }
- 
+
 class _ReplyDialogState extends State<_ReplyDialog> {
   final _formKey = GlobalKey<FormState>();
   final _authorController = TextEditingController();
   final _bodyController = TextEditingController();
   final _originalScrollController = ScrollController();
- 
+  bool _isSubmitting = false;
+  String? _error;
+
   @override
   void dispose() {
     _authorController.dispose();
@@ -583,108 +726,144 @@ class _ReplyDialogState extends State<_ReplyDialog> {
     _originalScrollController.dispose();
     super.dispose();
   }
- 
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
- 
+
+  Future<void> _submit() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
     final name = _authorController.text.trim();
-    Navigator.of(context).pop(
-      _ReplyData(
-        author: name.isEmpty ? 'Anonymous' : name,
-        body: _bodyController.text.trim(),
-      ),
-    );
+
+    try {
+      final reply = await widget.onSubmit(
+        _ReplyData(
+          author: name.isEmpty ? 'Anonymous' : name,
+          body: _bodyController.text.trim(),
+        ),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(reply);
+    } on ForumApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _error = error.message;
+      });
+    }
   }
- 
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final brand = AccessibilityColors.of(context);
     final textTheme = Theme.of(context).textTheme;
- 
-    return AlertDialog(
-      title: const Text('Reply'),
-      content: Form(
-        key: _formKey,
-        child: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Replying to', style: textTheme.labelMedium),
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: colors.outlineVariant),
-                  ),
-                  child: Scrollbar(
-                    controller: _originalScrollController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
+
+    return PopScope(
+      canPop: !_isSubmitting,
+      child: AlertDialog(
+        title: const Text('Reply'),
+        content: Form(
+          key: _formKey,
+          child: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Replying to', style: textTheme.labelMedium),
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: colors.outlineVariant),
+                    ),
+                    child: Scrollbar(
                       controller: _originalScrollController,
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.post.title,
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _originalScrollController,
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.post.title,
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'by ${widget.post.author}',
-                            style: textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.post.bodyPreview,
-                            style: textTheme.bodyMedium,
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              'by ${widget.post.author}',
+                              style: textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              widget.post.bodyPreview,
+                              style: textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _authorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name (optional)',
-                    hintText: 'Anonymous',
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _authorController,
+                    enabled: !_isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Name (optional)',
+                      hintText: 'Anonymous',
+                    ),
+                    textCapitalization: TextCapitalization.words,
                   ),
-                  textCapitalization: TextCapitalization.words,
-                ),
-                TextFormField(
-                  controller: _bodyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Reply',
-                    alignLabelWithHint: true,
+                  TextFormField(
+                    controller: _bodyController,
+                    enabled: !_isSubmitting,
+                    decoration: const InputDecoration(
+                      labelText: 'Reply',
+                      alignLabelWithHint: true,
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 3,
+                    maxLines: 6,
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'Required'
+                        : null,
                   ),
-                  textCapitalization: TextCapitalization.sentences,
-                  minLines: 3,
-                  maxLines: 6,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Required'
-                      : null,
-                ),
-              ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, style: TextStyle(color: brand.destructive)),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: _isSubmitting ? null : _submit,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Post'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(onPressed: _submit, child: const Text('Post')),
-      ],
     );
   }
 }
