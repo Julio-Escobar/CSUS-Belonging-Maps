@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../widgets/hamburger_menu.dart';
 import '../services/auth_service.dart';
 import '../services/login_lockout.dart';
-import 'map_screen.dart';
+import 'welcome_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   /// Optional HTTP client so tests can fake the backend.
@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const MapScreen()),
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
         );
       case LoginResult.invalidCredentials:
         await _handleRejectedLogin();
