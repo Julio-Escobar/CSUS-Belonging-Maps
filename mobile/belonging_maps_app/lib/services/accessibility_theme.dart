@@ -65,12 +65,55 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     outline: Colors.black,
   );
 
+  // Dark palettes (P1-281) used when the device is in dark mode.
+  static const normalDark = AccessibilityColors(
+    pageBackground: Color(0xFF121412),
+    cardBackground: Color(0xFF1E211F),
+    primary: Color(0xFF8FD3A6),
+    onPrimary: Color(0xFF0B2614),
+    primaryText: Color(0xFFECECEC),
+    secondaryText: Color(0xFFBDBDBD),
+    action: Color(0xFF7DD3FC),
+    destructive: Color(0xFFFF9AA5),
+    menuIcon: Color(0xFF0B2614),
+    outline: Color(0xFF8FD3A6),
+  );
+
+  static const colorSafeDark = AccessibilityColors(
+    pageBackground: Color(0xFF0F1417),
+    cardBackground: Color(0xFF1B2328),
+    primary: Color(0xFF7FD4E8),
+    onPrimary: Color(0xFF00242E),
+    primaryText: Color(0xFFEDF2F7),
+    secondaryText: Color(0xFFC0C8D0),
+    action: Color(0xFF7FD4E8),
+    destructive: Color(0xFFFF9AA5),
+    menuIcon: Color(0xFF00242E),
+    outline: Color(0xFF7FD4E8),
+  );
+
   static AccessibilityColors forSettings({
     required bool colorSafePalette,
     required bool highContrast,
+    bool dark = false,
   }) {
+    if (dark) {
+      if (highContrast) return highContrastDarkColors(colorSafePalette);
+      return colorSafePalette ? colorSafeDark : normalDark;
+    }
     if (highContrast) return highContrastColors(colorSafePalette);
     return colorSafePalette ? colorSafe : normal;
+  }
+
+  static AccessibilityColors highContrastDarkColors(bool colorSafePalette) {
+    final base = colorSafePalette ? colorSafeDark : normalDark;
+    return base.copyWith(
+      pageBackground: Colors.black,
+      cardBackground: Colors.black,
+      primaryText: Colors.white,
+      secondaryText: Colors.white,
+      outline: Colors.white,
+    );
   }
 
   static AccessibilityColors highContrastColors(bool colorSafePalette) {
@@ -138,22 +181,53 @@ class AppTheme {
   static ThemeData light({
     required bool colorSafePalette,
     required bool highContrast,
+  }) => _build(
+    colorSafePalette: colorSafePalette,
+    highContrast: highContrast,
+    dark: false,
+  );
+
+  static ThemeData dark({
+    required bool colorSafePalette,
+    required bool highContrast,
+  }) => _build(
+    colorSafePalette: colorSafePalette,
+    highContrast: highContrast,
+    dark: true,
+  );
+
+  static ThemeData _build({
+    required bool colorSafePalette,
+    required bool highContrast,
+    required bool dark,
   }) {
     final colors = AccessibilityColors.forSettings(
       colorSafePalette: colorSafePalette,
       highContrast: highContrast,
+      dark: dark,
     );
+    final colorScheme = dark
+        ? ColorScheme.dark(
+            primary: colors.primary,
+            onPrimary: colors.onPrimary,
+            surface: colors.cardBackground,
+            onSurface: colors.primaryText,
+            error: colors.destructive,
+            onError: Colors.black,
+            outline: colors.outline,
+          )
+        : ColorScheme.light(
+            primary: colors.primary,
+            onPrimary: colors.onPrimary,
+            surface: colors.cardBackground,
+            onSurface: colors.primaryText,
+            error: colors.destructive,
+            onError: Colors.white,
+            outline: colors.outline,
+          );
 
     return ThemeData(
-      colorScheme: ColorScheme.light(
-        primary: colors.primary,
-        onPrimary: colors.onPrimary,
-        surface: colors.cardBackground,
-        onSurface: colors.primaryText,
-        error: colors.destructive,
-        onError: Colors.white,
-        outline: colors.outline,
-      ),
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: colors.pageBackground,
       appBarTheme: AppBarTheme(
         backgroundColor: colors.primary,
