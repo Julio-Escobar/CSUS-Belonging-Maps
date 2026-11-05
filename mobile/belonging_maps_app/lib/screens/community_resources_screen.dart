@@ -121,28 +121,42 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   }
 
   Future<void> _addResource() async {
-    final draft = await _showResourceForm();
-    if (draft == null || !mounted) return;
-
-    await _runAction(() async {
-      final created = await _service.create(draft);
-      if (!mounted) return;
-      setState(() => _resources.add(created));
-    }, successMessage: 'Resource added');
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ResourceFormDialog(
+        onSave: (draft) async {
+          final created = await _service.create(draft);
+          if (mounted) setState(() => _resources.add(created));
+        },
+      ),
+    );
+    if (saved == true) {
+      messenger?.showSnackBar(const SnackBar(content: Text('Resource added')));
+    }
   }
 
   Future<void> _editResource(CommunityResource resource) async {
-    final draft = await _showResourceForm(existing: resource);
-    if (draft == null || !mounted) return;
-
-    await _runAction(() async {
-      final updated = await _service.update(draft);
-      if (!mounted) return;
-      setState(() {
-        final index = _resources.indexWhere((r) => r.id == updated.id);
-        if (index != -1) _resources[index] = updated;
-      });
-    }, successMessage: 'Resource updated');
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ResourceFormDialog(
+        existing: resource,
+        onSave: (draft) async {
+          final updated = await _service.update(draft);
+          if (!mounted) return;
+          setState(() {
+            final index = _resources.indexWhere((r) => r.id == updated.id);
+            if (index != -1) _resources[index] = updated;
+          });
+        },
+      ),
+    );
+    if (saved == true) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('Resource updated')),
+      );
+    }
   }
 
   Future<void> _deleteResource(CommunityResource resource) async {
@@ -177,111 +191,6 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       if (!mounted) return;
       setState(() => _resources.removeWhere((r) => r.id == resource.id));
     }, successMessage: 'Resource deleted');
-  }
-
-  /// Shared add/edit form. Returns the filled-in resource, or null if the
-  /// admin cancels. Pass [existing] to edit.
-  Future<CommunityResource?> _showResourceForm({CommunityResource? existing}) {
-    final colors = AccessibilityColors.of(context);
-    final isEditing = existing != null;
-    final titleController = TextEditingController(text: existing?.title);
-    final descriptionController = TextEditingController(
-      text: existing?.description,
-    );
-    final categoryController = TextEditingController(text: existing?.category);
-    String selectedIcon = _iconOptions.containsKey(existing?.iconKey)
-        ? existing!.iconKey
-        : 'food';
-    final formKey = GlobalKey<FormState>();
-
-    String? requiredField(String? value) =>
-        (value == null || value.trim().isEmpty) ? 'Required' : null;
-
-    return showDialog<CommunityResource>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContextBuild, dialogSetState) {
-            return AlertDialog(
-              title: Text(isEditing ? 'Edit Resource' : 'Add Resource'),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Title'),
-                        validator: requiredField,
-                      ),
-                      TextFormField(
-                        controller: descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                        ),
-                        maxLines: 3,
-                        validator: requiredField,
-                      ),
-                      TextFormField(
-                        controller: categoryController,
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                        ),
-                        validator: requiredField,
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        initialValue: selectedIcon,
-                        decoration: const InputDecoration(labelText: 'Icon'),
-                        items: [
-                          for (final option in _iconOptions.entries)
-                            DropdownMenuItem(
-                              value: option.key,
-                              child: Text(option.value),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            dialogSetState(() => selectedIcon = value);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: colors.onPrimary,
-                  ),
-                  onPressed: () {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.of(dialogContext).pop(
-                      CommunityResource(
-                        id: existing?.id ?? 0,
-                        title: titleController.text.trim(),
-                        category: categoryController.text.trim(),
-                        description: descriptionController.text.trim(),
-                        iconKey: selectedIcon,
-                      ),
-                    );
-                  },
-                  child: Text(isEditing ? 'Update' : 'Add'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
   }
 
   void _showResourceInformation(
@@ -567,6 +476,177 @@ class _CategoryLabel extends StatelessWidget {
         category,
         style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+/// Add/edit form. Stays open while saving and only closes once [onSave]
+/// succeeds, so the admin keeps what they typed if the request fails.
+/// Pops `true` after a successful save.
+class _ResourceFormDialog extends StatefulWidget {
+  final CommunityResource? existing;
+
+  /// Saves the filled-in resource. Throws [CommunityResourceException] on
+  /// failure.
+  final Future<void> Function(CommunityResource draft) onSave;
+
+  const _ResourceFormDialog({this.existing, required this.onSave});
+
+  @override
+  State<_ResourceFormDialog> createState() => _ResourceFormDialogState();
+}
+
+class _ResourceFormDialogState extends State<_ResourceFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _categoryController;
+  late String _selectedIcon;
+  bool _isSaving = false;
+  String? _saveError;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _titleController = TextEditingController(text: existing?.title);
+    _descriptionController = TextEditingController(text: existing?.description);
+    _categoryController = TextEditingController(text: existing?.category);
+    _selectedIcon = _iconOptions.containsKey(existing?.iconKey)
+        ? existing!.iconKey
+        : 'food';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _categoryController.dispose();
+    super.dispose();
+  }
+
+  String? _requiredField(String? value) =>
+      (value == null || value.trim().isEmpty) ? 'Required' : null;
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSaving = true;
+      _saveError = null;
+    });
+
+    final draft = CommunityResource(
+      id: widget.existing?.id ?? 0,
+      title: _titleController.text.trim(),
+      category: _categoryController.text.trim(),
+      description: _descriptionController.text.trim(),
+      iconKey: _selectedIcon,
+    );
+
+    try {
+      await widget.onSave(draft);
+      if (mounted) Navigator.of(context).pop(true);
+    } on CommunityResourceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _saveError = e.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
+    return AlertDialog(
+      title: Text(_isEditing ? 'Edit Resource' : 'Add Resource'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                enabled: !_isSaving,
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: _requiredField,
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                enabled: !_isSaving,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                validator: _requiredField,
+              ),
+              TextFormField(
+                controller: _categoryController,
+                enabled: !_isSaving,
+                decoration: const InputDecoration(labelText: 'Category'),
+                validator: _requiredField,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _selectedIcon,
+                decoration: const InputDecoration(labelText: 'Icon'),
+                items: [
+                  for (final option in _iconOptions.entries)
+                    DropdownMenuItem(
+                      value: option.key,
+                      child: Text(option.value),
+                    ),
+                ],
+                onChanged: _isSaving
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _selectedIcon = value);
+                        }
+                      },
+              ),
+              if (_saveError != null) ...[
+                const SizedBox(height: 16),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _saveError!,
+                    style: TextStyle(color: colors.destructive),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.primary,
+            foregroundColor: colors.onPrimary,
+          ),
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.onPrimary,
+                    semanticsLabel: 'Saving',
+                  ),
+                )
+              : Text(_isEditing ? 'Update' : 'Add'),
+        ),
+      ],
     );
   }
 }

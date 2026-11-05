@@ -129,6 +129,38 @@ void main() {
     expect(find.text('Book Exchange'), findsOneWidget);
   });
 
+  testWidgets('a failed add keeps the form open with what the admin typed', (
+    tester,
+  ) async {
+    AuthService.isAdmin = true;
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Add resource'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Book Exchange');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Trade books.');
+    await tester.enterText(find.byType(TextFormField).at(2), 'Education');
+
+    api.failRequests = true;
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    // Dialog is still open, shows the error, and kept the typed text.
+    expect(find.text('Add Resource'), findsOneWidget);
+    expect(find.textContaining("Couldn't add the resource"), findsOneWidget);
+    expect(find.text('Book Exchange'), findsOneWidget);
+    expect(find.text('Resource added'), findsNothing);
+
+    // Retrying once the server is back saves it and closes the dialog.
+    api.failRequests = false;
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add Resource'), findsNothing);
+    expect(find.text('Resource added'), findsOneWidget);
+    expect(api.resources.map((r) => r['title']), contains('Book Exchange'));
+  });
+
   testWidgets('a resource added on one device shows up on another', (
     tester,
   ) async {
