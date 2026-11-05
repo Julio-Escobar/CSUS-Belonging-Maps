@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
 import '/services/current_location.dart';
+import '/services/latine_art_locations.dart';
+import '/services/layer_search.dart';
 import '/services/map_location_source.dart';
 import '/services/somos_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
@@ -20,6 +24,11 @@ const String somosCampusBasemapUrl =
 const String _openStreetMapBasemapUrl =
     'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer';
 const Color _somosMarkerColor = Color(0xFF2F5F3E);
+
+// The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
+// enlarged to 42 px when selected (see `_markerSymbol`).
+const double _latineArtIconSize = 30;
+const double _selectedLatineArtIconSize = 42;
 const double _campusLatitude = 38.56091;
 const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
@@ -40,11 +49,21 @@ class SomosCampusMap extends StatefulWidget {
 class _SomosCampusMapState extends State<SomosCampusMap> {
   late final ArcGISMap _map;
   late final ArcGISMapViewController _mapController;
+  late final FeatureLayer _latineArtLayer;
   final TextEditingController _searchController = TextEditingController();
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
   final GraphicsOverlay _resourcesOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   final Map<String, CompositeSymbol> _markerSymbolCache = {};
+
+  /// The Latine art locations cached once the feature layer has loaded, so they
+  /// can be searched and browsed like the bundled campus resources.
+  final List<MapLocation> _latineArtLocations = [];
+  ArcGISImage? _latineArtIconImage;
+
+  /// Increments on every search so slower, out-of-date layer queries cannot
+  /// overwrite the definition expression for the latest query.
+  int _latineArtSearchRequest = 0;
 
   List<SomosCampusResource> _resources = const [];
   Map<String, dynamic>? _selectedAttributes;
@@ -52,6 +71,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   double? _selectedLng;
   bool _showFullInfo = false;
   bool _showInfoCard = false;
+
+  /// Whether the selected location comes from the Latine art layer. Those
+  /// cards are a fixed summary, while SOMOS resources keep the expandable card.
+  bool _selectedIsLatineArt = false;
   bool _isLoading = true;
   bool _loadFailed = false;
   String _searchQuery = '';
@@ -63,6 +86,39 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     query: _searchQuery,
     categories: _selectedCategories,
   );
+
+  /// Suggestions for the current query: the bundled SOMOS resources first, then
+  /// the Latine art locations that match the search and category filter.
+  List<SearchSuggestion> get _searchSuggestions {
+    if (_searchQuery.isEmpty || !_showSearchSuggestions) return const [];
+
+    return <SearchSuggestion>[
+      ..._visibleResources
+          .take(5)
+          .map(
+            (resource) => SearchSuggestion(
+              title: resource.name,
+              subtitle: resource.locationLabel,
+              onSelected: () {
+                _selectSearchSuggestion(resource);
+              },
+            ),
+          ),
+      ...filterLatineArtLocations(
+        _latineArtLocations,
+        query: _searchQuery,
+        categories: _selectedCategories,
+      ).map(
+        (location) => SearchSuggestion(
+          title: location.name,
+          subtitle: latineArtCategory,
+          onSelected: () {
+            _selectLatineArtSuggestion(location);
+          },
+        ),
+      ),
+    ].take(5).toList(growable: false);
+  }
 
   @override
   void initState() {
@@ -96,13 +152,51 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             spatialReference: SpatialReference.wgs84,
           );
 
+    // Start with a visible fallback marker while the art pin loads.
+    _latineArtLayer =
+        FeatureLayer.withFeatureTable(
+            ServiceFeatureTable.withUri(Uri.parse(sacStateLatineArtLayerUrl)),
+          )
+          ..renderer = SimpleRenderer(
+            symbol: SimpleMarkerSymbol(
+              style: SimpleMarkerSymbolStyle.circle,
+              color: _somosMarkerColor,
+              size: _latineArtIconSize,
+            )..outline = SimpleLineSymbol(color: Colors.white, width: 2),
+          );
+    _map.operationalLayers.add(_latineArtLayer);
+
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
       _resourcesOverlay,
       _selectionOverlay,
     ]);
+    unawaited(_applyLatineArtIcon());
     _loadMapData();
+  }
+
+  /// Loads the Latine art pin from the bundled asset and draws it for every art
+  /// location, replacing the plain circle marker used while it loads.
+  Future<void> _applyLatineArtIcon() async {
+    try {
+      final image = await ArcGISImage.fromAsset(latineArtIconAsset);
+
+      if (!mounted) return;
+      _latineArtIconImage = image;
+      _latineArtLayer.renderer = SimpleRenderer(
+        symbol: _latineArtMarkerSymbol(image, _latineArtIconSize),
+      );
+    } catch (error) {
+      // Keep the fallback circle marker if the icon cannot be loaded.
+      debugPrint('Failed to load the Latine art location pin: $error');
+    }
+  }
+
+  PictureMarkerSymbol _latineArtMarkerSymbol(ArcGISImage image, double size) {
+    return PictureMarkerSymbol.withImage(image)
+      ..width = size
+      ..height = size;
   }
 
   @override
@@ -131,6 +225,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         await _map.load();
       }
 
+      await _loadLatineArtLayer(retry: retry);
+
       if (!mounted) return;
 
       setState(() {
@@ -146,10 +242,69 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _selectionOverlay.graphics.clear();
       setState(() {
         _resources = const [];
+        _latineArtLocations.clear();
         _isLoading = false;
         _loadFailed = true;
       });
     }
+  }
+
+  /// Loads the Latine art feature layer and caches its locations for search and
+  /// browsing. A failure is logged instead of failing the whole screen, because
+  /// the bundled SOMOS campus resources are still usable without the art layer.
+  Future<void> _loadLatineArtLayer({bool retry = false}) async {
+    try {
+      if (retry && _latineArtLayer.loadStatus == LoadStatus.failedToLoad) {
+        await _latineArtLayer.retryLoad();
+      } else {
+        await _latineArtLayer.load();
+      }
+
+      await _cacheLatineArtLocations();
+    } catch (error) {
+      debugPrint('Failed to load the SacStateLatineArt locations: $error');
+    }
+  }
+
+  /// Caches every published art location in pages, so search suggestions and
+  /// the Browse locations list stay complete as the layer grows.
+  Future<void> _cacheLatineArtLocations() async {
+    final table = _latineArtLayer.featureTable;
+    if (table is! ServiceFeatureTable) return;
+
+    final locations = <MapLocation>[];
+    var offset = 0;
+    while (true) {
+      final query = QueryParameters()
+        ..whereClause = '1=1'
+        ..returnGeometry = true
+        ..maxFeatures = mapLocationPageSize
+        ..resultOffset = offset;
+      final result = await table.queryFeaturesWithFieldOptions(
+        parameters: query,
+        queryFeatureFields: QueryFeatureFields.loadAll,
+      );
+      final features = result.features().toList();
+      locations.addAll(
+        features.map(
+          (feature) => MapLocation.fromAttributes(
+            feature.attributes,
+            category: latineArtCategory,
+            geometry: feature.geometry,
+          ),
+        ),
+      );
+
+      if (features.length < mapLocationPageSize) break;
+      offset += features.length;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _latineArtLocations
+        ..clear()
+        ..addAll(locations);
+    });
   }
 
   void _onSearchChanged(String query) {
@@ -161,6 +316,27 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _showSearchSuggestions = true;
     });
     _refreshResourceMarkers();
+    unawaited(_applyLatineArtSearchClause());
+  }
+
+  /// Keeps the Latine art pins in sync with the search box, so art locations
+  /// whose name does not match the current query are hidden just like the
+  /// bundled campus markers.
+  Future<void> _applyLatineArtSearchClause() async {
+    final query = _searchQuery;
+    final request = ++_latineArtSearchRequest;
+
+    // The clause depends on the layer's field list, so it can only be built
+    // once the layer has loaded.
+    if (_latineArtLayer.loadStatus != LoadStatus.loaded) return;
+
+    try {
+      final clause = await buildLayerSearchClause(_latineArtLayer, query);
+      if (!mounted || request != _latineArtSearchRequest) return;
+      _latineArtLayer.definitionExpression = clause;
+    } catch (error) {
+      debugPrint('Failed to search the Latine art locations: $error');
+    }
   }
 
   void _onCategoryFilterChanged(String expression) {
@@ -179,6 +355,15 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _dismissLocationCard();
     }
     _renderResourceMarkers();
+    _updateLatineArtVisibility();
+  }
+
+  /// Hides the Latine art pins when the category filter excludes them, so the
+  /// filter behaves the same way for every marker on the map.
+  void _updateLatineArtVisibility() {
+    _latineArtLayer.isVisible =
+        _selectedCategories.isEmpty ||
+        _selectedCategories.contains(latineArtCategory);
   }
 
   void _renderResourceMarkers() {
@@ -241,34 +426,102 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
       if (!mounted) return;
 
+      // Numbered SOMOS markers are drawn in an overlay, so they take precedence
+      // over the Latine art locations drawn underneath them.
       final graphic = result.graphics.firstOrNull;
       final attributes = graphic?.attributes;
-      if (graphic == null || attributes == null || attributes.isEmpty) {
+      if (graphic != null && attributes != null && attributes.isNotEmpty) {
+        _selectResource(graphic, attributes);
+        return;
+      }
+
+      final artResult = await _mapController.identifyLayer(
+        _latineArtLayer,
+        screenPoint: screenPoint,
+        tolerance: 22.0,
+        maximumResults: 1,
+      );
+
+      if (!mounted) return;
+
+      final artElement = artResult.geoElements.firstOrNull;
+      if (artElement == null || artElement.attributes.isEmpty) {
         _dismissLocationCard();
         return;
       }
 
-      final number = attributes['NUMBER'];
-      setState(() {
-        _selectedAttributes = attributes;
-        _selectedLat = _toDouble(attributes['LATITUDE']);
-        _selectedLng = _toDouble(attributes['LONGITUDE']);
-        _showFullInfo = false;
-        _showInfoCard = true;
-      });
-
-      _selectionOverlay.graphics.clear();
-      if (number is int) {
-        _selectionOverlay.graphics.add(
-          Graphic(
-            geometry: graphic.geometry,
-            attributes: attributes,
-            symbol: _markerSymbol(number, size: 42),
-          ),
-        );
-      }
+      await _showLatineArtOnMap(artElement.attributes, artElement.geometry);
     } catch (error) {
       debugPrint('Failed to identify a SOMOS campus resource: $error');
+    }
+  }
+
+  /// Shows the info card for a tapped bundled resource and enlarges its marker.
+  void _selectResource(Graphic graphic, Map<String, dynamic> attributes) {
+    final number = attributes['NUMBER'];
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedLat = _toDouble(attributes['LATITUDE']);
+      _selectedLng = _toDouble(attributes['LONGITUDE']);
+      _showFullInfo = false;
+      _selectedIsLatineArt = false;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    if (number is int) {
+      _selectionOverlay.graphics.add(
+        Graphic(
+          geometry: graphic.geometry,
+          attributes: attributes,
+          symbol: _markerSymbol(number, size: 42),
+        ),
+      );
+    }
+  }
+
+  /// Shows the info card for a Latine art location, draws the enlarged pin over
+  /// it, and optionally recenters the map (used when browsing or searching).
+  Future<void> _showLatineArtOnMap(
+    Map<String, dynamic> attributes,
+    Geometry? geometry, {
+    double? scale,
+  }) async {
+    final point = latineArtWgs84Point(geometry);
+
+    setState(() {
+      _selectedAttributes = latineArtLocationAttributes(
+        attributes,
+        latitude: point?.y,
+        longitude: point?.x,
+      );
+      _selectedLat = point?.y;
+      _selectedLng = point?.x;
+      _showFullInfo = false;
+      _selectedIsLatineArt = true;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    if (point == null) return;
+
+    final image = _latineArtIconImage;
+    final ArcGISSymbol symbol;
+    if (image != null) {
+      symbol = _latineArtMarkerSymbol(image, _selectedLatineArtIconSize);
+    } else {
+      symbol = SimpleMarkerSymbol(
+        style: SimpleMarkerSymbolStyle.circle,
+        color: _somosMarkerColor,
+        size: _selectedLatineArtIconSize,
+      )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
+    }
+    _selectionOverlay.graphics.add(Graphic(geometry: point, symbol: symbol));
+
+    if (scale == null) {
+      await _mapController.setViewpointCenter(point);
+    } else {
+      await _mapController.setViewpointCenter(point, scale: scale);
     }
   }
 
@@ -282,9 +535,15 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   Future<void> _browseLocations() async {
-    if (_resources.isEmpty) return;
+    if (_resources.isEmpty && _latineArtLocations.isEmpty) return;
 
     final visibleResources = _visibleResources;
+    final visibleLatineArtLocations = filterLatineArtLocations(
+      _latineArtLocations,
+      query: _searchQuery,
+      categories: _selectedCategories,
+    );
+
     final location = await showMapLocationBrowser(context, [
       MapLocationSource(
         name: 'Campus locations',
@@ -305,8 +564,32 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           );
         },
       ),
+      if (visibleLatineArtLocations.isNotEmpty)
+        MapLocationSource(
+          name: latineArtCategory,
+          loadPage: (offset) async {
+            final locations = visibleLatineArtLocations
+                .skip(offset)
+                .take(mapLocationPageSize)
+                .toList(growable: false);
+            return MapLocationPage(
+              locations,
+              hasMore:
+                  offset + locations.length < visibleLatineArtLocations.length,
+            );
+          },
+        ),
     ]);
     if (!mounted || location == null) return;
+
+    if (location.category == latineArtCategory) {
+      await _showLatineArtOnMap(
+        location.attributes,
+        location.geometry,
+        scale: 5000,
+      );
+      return;
+    }
 
     final number = location.attributes['NUMBER']?.toString();
     for (final resource in _resources) {
@@ -330,6 +613,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _selectedLat = resource.latitude;
       _selectedLng = resource.longitude;
       _showFullInfo = false;
+      _selectedIsLatineArt = false;
       _showInfoCard = true;
     });
 
@@ -353,6 +637,21 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     });
     _renderResourceMarkers();
     await _showResourceOnMap(resource);
+  }
+
+  Future<void> _selectLatineArtSuggestion(MapLocation location) async {
+    _searchController.text = location.name;
+    setState(() {
+      _searchQuery = location.name;
+      _showSearchSuggestions = false;
+    });
+    _renderResourceMarkers();
+    unawaited(_applyLatineArtSearchClause());
+    await _showLatineArtOnMap(
+      location.attributes,
+      location.geometry,
+      scale: 5000,
+    );
   }
 
   Future<void> _zoomIn() async {
@@ -384,6 +683,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         _selectedLat = null;
         _selectedLng = null;
         _showFullInfo = false;
+        _selectedIsLatineArt = false;
       });
     });
   }
@@ -399,6 +699,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
     final resourceName = _cleanField(attributes?['NAME']);
+    final imageAsset = _cleanField(attributes?['IMAGE_ASSET']);
 
     return LocationInfoData(
       cardTitle: resourceName.isNotEmpty
@@ -406,12 +707,13 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           : 'SOMOS Campus Resource',
       address: _cleanField(attributes?['ADDRESS']),
       category: _cleanField(attributes?['CATEGORY']),
-      type: '',
+      type: _cleanField(attributes?['TYPE']),
       website: _cleanField(attributes?['WEBSITE']),
       phone: _cleanField(attributes?['PHONE']),
       email: _cleanField(attributes?['EMAIL']),
       description: _cleanField(attributes?['DESCRIPTION']),
       imageUrl: null,
+      imageAsset: imageAsset.isEmpty ? null : imageAsset,
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
@@ -424,7 +726,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     return LocationInfoCard(
       data: data,
-      showFullInfo: _showFullInfo,
+      // Latine art cards are a fixed summary, so they never expand.
+      showFullInfo: _selectedIsLatineArt ? false : _showFullInfo,
+      summaryOnly: _selectedIsLatineArt,
       onClose: _dismissLocationCard,
       onShowMore: () {
         setState(() {
@@ -468,20 +772,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               child: MapSearchBar(
                 controller: _searchController,
                 onChanged: _onSearchChanged,
-                suggestions: _searchQuery.isEmpty || !_showSearchSuggestions
-                    ? const []
-                    : _visibleResources
-                          .take(5)
-                          .map(
-                            (resource) => SearchSuggestion(
-                              title: resource.name,
-                              subtitle: resource.locationLabel,
-                              onSelected: () {
-                                _selectSearchSuggestion(resource);
-                              },
-                            ),
-                          )
-                          .toList(growable: false),
+                suggestions: _searchSuggestions,
               ),
             ),
             if (_resources.isNotEmpty) ...[
@@ -494,9 +785,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 loadFilters: () async {
                   final categories = somosCampusResourceCategories(
                     _resources,
-                  ).toList();
-                  categories.sort();
-                  return categories;
+                  ).toSet()..add(latineArtCategory);
+                  return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,
               ),

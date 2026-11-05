@@ -1,9 +1,12 @@
 import 'dart:io' show Platform;
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/location_attributes.dart';
+import 'full_screen_image_viewer.dart';
 
 // Color constants
 const Color mapInfoCardColor = Color.fromARGB(255, 47, 95, 62);
@@ -11,6 +14,19 @@ const Color mapInfoPrimaryTextColor = Colors.white;
 const Color mapInfoSecondaryTextColor = Colors.white70;
 const Color mapInfoDividerColor = Colors.white24;
 const Color mapInfoFallbackImageColor = Colors.white12;
+
+/// Identifies the photo drawn inside a location card, so widget tests can find
+/// it without depending on the image provider.
+const Key locationInfoImageKey = ValueKey<String>('location-info-image');
+
+/// Height of the photo in the compact location card.
+const double _previewImageHeight = 150;
+
+/// Gap between the compact card's content and its photo.
+const double _previewImageGap = 12;
+
+/// Height of the compact location card when it has no photo.
+const double _previewCardHeight = 260;
 
 class LocationInfoData {
   final String cardTitle;
@@ -22,6 +38,7 @@ class LocationInfoData {
   final String email;
   final String description;
   final String? imageUrl;
+  final String? imageAsset;
   final Map<String, String> socialLinks;
   final double? locationLat;
   final double? locationLng;
@@ -37,11 +54,20 @@ class LocationInfoData {
     required this.email,
     required this.description,
     required this.imageUrl,
+    this.imageAsset,
     required this.socialLinks,
     this.locationLat,
     this.locationLng,
     this.orgLogo,
   });
+
+  /// Whether the card has a photo to show, either bundled with the app or
+  /// served from the network.
+  bool get hasImage => hasBundledImage || cleanField(imageUrl).isNotEmpty;
+
+  /// Whether the card has a photo bundled with the app. Only the Latine art
+  /// locations bundle one, and only those photos are shown in the compact card.
+  bool get hasBundledImage => cleanField(imageAsset).isNotEmpty;
 
   static String cleanField(dynamic value) {
     return cleanLocationAttribute(value);
@@ -68,6 +94,7 @@ class LocationInfoData {
     final String urlField = cleanField(attributes?['URL']);
 
     final String imageField = cleanField(attributes?['IMAGE_URL']);
+    final String imageAssetField = cleanField(attributes?['IMAGE_ASSET']);
 
     return LocationInfoData(
       cardTitle: locationTitleFromAttributes(attributes),
@@ -89,6 +116,7 @@ class LocationInfoData {
           ? detailsField
           : 'No description available.',
       imageUrl: imageField.isNotEmpty ? imageField : null,
+      imageAsset: imageAssetField.isNotEmpty ? imageAssetField : null,
       socialLinks: {
         'Instagram': cleanField(attributes?['Instagram']),
         'Facebook': cleanField(attributes?['Facebook']),
@@ -114,6 +142,11 @@ class LocationInfoData {
 class LocationInfoCard extends StatelessWidget {
   final LocationInfoData data;
   final bool showFullInfo;
+
+  /// Renders a fixed card that shows only the photo, the title, the type, and
+  /// the address. Used by the SOMOS campus map for the Latine art locations.
+  final bool summaryOnly;
+
   final VoidCallback onClose;
   final VoidCallback onShowMore;
   final VoidCallback onShowLess;
@@ -122,6 +155,7 @@ class LocationInfoCard extends StatelessWidget {
     super.key,
     required this.data,
     required this.showFullInfo,
+    this.summaryOnly = false,
     required this.onClose,
     required this.onShowMore,
     required this.onShowLess,
@@ -249,14 +283,30 @@ class LocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double expandedHeight = MediaQuery.of(context).size.height * 0.72;
+    final MediaQueryData mediaQuery = MediaQuery.of(context);
+
+    if (summaryOnly) {
+      return _buildSummaryCard(mediaQuery);
+    }
+
+    final double expandedHeight = mediaQuery.size.height * 0.72;
+
+    // The bundled photo is part of the compact card, so the card grows to make
+    // room for it, while staying within the screen on small devices (the card
+    // content also scrolls).
+    final double collapsedHeight = data.hasBundledImage
+        ? math.min(
+            _previewCardHeight + _previewImageHeight + _previewImageGap,
+            math.max(mediaQuery.size.height - 24, _previewCardHeight),
+          )
+        : _previewCardHeight;
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         curve: Curves.easeOut,
-        height: showFullInfo ? expandedHeight : 260,
+        height: showFullInfo ? expandedHeight : collapsedHeight,
         margin: const EdgeInsets.all(12),
         child: Card(
           color: mapInfoCardColor,
@@ -279,10 +329,151 @@ class LocationInfoCard extends StatelessWidget {
                   cardTitle: data.cardTitle,
                   orgLogo: data.orgLogo,
                   category: data.category,
+                  imageAsset: data.imageAsset,
                   onClose: onClose,
                   onShowMore: onShowMore,
                 ),
         ),
+      ),
+    );
+  }
+
+  /// Builds the fixed card used for the Latine art locations. It never expands
+  /// and only shows the photo, the title, the type, and the address.
+  Widget _buildSummaryCard(MediaQueryData mediaQuery) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.8),
+        child: Card(
+          color: mapInfoCardColor,
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: _SummaryLocationInfoCard(data: data, onClose: onClose),
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryLocationInfoCard extends StatelessWidget {
+  final LocationInfoData data;
+  final VoidCallback onClose;
+
+  const _SummaryLocationInfoCard({required this.data, required this.onClose});
+
+  bool _hasValue(String value) => LocationInfoData.cleanField(value).isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasType = _hasValue(data.type);
+    final bool hasAddress = _hasValue(data.address);
+
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 12, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (data.orgLogo != null) ...[
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.white,
+                    backgroundImage: AssetImage(data.orgLogo!),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Text(
+                      data.cardTitle,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      style: const TextStyle(
+                        color: mapInfoPrimaryTextColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onClose,
+                  tooltip: 'Close location details',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                ),
+              ],
+            ),
+          ),
+          if (hasType)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+              child: Text(
+                data.type,
+                style: const TextStyle(
+                  color: mapInfoPrimaryTextColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          if (hasAddress)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.location_on,
+                      color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      data.address,
+                      style: const TextStyle(
+                        color: mapInfoPrimaryTextColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (data.hasImage)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: _LocationInfoImage(
+                assetPath: data.imageAsset,
+                url: data.imageUrl,
+                height: 240,
+                semanticsLabel: 'Photo of ${data.cardTitle}',
+                expandOnTap: true,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -292,6 +483,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
   final String? orgLogo;
   final String category;
+  final String? imageAsset;
   final VoidCallback onClose;
   final VoidCallback onShowMore;
 
@@ -299,6 +491,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
     required this.cardTitle,
     this.orgLogo,
     required this.category,
+    this.imageAsset,
     required this.onClose,
     required this.onShowMore,
   });
@@ -389,6 +582,14 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (_LocationInfoImage.hasAsset(imageAsset)) ...[
+              const SizedBox(height: _previewImageGap),
+              _LocationInfoImage(
+                assetPath: imageAsset,
+                height: _previewImageHeight,
+                semanticsLabel: 'Photo of $cardTitle',
+              ),
+            ],
           ],
         ),
       ),
@@ -671,29 +872,13 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (data.imageUrl != null &&
-                    data.imageUrl!.trim().isNotEmpty) ...[
+                if (data.hasImage) ...[
                   const SizedBox(height: 18),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      data.imageUrl!.trim(),
-                      height: 240,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 180,
-                          width: double.infinity,
-                          color: mapInfoFallbackImageColor,
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'Image unavailable',
-                            style: TextStyle(color: mapInfoSecondaryTextColor),
-                          ),
-                        );
-                      },
-                    ),
+                  _LocationInfoImage(
+                    assetPath: data.imageAsset,
+                    url: data.imageUrl,
+                    height: 240,
+                    semanticsLabel: 'Photo of ${data.cardTitle}',
                   ),
                 ],
               ],
@@ -701,6 +886,127 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Shows the photo of a location card without cropping it, so the whole image
+/// stays visible.
+///
+/// The bundled asset wins when one is available, so the Latine art photos work
+/// offline, and network images are still supported for the other map screens.
+class _LocationInfoImage extends StatelessWidget {
+  final String? assetPath;
+  final String? url;
+  final double height;
+  final String semanticsLabel;
+
+  /// Whether tapping the photo opens it full screen. Only the Latine art cards
+  /// enable this, so the other location cards keep their photos inert.
+  final bool expandOnTap;
+
+  const _LocationInfoImage({
+    this.assetPath,
+    this.url,
+    this.height = 240,
+    required this.semanticsLabel,
+    this.expandOnTap = false,
+  });
+
+  /// The widest the photo is decoded at. The bundled art photos are high
+  /// resolution phone photos, so decoding them at full size would waste memory
+  /// for an image that is drawn at card width.
+  static const int _maxDecodeWidth = 1080;
+
+  /// Whether the whole photo must stay visible instead of being cropped.
+  static const BoxFit _imageFit = BoxFit.contain;
+
+  static bool hasAsset(String? assetPath) => _clean(assetPath) != null;
+
+  static String? _clean(String? value) {
+    final text = cleanLocationAttribute(value);
+    return text.isEmpty ? null : text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String? asset = _clean(assetPath);
+    final String? networkUrl = _clean(url);
+
+    final Widget image;
+    if (asset != null) {
+      image = Image.asset(
+        asset,
+        key: locationInfoImageKey,
+        height: height,
+        width: double.infinity,
+        fit: _imageFit,
+        cacheWidth: _maxDecodeWidth,
+        excludeFromSemantics: true,
+        errorBuilder: (context, error, stackTrace) => _buildFallback(),
+      );
+    } else if (networkUrl != null) {
+      image = Image.network(
+        networkUrl,
+        key: locationInfoImageKey,
+        height: height,
+        width: double.infinity,
+        fit: _imageFit,
+        excludeFromSemantics: true,
+        errorBuilder: (context, error, stackTrace) => _buildFallback(),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    final Widget photo = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: image,
+    );
+
+    if (!expandOnTap) {
+      return Semantics(
+        image: true,
+        label: semanticsLabel,
+        excludeSemantics: true,
+        child: photo,
+      );
+    }
+
+    void openFullScreen() {
+      FullScreenImageViewer.show(
+        context,
+        assetPath: asset,
+        url: networkUrl,
+        semanticsLabel: semanticsLabel,
+      );
+    }
+
+    return Semantics(
+      button: true,
+      image: true,
+      label: semanticsLabel,
+      hint: 'Opens the photo full screen',
+      onTap: openFullScreen,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: openFullScreen,
+        child: photo,
+      ),
+    );
+  }
+
+  Widget _buildFallback() {
+    return Container(
+      height: height,
+      width: double.infinity,
+      color: mapInfoFallbackImageColor,
+      alignment: Alignment.center,
+      child: const Text(
+        'Image unavailable',
+        style: TextStyle(color: mapInfoSecondaryTextColor),
+      ),
     );
   }
 }

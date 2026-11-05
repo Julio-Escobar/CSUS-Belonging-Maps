@@ -103,6 +103,10 @@ flutter:
   assets:
     - assets/
     - assets/data/
+    # Latine art photos shown inside the SOMOS campus map location cards.
+    # Flutter only bundles files located directly in a listed directory, so
+    # each asset subdirectory needs its own entry.
+    - assets/somos_campus_map_art/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.
