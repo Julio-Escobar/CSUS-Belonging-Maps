@@ -23,6 +23,15 @@ const String somosCampusBasemapUrl =
     'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
 const String _openStreetMapBasemapUrl =
     'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer';
+
+/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
+/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited"). Drawn above
+/// the campus basemap tiles but below the SOMOS markers so building names stay
+/// readable over the campus building footprints. The CampusBasemapv3 style has
+/// no label layers of its own, so this is what supplies the building names.
+const String somosCampusLabelsStyleUrl =
+    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
+
 const Color _somosMarkerColor = Color(0xFF2F5F3E);
 
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
@@ -130,6 +139,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
       Uri.parse(somosCampusBasemapUrl),
     );
+    final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
+      Uri.parse(somosCampusLabelsStyleUrl),
+    );
 
     // The campus vector tiles draw on top of the global OpenStreetMap basemap.
     _map =
@@ -164,6 +176,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               size: _latineArtIconSize,
             )..outline = SimpleLineSymbol(color: Colors.white, width: 2),
           );
+
+    // The label tiles draw above the campus tiles but below the Latine art pins
+    // so the building names stay readable and the markers stay on top.
+    _map.operationalLayers.add(campusLabelsLayer);
     _map.operationalLayers.add(_latineArtLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
