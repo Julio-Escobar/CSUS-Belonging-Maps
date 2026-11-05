@@ -33,26 +33,26 @@ namespace BelongingMaps.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ForumPostId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ForumPostId = table.Column<int>(type: "int", nullable: false),
                     Author = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PostedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    ForumPostId1 = table.Column<int>(type: "int", nullable: true)
+                    PostedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ForumReplies", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ForumReplies_ForumPosts_ForumPostId1",
-                        column: x => x.ForumPostId1,
+                        name: "FK_ForumReplies_ForumPosts_ForumPostId",
+                        column: x => x.ForumPostId,
                         principalTable: "ForumPosts",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ForumReplies_ForumPostId1",
+                name: "IX_ForumReplies_ForumPostId",
                 table: "ForumReplies",
-                column: "ForumPostId1");
+                column: "ForumPostId");
         }
 
         /// <inheritdoc />

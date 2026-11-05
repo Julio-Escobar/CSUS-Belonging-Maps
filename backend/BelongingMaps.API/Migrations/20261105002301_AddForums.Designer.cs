@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BelongingMaps.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261025025047_AddForums")]
+    [Migration("20261105002301_AddForums")]
     partial class AddForums
     {
         /// <inheritdoc />
@@ -69,11 +69,7 @@ namespace BelongingMaps.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ForumPostId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ForumPostId1")
+                    b.Property<int>("ForumPostId")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset>("PostedAt")
@@ -81,7 +77,7 @@ namespace BelongingMaps.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ForumPostId1");
+                    b.HasIndex("ForumPostId");
 
                     b.ToTable("ForumReplies");
                 });
@@ -177,9 +173,13 @@ namespace BelongingMaps.API.Migrations
 
             modelBuilder.Entity("BelongingMaps.API.Models.ForumReply", b =>
                 {
-                    b.HasOne("BelongingMaps.API.Models.ForumPost", null)
+                    b.HasOne("BelongingMaps.API.Models.ForumPost", "ForumPost")
                         .WithMany("Replies")
-                        .HasForeignKey("ForumPostId1");
+                        .HasForeignKey("ForumPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ForumPost");
                 });
 
             modelBuilder.Entity("BelongingMaps.API.Models.ForumPost", b =>
