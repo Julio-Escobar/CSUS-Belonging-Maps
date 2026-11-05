@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/strings.dart';
@@ -8,74 +9,143 @@ import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/hamburger_menu.dart';
 
-const String _storageKey = 'surveys_v1';
-
 /// Lists the survey buttons. Each one opens its survey outside the app
 /// (P1-136, P1-137). Admins can add surveys with the plus icon (P1-141, P1-142)
 /// and edit or delete them from each card.
 class SurveysScreen extends StatefulWidget {
-  const SurveysScreen({super.key});
+  final http.Client? client;
+
+  const SurveysScreen({super.key, this.client});
 
   @override
   State<SurveysScreen> createState() => _SurveysScreenState();
 }
 
 class _SurveysScreenState extends State<SurveysScreen> {
+  static const Duration _requestTimeout = Duration(seconds: 10);
+
   bool _isLoading = true;
-  List<Survey> _surveys = [];
+  List<Survey> _surveys = List.of(_defaultSurveys);
+  late final http.Client _client;
+  late final bool _ownsClient;
 
   static const List<Survey> _defaultSurveys = [
     Survey(
-      title: 'Feedback Survey',
-      description: 'Tell us how the Belonging Maps app is working for you.',
-      url: AppStrings.feedbackSurveyUrl,
+      title: 'SOMOS Sac State',
+      description: '',
+      url: AppStrings.somosSacStateSurveyUrl,
     ),
     Survey(
-      title: 'What is Missing Survey',
-      description:
-          'Let us know about places, organizations, or resources we should add.',
-      url: AppStrings.whatIsMissingSurveyUrl,
+      title: 'SOMOS Sac Community',
+      description: '',
+      url: AppStrings.somosSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Sac State',
+      description: '',
+      url: AppStrings.ummahSacStateSurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Sac Community',
+      description: '',
+      url: AppStrings.ummahSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'Ubuntu Sac State',
+      description: '',
+      url: AppStrings.ubuntuSacStateSurveyUrl,
+    ),
+    Survey(
+      title: 'Ubuntu Sac Community',
+      description: '',
+      url: AppStrings.ubuntuSacCommunitySurveyUrl,
+    ),
+    Survey(
+      title: 'SOMOS Something Missing?',
+      description: '',
+      url: AppStrings.somosSomethingMissingSurveyUrl,
+    ),
+    Survey(
+      title: 'UMMAH Something Missing?',
+      description: '',
+      url: AppStrings.ummahSomethingMissingSurveyUrl,
+    ),
+    Survey(
+      title: 'UBUNTU Something Missing?',
+      description: '',
+      url: AppStrings.ubuntuSomethingMissingSurveyUrl,
     ),
   ];
 
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
+    _ownsClient = widget.client == null;
     _loadSurveys();
   }
 
-  Future<void> _loadSurveys() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedJson = prefs.getString(_storageKey);
-
-    if (storedJson != null && storedJson.isNotEmpty) {
-      try {
-        final List<dynamic> decoded = jsonDecode(storedJson);
-        if (!mounted) return;
-        setState(() {
-          _surveys = decoded
-              .map((item) => Survey.fromJson(item as Map<String, dynamic>))
-              .toList();
-          _isLoading = false;
-        });
-        return;
-      } catch (_) {}
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _surveys = List<Survey>.from(_defaultSurveys);
-      _isLoading = false;
-    });
-    await _saveSurveys();
+  @override
+  void dispose() {
+    if (_ownsClient) _client.close();
+    super.dispose();
   }
 
-  Future<void> _saveSurveys() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _storageKey,
-      jsonEncode(_surveys.map((survey) => survey.toJson()).toList()),
-    );
+  Future<void> _loadSurveys() async {
+    final uri = _apiUri('/api/surveys');
+    if (uri == null) {
+      _finishLoadingWithError('API_BASE_URL is missing from .env.');
+      return;
+    }
+
+    try {
+      final response = await _client.get(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('GET returned ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      if (data is! List) throw const FormatException('Expected a list');
+
+      final surveys = data
+          .map((item) => Survey.fromJson(item as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _surveys = surveys.isEmpty ? List.of(_defaultSurveys) : surveys;
+        _isLoading = false;
+      });
+    } catch (_) {
+      _finishLoadingWithError('Could not load surveys. Please try again.');
+    }
+  }
+
+  Uri? _apiUri(String path) {
+    final baseUrl = AuthService.baseUrl;
+    if (baseUrl == null) return null;
+    return Uri.parse('$baseUrl$path');
+  }
+
+  void _finishLoadingWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _surveys = [];
+      _isLoading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    });
+  }
+
+  void _showRequestError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openSurvey(Survey survey) async {
@@ -108,18 +178,56 @@ class _SurveysScreenState extends State<SurveysScreen> {
 
     if (result == null) return;
 
-    setState(() {
-      if (isEditing) {
-        _surveys[index] = result;
-      } else {
-        _surveys.add(result);
-      }
-    });
-    await _saveSurveys();
+    final uri = _apiUri(
+      isEditing ? '/api/surveys/${result.id}' : '/api/surveys',
+    );
+    if (uri == null) {
+      _showRequestError('API_BASE_URL is missing from .env.');
+      return;
+    }
 
-    if (mounted) {
+    try {
+      final body = jsonEncode(result.toJson());
+      final response = isEditing
+          ? await _client
+                .put(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
+                .timeout(_requestTimeout)
+          : await _client
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
+                .timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError(
+          '${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}',
+        );
+      }
+
+      final saved = Survey.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (isEditing) {
+          _surveys[index] = saved;
+        } else {
+          _surveys.add(saved);
+        }
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(isEditing ? 'Survey updated' : 'Survey added')),
+      );
+    } catch (_) {
+      _showRequestError(
+        isEditing
+            ? 'Could not update the survey. Please try again.'
+            : 'Could not add the survey. Please try again.',
       );
     }
   }
@@ -150,13 +258,26 @@ class _SurveysScreenState extends State<SurveysScreen> {
 
     if (shouldDelete != true) return;
 
-    setState(() => _surveys.removeAt(index));
-    await _saveSurveys();
+    final id = _surveys[index].id;
+    final uri = id == null ? null : _apiUri('/api/surveys/$id');
+    if (uri == null) {
+      _showRequestError('Could not delete the survey. Please try again.');
+      return;
+    }
 
-    if (mounted) {
+    try {
+      final response = await _client.delete(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('DELETE returned ${response.statusCode}');
+      }
+
+      if (!mounted) return;
+      setState(() => _surveys.removeAt(index));
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Survey deleted')));
+    } catch (_) {
+      _showRequestError('Could not delete the survey. Please try again.');
     }
   }
 
@@ -201,11 +322,13 @@ class _SurveysScreenState extends State<SurveysScreen> {
 }
 
 class Survey {
+  final int? id;
   final String title;
   final String description;
   final String url;
 
   const Survey({
+    this.id,
     required this.title,
     required this.description,
     required this.url,
@@ -213,16 +336,17 @@ class Survey {
 
   factory Survey.fromJson(Map<String, dynamic> json) {
     return Survey(
+      id: json['id'] as int?,
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      url: json['url'] as String? ?? '',
+      url: json['link'] as String? ?? json['url'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
     'title': title,
     'description': description,
-    'url': url,
+    'link': url,
   };
 }
 
@@ -277,7 +401,7 @@ class _SurveyCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            if (isAdmin)
+            if (isAdmin && survey.id != null)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -350,6 +474,7 @@ class _SurveyEditorDialogState extends State<_SurveyEditorDialog> {
     if (!_formKey.currentState!.validate()) return;
     Navigator.of(context).pop(
       Survey(
+        id: widget.initialSurvey?.id,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         url: _urlController.text.trim(),

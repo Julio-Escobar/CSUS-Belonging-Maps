@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/belonging_maps_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.6
+          cache: true
+
+      # .env is gitignored but listed as an asset in pubspec.yaml, so the
+      # build needs a placeholder copy for dotenv to load.
+      - name: Create placeholder .env
+        run: cp .env.example .env
+
+      - run: flutter pub get
+
+      # Infos are style hints and stay non-blocking; warnings and errors fail.
+      - run: flutter analyze --no-fatal-infos
+
+      - run: flutter test
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - run: dotnet build backend.sln
+
+      - run: dotnet test backend.sln --no-build

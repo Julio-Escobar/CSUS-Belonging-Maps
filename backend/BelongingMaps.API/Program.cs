@@ -27,3 +27,6 @@ using (var scope = app.Services.CreateScope())
 app.MapControllers();
 
 app.Run();
+
+// Lets the test project start the API with WebApplicationFactory.
+public partial class Program { }

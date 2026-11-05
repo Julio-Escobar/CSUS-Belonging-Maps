@@ -84,7 +84,7 @@ void main() {
     );
   });
 
-  testWidgets('wraps long post text at 200% without overflowing on narrow screens', (
+  testWidgets('trims long post text at 200% without overflowing on narrow screens', (
     tester,
   ) async {
     AuthService.isAdmin = true;
@@ -118,10 +118,11 @@ void main() {
 
     final titleWidget = tester.widget<Text>(find.text(longTitle));
     final previewWidget = tester.widget<Text>(find.text(longPreview));
-    expect(titleWidget.maxLines, isNull);
-    expect(titleWidget.overflow, isNull);
-    expect(previewWidget.maxLines, isNull);
-    expect(previewWidget.overflow, isNull);
+    // The list card trims long text; the full post opens on tap.
+    expect(titleWidget.maxLines, isNotNull);
+    expect(titleWidget.overflow, TextOverflow.ellipsis);
+    expect(previewWidget.maxLines, isNotNull);
+    expect(previewWidget.overflow, TextOverflow.ellipsis);
     final deleteButton = find.ancestor(
       of: find.byTooltip('Delete $longTitle'),
       matching: find.byType(IconButton),

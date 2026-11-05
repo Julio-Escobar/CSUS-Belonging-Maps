@@ -1,14 +1,20 @@
+import 'dart:convert';
+
 import 'package:belonging_maps_app/screens/community_resources_screen.dart';
 import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'helpers/fake_community_resources_api.dart';
 import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
+  setUp(useFakeCommunityResourcesApi);
   tearDown(() => AuthService.isAdmin = false);
 
   testWidgets(
@@ -19,6 +25,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: CommunityResourcesScreen()),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.bySemanticsLabel(RegExp('View information for Food Pantry')),
@@ -44,6 +51,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: CommunityResourcesScreen()),
     );
+    await tester.pumpAndSettle();
     tester.semantics.tap(semanticTapByTooltip('Edit Food Pantry'));
     await tester.pumpAndSettle();
     expect(find.text('Edit Resource'), findsOneWidget);
@@ -110,6 +118,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: CommunityResourcesScreen()),
     );
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Edit ')), findsNothing);
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
@@ -146,17 +155,13 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: LoginScreen(
-          loginRequest: ({required username, required password}) async {
-            expect(username, 'student');
-            expect(password, 'secret');
-            return http.Response('', 401);
-          },
-        ),
-      ),
-    );
+    dotenv.loadFromString(envString: 'API_BASE_URL=http://localhost:5162');
+    Map<String, dynamic>? sentBody;
+    final client = MockClient((request) async {
+      sentBody = jsonDecode(request.body) as Map<String, dynamic>;
+      return http.Response('', 401);
+    });
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(client: client)));
     expect(find.bySemanticsLabel(RegExp('Username')), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('Password')), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), 'student');
@@ -164,6 +169,8 @@ void main() {
 
     tester.semantics.tap(semanticTapByLabel('Login'));
     await tester.pumpAndSettle();
+    expect(sentBody?['username'], 'student');
+    expect(sentBody?['password'], 'secret');
     expect(find.text('Invalid credentials'), findsOneWidget);
     semantics.dispose();
   });

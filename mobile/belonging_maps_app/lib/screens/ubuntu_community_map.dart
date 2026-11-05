@@ -15,6 +15,9 @@ import '/services/layer_search.dart';
 import '/services/layer_filter.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
+import '/services/map_location_source.dart';
+import '/widgets/map_location_browser.dart';
+import '/widgets/search_suggestion_list.dart';
 
 class UbuntuCommunityMap extends StatefulWidget {
   const UbuntuCommunityMap({super.key});
@@ -45,6 +48,8 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   bool _showInfoCard = false;
 
   final TextEditingController _searchController = TextEditingController();
+  List<MapLocation> _searchSuggestions = const [];
+  int _suggestionRequest = 0;
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
@@ -57,27 +62,36 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
 
   /// Pairs each layer with the icon configuration used to render it.
   List<LayerIconAssignment> get _layerAssignments => [
-        LayerIconAssignment(
-          layer: _ubuntuBusinessesLayer,
-          config: ubuntuLayerIcons['businesses']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuCommunityServicesLayer,
-          config: ubuntuLayerIcons['communityServices']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuReligiousLayer,
-          config: ubuntuLayerIcons['religious']!,
-        ),
-        LayerIconAssignment(
-          layer: _ubuntuEducationLayer,
-          config: ubuntuLayerIcons['education']!,
-        ),
-      ];
+    LayerIconAssignment(
+      layer: _ubuntuBusinessesLayer,
+      config: ubuntuLayerIcons['businesses']!,
+    ),
+    LayerIconAssignment(
+      layer: _ubuntuCommunityServicesLayer,
+      config: ubuntuLayerIcons['communityServices']!,
+    ),
+    LayerIconAssignment(
+      layer: _ubuntuReligiousLayer,
+      config: ubuntuLayerIcons['religious']!,
+    ),
+    LayerIconAssignment(
+      layer: _ubuntuEducationLayer,
+      config: ubuntuLayerIcons['education']!,
+    ),
+  ];
 
   /// Looks up the icon configuration for a tapped layer.
-  Map<FeatureLayer, LayerIconConfig> get _layerConfigs =>
-      {for (final assignment in _layerAssignments) assignment.layer: assignment.config};
+  Map<FeatureLayer, LayerIconConfig> get _layerConfigs => {
+    for (final assignment in _layerAssignments)
+      assignment.layer: assignment.config,
+  };
+
+  List<MapLocationSource> get _visibleLocationSources => _layerEntries
+      .where((entry) => entry.layer.isVisible)
+      .map(
+        (entry) => arcGisLocationSource(name: entry.label, layer: entry.layer),
+      )
+      .toList();
 
   @override
   void initState() {
@@ -157,69 +171,69 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
-  final results = await _mapController.identifyLayers(
-    screenPoint: screenPoint,
-    tolerance: 15.0,
-    maximumResultsPerLayer: 1,
-  );
+    final results = await _mapController.identifyLayers(
+      screenPoint: screenPoint,
+      tolerance: 15.0,
+      maximumResultsPerLayer: 1,
+    );
 
-  Map<String, dynamic>? newAttributes;
-  String? newCategory;
-  Geometry? newGeometry;
-  LayerIconConfig? newIconConfig;
+    Map<String, dynamic>? newAttributes;
+    String? newCategory;
+    Geometry? newGeometry;
+    LayerIconConfig? newIconConfig;
 
-  for (final result in results) {
-    if (result.geoElements.isNotEmpty) {
-      final element = result.geoElements.first;
-      newAttributes = element.attributes;
-      newGeometry = element.geometry;
+    for (final result in results) {
+      if (result.geoElements.isNotEmpty) {
+        final element = result.geoElements.first;
+        newAttributes = element.attributes;
+        newGeometry = element.geometry;
 
-      for (final entry in _layerEntries) {
-        if (identical(entry.layer, result.layerContent)) {
-          newCategory = entry.label;
-          newIconConfig = _layerConfigs[entry.layer];
-          break;
+        for (final entry in _layerEntries) {
+          if (identical(entry.layer, result.layerContent)) {
+            newCategory = entry.label;
+            newIconConfig = _layerConfigs[entry.layer];
+            break;
+          }
         }
+        break;
       }
-      break;
     }
-  }
 
-  if (newAttributes != null) {
-    final bool isReplacingExistingCard = _selectedAttributes != null;
+    if (newAttributes != null) {
+      final bool isReplacingExistingCard = _selectedAttributes != null;
 
-    setState(() {
-      _selectedAttributes = newAttributes;
-      _selectedCategory = newCategory;
-      _showFullInfo = false;
-      _showInfoCard = isReplacingExistingCard;
-    });
-
-    if (!isReplacingExistingCard) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _selectedAttributes == null) return;
-
-        setState(() {
-          _showInfoCard = true;
-        });
+      setState(() {
+        _selectedAttributes = newAttributes;
+        _selectedCategory = newCategory;
+        _showFullInfo = false;
+        _showInfoCard = isReplacingExistingCard;
       });
-    }
 
-    if (newIconConfig != null) {
-      await showSelectedFeature(
-        mapController: _mapController,
-        selectionOverlay: _selectionOverlay,
-        geometry: newGeometry,
-        iconAssetPath: iconAssetPathForType(
-          newIconConfig,
-          newAttributes[mapIconTypeField],
-        ),
-      );
+      if (!isReplacingExistingCard) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _selectedAttributes == null) return;
+
+          setState(() {
+            _showInfoCard = true;
+          });
+        });
+      }
+
+      if (newIconConfig != null) {
+        await showSelectedFeature(
+          mapController: _mapController,
+          selectionOverlay: _selectionOverlay,
+          geometry: newGeometry,
+          iconAssetPath: iconAssetPathForType(
+            newIconConfig,
+            newAttributes[mapIconTypeField],
+          ),
+        );
+      }
+    } else {
+      _dismissLocationCard();
     }
-  } else {
-    _dismissLocationCard();
   }
-}
 
   Future<void> _zoomIn() async {
     final currentScale = _mapController.scale;
@@ -259,8 +273,10 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   Future<void> _applyFilters() async {
     for (final entry in _layerEntries) {
       final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
-      final searchClause =
-          await buildLayerSearchClause(entry.layer, _searchController.text);
+      final searchClause = await buildLayerSearchClause(
+        entry.layer,
+        _searchController.text,
+      );
 
       final clauses = <String>[
         if (typeClause.isNotEmpty) typeClause,
@@ -270,8 +286,92 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
     }
   }
 
+  Future<void> _onSearchChanged(String query) async {
+    final request = ++_suggestionRequest;
+    await _applyFilters();
+    if (query.trim().isEmpty) {
+      if (mounted && request == _suggestionRequest) {
+        setState(() => _searchSuggestions = const []);
+      }
+      return;
+    }
+
+    final suggestions = await loadMapLocationSuggestions(
+      _visibleLocationSources,
+      query: query,
+    );
+    if (!mounted || request != _suggestionRequest) return;
+    setState(() => _searchSuggestions = suggestions);
+  }
+
   Future<void> _getCurrentLocation() {
     return showCurrentLocation(_mapController, _userOverlay);
+  }
+
+  Future<void> _browseLocations() async {
+    final location = await showMapLocationBrowser(
+      context,
+      _visibleLocationSources,
+    );
+    if (!mounted || location == null) return;
+    _showLocation(
+      location.attributes,
+      location.category,
+      geometry: location.geometry,
+    );
+  }
+
+  Future<void> _selectSearchSuggestion(MapLocation location) async {
+    _searchController.text = location.name;
+    await _onSearchChanged(location.name);
+    if (!mounted) return;
+    setState(() => _searchSuggestions = const []);
+    await _showLocation(
+      location.attributes,
+      location.category,
+      geometry: location.geometry,
+    );
+  }
+
+  Future<void> _showLocation(
+    Map<String, dynamic> attributes,
+    String category, {
+    Geometry? geometry,
+  }) async {
+    LayerIconConfig? iconConfig;
+    for (final entry in _layerEntries) {
+      if (entry.label == category) {
+        iconConfig = _layerConfigs[entry.layer];
+        break;
+      }
+    }
+
+    final replacing = _selectedAttributes != null;
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedCategory = category;
+      _showFullInfo = false;
+      _showInfoCard = replacing;
+    });
+
+    if (!replacing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _selectedAttributes == null) return;
+        setState(() => _showInfoCard = true);
+      });
+    }
+
+    if (iconConfig != null) {
+      await showSelectedFeature(
+        mapController: _mapController,
+        selectionOverlay: _selectionOverlay,
+        geometry: geometry,
+        iconAssetPath: iconAssetPathForType(
+          iconConfig,
+          attributes[mapIconTypeField],
+        ),
+      );
+    }
   }
 
   Widget _buildTopMapControls() {
@@ -289,13 +389,25 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
             Expanded(
               child: MapSearchBar(
                 controller: _searchController,
-                onChanged: (_) => unawaited(_applyFilters()),
+                onChanged: (query) => unawaited(_onSearchChanged(query)),
+                suggestions: _searchSuggestions
+                    .map(
+                      (location) => SearchSuggestion(
+                        title: location.name,
+                        subtitle: location.category,
+                        onSelected: () {
+                          unawaited(_selectSearchSuggestion(location));
+                        },
+                      ),
+                    )
+                    .toList(growable: false),
               ),
             ),
             const SizedBox(width: 12),
             MapLayersButton(
               entries: _layerEntries,
-              onFilterChanged: () => unawaited(_applyFilters()),
+              onFilterChanged: () =>
+                  unawaited(_onSearchChanged(_searchController.text)),
             ),
           ],
         ),
@@ -352,6 +464,18 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
             MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
             _buildTopMapControls(),
             CurrentLocationButton(onPressed: _getCurrentLocation),
+            if (_selectedAttributes == null)
+              Positioned(
+                bottom: 24,
+                left: 16,
+                child: SafeArea(
+                  child: ElevatedButton.icon(
+                    onPressed: _browseLocations,
+                    icon: const Icon(Icons.list),
+                    label: const Text('Browse locations'),
+                  ),
+                ),
+              ),
             if (_selectedAttributes != null) _buildAnimatedLocationInfoCard(),
           ],
         ),

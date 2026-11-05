@@ -21,6 +21,101 @@ namespace BelongingMaps.API.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("BelongingMaps.API.Models.CommunityResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CommunityResources");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "Food",
+                            Description = "Free food resources available for students and community members.",
+                            IconKey = "food",
+                            Title = "Food Pantry"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "Health",
+                            Description = "Counseling and mental health support for students.",
+                            IconKey = "health",
+                            Title = "Mental Health Services"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "Housing",
+                            Description = "Resources and support for students experiencing housing insecurity.",
+                            IconKey = "housing",
+                            Title = "Housing Assistance"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Education",
+                            Description = "Free academic tutoring and support services on campus.",
+                            IconKey = "education",
+                            Title = "Tutoring Center"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Financial",
+                            Description = "Help with scholarships, grants, and financial assistance.",
+                            IconKey = "financial",
+                            Title = "Financial Aid Office"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Career",
+                            Description = "Job placement, resume help, and career counseling services.",
+                            IconKey = "career",
+                            Title = "Career Center"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Transportation",
+                            Description = "Bus passes and transportation assistance for students.",
+                            IconKey = "transportation",
+                            Title = "Transportation Services"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Family",
+                            Description = "Affordable childcare options available for student parents.",
+                            IconKey = "family",
+                            Title = "Childcare Services"
+                        });
+                });
+
             modelBuilder.Entity("BelongingMaps.API.Models.Location", b =>
                 {
                     b.Property<int>("Id")
@@ -57,6 +152,177 @@ namespace BelongingMaps.API.Migrations
                             Latitude = 38.576000000000001,
                             Longitude = -121.48,
                             Title = "School"
+                        });
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.Opportunity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Opportunities");
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.OpportunityLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpportunityId");
+
+                    b.ToTable("OpportunityLinks");
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.OrganizationResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrgKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationResources");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "SOMOS",
+                            Description = "Resources and support for SOMOS community members.",
+                            IconKey = "groups",
+                            OrgKey = "somos",
+                            Title = "SOMOS Student Organization"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "SOMOS",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Weekly meetings every Thursday at 5:00 PM in the Multicultural Center.\"",
+                            IconKey = "event",
+                            OrgKey = "somos",
+                            Title = "SOMOS Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "SOMOS",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the SOMOS Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "somos",
+                            Title = "SOMOS Contact Info"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Ummah",
+                            Description = "Resources and support for the Ummah community.",
+                            IconKey = "groups",
+                            OrgKey = "ummah",
+                            Title = "Ummah Student Organization"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Ummah",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Jummah gathering every Friday at 1:00 PM, followed by a general meeting.\"",
+                            IconKey = "event",
+                            OrgKey = "ummah",
+                            Title = "Ummah Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Ummah",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the Ummah Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "ummah",
+                            Title = "Ummah Contact Info"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Ubuntu",
+                            Description = "Resources and support for the Ubuntu community.",
+                            IconKey = "groups",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Student Organization"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Ubuntu",
+                            Description = "TODO: replace with real meeting schedule, e.g. \"Meetings held biweekly on Wednesdays at 4:00 PM.\"",
+                            IconKey = "event",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Meeting Times"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "Ubuntu",
+                            Description = "TODO: replace with real contact details, e.g. an email address or social media handle for the Ubuntu Student Organization.",
+                            IconKey = "mail",
+                            OrgKey = "ubuntu",
+                            Title = "Ubuntu Contact Info"
                         });
                 });
 
@@ -108,6 +374,20 @@ namespace BelongingMaps.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.OpportunityLink", b =>
+                {
+                    b.HasOne("BelongingMaps.API.Models.Opportunity", null)
+                        .WithMany("Links")
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BelongingMaps.API.Models.Opportunity", b =>
+                {
+                    b.Navigation("Links");
                 });
 #pragma warning restore 612, 618
         }

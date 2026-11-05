@@ -131,34 +131,3 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
-class _AcknowledgementTile extends StatelessWidget {
-  final String text;
-  const _AcknowledgementTile({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 6.0),
-            child: Icon(
-              Icons.circle,
-              size: 8,
-              color: Color.fromARGB(255, 153, 144, 11),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 15, height: 1.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

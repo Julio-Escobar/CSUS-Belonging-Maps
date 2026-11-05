@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../widgets/hamburger_menu.dart';
 import '../services/auth_service.dart';
+import '../services/login_lockout.dart';
 import 'map_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final LoginLockout _lockout = LoginLockout();
   bool _isLoading = false;
 
   @override
@@ -27,16 +29,39 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    final colors = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: isError ? TextStyle(color: colors.onError) : null,
+        ),
+        backgroundColor: isError ? colors.error : null,
+      ),
+    );
+  }
+
+  Future<void> _handleRejectedLogin() async {
+    final lockedFor = await _lockout.recordFailure();
+    _showMessage(
+      lockedFor != null ? lockoutMessage(lockedFor) : 'Invalid credentials',
+      isError: true,
+    );
   }
 
   Future<void> handleLogin() async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
+
+    final remaining = await _lockout.remainingLock();
+    if (remaining != null) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showMessage(lockoutMessage(remaining), isError: true);
+      return;
+    }
 
     final result = await AuthService.login(
       usernameController.text,
@@ -49,12 +74,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
     switch (result) {
       case LoginResult.success:
+        await _lockout.reset();
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MapScreen()),
         );
       case LoginResult.invalidCredentials:
-        _showMessage('Invalid credentials');
+        await _handleRejectedLogin();
       case LoginResult.serverUnreachable:
         _showMessage(
           "Can't reach the server. Check your connection and try again.",

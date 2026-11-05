@@ -1,14 +1,36 @@
+import 'dart:convert';
+
+import 'package:belonging_maps_app/constants/strings.dart';
 import 'package:belonging_maps_app/screens/surveys_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'helpers/semantics_finders.dart';
 
-Future<void> _pumpSurveys(WidgetTester tester) async {
+class _RecordingUrlLauncher extends UrlLauncherPlatform {
+  final List<String> launchedUrls = [];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrls.add(url);
+    return true;
+  }
+}
+
+Future<void> _pumpSurveys(WidgetTester tester, {http.Client? client}) async {
+  dotenv.loadFromString(envString: 'API_BASE_URL=http://example.test:5162');
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
   final controller = AccessibilitySettingsController(preferences);
@@ -18,15 +40,87 @@ Future<void> _pumpSurveys(WidgetTester tester) async {
       controller: controller,
       child: MaterialApp(
         theme: AppTheme.light(colorSafePalette: false, highContrast: false),
-        home: const SurveysScreen(),
+        home: SurveysScreen(client: client ?? _surveysClient()),
       ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
+http.Client _surveysClient({int getStatus = 200}) {
+  const surveys = [
+    {
+      'id': 1,
+      'title': 'Feedback Survey',
+      'description': 'Tell us how the Belonging Maps app is working for you.',
+      'link': 'https://example.com/feedback',
+    },
+    {
+      'id': 2,
+      'title': 'What is Missing Survey',
+      'description':
+          'Let us know about places, organizations, or resources we should add.',
+      'link': 'https://example.com/missing',
+    },
+  ];
+
+  return MockClient((request) async {
+    if (request.method == 'GET') {
+      return http.Response(jsonEncode(surveys), getStatus);
+    }
+    if (request.method == 'DELETE') return http.Response('', 200);
+
+    final body = Map<String, dynamic>.from(jsonDecode(request.body) as Map);
+    body['id'] = request.method == 'POST'
+        ? 99
+        : int.parse(request.url.pathSegments.last);
+    return http.Response(jsonEncode(body), 200);
+  });
+}
+
 void main() {
-  tearDown(() => AuthService.isAdmin = false);
+  late UrlLauncherPlatform originalLauncher;
+  late _RecordingUrlLauncher launcher;
+
+  setUp(() {
+    originalLauncher = UrlLauncherPlatform.instance;
+    launcher = _RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+  });
+
+  tearDown(() {
+    UrlLauncherPlatform.instance = originalLauncher;
+    AuthService.isAdmin = false;
+  });
+
+  testWidgets('empty survey API shows and opens all nine sponsor links', (
+    tester,
+  ) async {
+    final emptyClient = MockClient((_) async => http.Response('[]', 200));
+    await _pumpSurveys(tester, client: emptyClient);
+
+    const surveys = <(String, String)>[
+      ('SOMOS Sac State', AppStrings.somosSacStateSurveyUrl),
+      ('SOMOS Sac Community', AppStrings.somosSacCommunitySurveyUrl),
+      ('UMMAH Sac State', AppStrings.ummahSacStateSurveyUrl),
+      ('UMMAH Sac Community', AppStrings.ummahSacCommunitySurveyUrl),
+      ('Ubuntu Sac State', AppStrings.ubuntuSacStateSurveyUrl),
+      ('Ubuntu Sac Community', AppStrings.ubuntuSacCommunitySurveyUrl),
+      ('SOMOS Something Missing?', AppStrings.somosSomethingMissingSurveyUrl),
+      ('UMMAH Something Missing?', AppStrings.ummahSomethingMissingSurveyUrl),
+      ('UBUNTU Something Missing?', AppStrings.ubuntuSomethingMissingSurveyUrl),
+    ];
+
+    for (final (title, url) in surveys) {
+      final button = find.widgetWithText(ElevatedButton, title);
+      expect(button, findsOneWidget);
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(launcher.launchedUrls.last, url);
+    }
+    expect(launcher.launchedUrls, surveys.map((survey) => survey.$2).toList());
+  });
 
   testWidgets('shows the Feedback and What is Missing survey buttons', (
     tester,
@@ -157,5 +251,14 @@ void main() {
       findsOneWidget,
     );
     semantics.dispose();
+  });
+
+  testWidgets('shows an error when surveys cannot be loaded', (tester) async {
+    await _pumpSurveys(tester, client: _surveysClient(getStatus: 500));
+
+    expect(
+      find.text('Could not load surveys. Please try again.'),
+      findsOneWidget,
+    );
   });
 }
