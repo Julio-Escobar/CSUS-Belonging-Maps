@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '/models/somos_campus_center.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
 import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
 import '/services/map_location_source.dart';
+import '/services/somos_campus_centers.dart';
 import '/services/somos_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_zoom_controls.dart';
@@ -38,6 +41,11 @@ const Color _somosMarkerColor = Color(0xFF2F5F3E);
 // enlarged to 42 px when selected (see `_markerSymbol`).
 const double _latineArtIconSize = 30;
 const double _selectedLatineArtIconSize = 42;
+
+// The campus center logos are drawn larger than the numbered markers so their
+// wordmarks stay legible, and enlarged further when selected.
+const double _centerIconSize = 40;
+const double _selectedCenterIconSize = 56;
 const double _campusLatitude = 38.56091;
 const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
@@ -61,6 +69,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   late final FeatureLayer _latineArtLayer;
   final TextEditingController _searchController = TextEditingController();
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
+  final GraphicsOverlay _centersOverlay = GraphicsOverlay();
   final GraphicsOverlay _resourcesOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   final Map<String, CompositeSymbol> _markerSymbolCache = {};
@@ -75,6 +84,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   int _latineArtSearchRequest = 0;
 
   List<SomosCampusResource> _resources = const [];
+  List<SomosCampusCenter> _centers = const [];
+  final Map<String, ArcGISImage> _centerIconImages = {};
+  final Map<String, ArcGISImage> _centerBackgroundImages = {};
   Map<String, dynamic>? _selectedAttributes;
   double? _selectedLat;
   double? _selectedLng;
@@ -96,6 +108,12 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     categories: _selectedCategories,
   );
 
+  List<SomosCampusCenter> get _visibleCenters => filterSomosCampusCenters(
+    _centers,
+    query: _searchQuery,
+    categories: _selectedCategories,
+  );
+
   /// Suggestions for the current query: the bundled SOMOS resources first, then
   /// the Latine art locations that match the search and category filter.
   List<SearchSuggestion> get _searchSuggestions {
@@ -110,6 +128,17 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               subtitle: resource.locationLabel,
               onSelected: () {
                 _selectSearchSuggestion(resource);
+              },
+            ),
+          ),
+      ..._visibleCenters
+          .take(5)
+          .map(
+            (center) => SearchSuggestion(
+              title: center.name,
+              subtitle: center.locationLabel,
+              onSelected: () {
+                _selectCenterSuggestion(center);
               },
             ),
           ),
@@ -185,6 +214,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
+      _centersOverlay,
       _resourcesOverlay,
       _selectionOverlay,
     ]);
@@ -250,19 +280,117 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         _isLoading = false;
       });
       _refreshResourceMarkers();
+      await _loadCampusCenters();
     } catch (error) {
       debugPrint('Failed to load the SOMOS campus resources: $error');
       if (!mounted) return;
 
+      _centersOverlay.graphics.clear();
       _resourcesOverlay.graphics.clear();
       _selectionOverlay.graphics.clear();
       setState(() {
         _resources = const [];
+        _centers = const [];
         _latineArtLocations.clear();
         _isLoading = false;
         _loadFailed = true;
       });
     }
+  }
+
+  /// Loads the SOMOS campus centers from the bundled dataset and draws their
+  /// placeholder markers. A failure is logged instead of failing the whole
+  /// screen, because the numbered resources and art locations still work.
+  Future<void> _loadCampusCenters() async {
+    try {
+      final centers = await loadSomosCampusCenters();
+      if (!mounted) return;
+
+      setState(() {
+        _centers = centers;
+      });
+      _renderCenterMarkers();
+      unawaited(_loadCenterIcons());
+    } catch (error) {
+      debugPrint('Failed to load the SOMOS campus centers: $error');
+    }
+  }
+
+  /// Loads the bundled icon for each distinct center marker and redraws them.
+  /// Missing icons are skipped so the other centers still render.
+  Future<void> _loadCenterIcons() async {
+    final assets = <String>{
+      SomosCampusCenter.placeholderIconAsset,
+      for (final center in _centers) center.iconAsset,
+    };
+
+    for (final asset in assets) {
+      try {
+        final image = await ArcGISImage.fromAsset(asset);
+        if (!mounted) return;
+        _centerIconImages[asset] = image;
+      } catch (error) {
+        debugPrint('Failed to load the SOMOS campus center icon $asset: $error');
+      }
+    }
+
+    final backgrounds = <String>{
+      for (final center in _centers)
+        if (_centerBackgroundColor(center.background) != null)
+          center.background.trim(),
+    };
+    for (final token in backgrounds) {
+      final color = _centerBackgroundColor(token);
+      if (color == null || _centerBackgroundImages.containsKey(token)) {
+        continue;
+      }
+      try {
+        final image = await _solidColorImage(color);
+        if (!mounted) return;
+        if (image != null) _centerBackgroundImages[token] = image;
+      } catch (error) {
+        debugPrint('Failed to build the background "$token": $error');
+      }
+    }
+
+    if (!mounted) return;
+    _renderCenterMarkers();
+  }
+
+  /// Maps a center's `background` token to the solid color drawn behind its
+  /// logo. Returns null when no background is configured.
+  Color? _centerBackgroundColor(String? token) {
+    switch (token?.trim()) {
+      case 'darkGreen':
+        // Matches the SOMOS location info card header color.
+        return mapInfoCardColor;
+      case 'white':
+        return Colors.white;
+      default:
+        return null;
+    }
+  }
+
+  /// Renders a small solid-color image that a [PictureMarkerSymbol] can stretch
+  /// into a background behind a center's logo.
+  Future<ArcGISImage?> _solidColorImage(Color color) async {
+    const dimension = 16.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, dimension, dimension),
+      Paint()..color = color,
+    );
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      dimension.toInt(),
+      dimension.toInt(),
+    );
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    picture.dispose();
+    image.dispose();
+    if (data == null) return null;
+    return ArcGISImage.withBuffer(data.buffer.asUint8List());
   }
 
   /// Loads the Latine art feature layer and caches its locations for search and
@@ -371,6 +499,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       _dismissLocationCard();
     }
     _renderResourceMarkers();
+    _renderCenterMarkers();
     _updateLatineArtVisibility();
   }
 
@@ -403,6 +532,91 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       );
     }
+  }
+
+  /// Draws the campus centers with the shared placeholder pin. They live in
+  /// their own overlay so they stay separate from the numbered resource icons.
+  void _renderCenterMarkers() {
+    _centersOverlay.graphics.clear();
+
+    for (final center in _visibleCenters) {
+      final point = ArcGISPoint(
+        x: center.longitude,
+        y: center.latitude,
+        spatialReference: SpatialReference.wgs84,
+      );
+
+      _centersOverlay.graphics.add(
+        Graphic(
+          geometry: point,
+          attributes: center.toAttributes(),
+          symbol: _centerMarkerSymbol(
+            iconAsset: center.iconAsset,
+            background: center.background,
+            iconScale: center.iconScale,
+            backgroundPadding: center.backgroundPadding,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// The marker drawn for a campus center. Uses the center's own icon when it
+  /// has loaded, then the shared placeholder icon, or a circle until then. When
+  /// the center has a background token, a solid rectangle is drawn behind the
+  /// logo (with padding) so low-contrast logos stay visible.
+  ArcGISSymbol _centerMarkerSymbol({
+    String? iconAsset,
+    String? background,
+    double size = _centerIconSize,
+    double iconScale = 1.0,
+    double backgroundPadding = 0.12,
+  }) {
+    final image =
+        _centerIconImages[iconAsset] ??
+        _centerIconImages[SomosCampusCenter.placeholderIconAsset];
+    if (image == null) {
+      return SimpleMarkerSymbol(
+        style: SimpleMarkerSymbolStyle.circle,
+        color: _somosMarkerColor,
+        size: size,
+      )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
+    }
+
+    final logoSize = size * iconScale;
+    final logo = _pictureMarkerSymbol(image, logoSize);
+    final backgroundImage = _centerBackgroundImages[background?.trim()];
+    if (backgroundImage == null) return logo;
+
+    final box = _fittedDimensions(image, logoSize);
+    final padding = size * backgroundPadding;
+    final backgroundMarker = PictureMarkerSymbol.withImage(backgroundImage)
+      ..width = box.width + padding * 2
+      ..height = box.height + padding * 2;
+
+    // Background first so it is drawn underneath the logo.
+    return CompositeSymbol(symbols: [backgroundMarker, logo]);
+  }
+
+  /// The box the image is drawn at inside a [size] square, preserving its
+  /// original aspect ratio so wider or taller logos are not squished.
+  Size _fittedDimensions(ArcGISImage image, double size) {
+    final pixelWidth = image.width;
+    final pixelHeight = image.height;
+    if (pixelWidth <= 0 || pixelHeight <= 0) {
+      return Size(size, size);
+    }
+    if (pixelWidth >= pixelHeight) {
+      return Size(size, size * pixelHeight / pixelWidth);
+    }
+    return Size(size * pixelWidth / pixelHeight, size);
+  }
+
+  PictureMarkerSymbol _pictureMarkerSymbol(ArcGISImage image, double size) {
+    final box = _fittedDimensions(image, size);
+    return PictureMarkerSymbol.withImage(image)
+      ..width = box.width
+      ..height = box.height;
   }
 
   CompositeSymbol _markerSymbol(int number, {double size = 30}) {
@@ -451,6 +665,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         return;
       }
 
+      // The campus centers sit just below the numbered markers and above the
+      // Latine art locations.
+      final centerResult = await _mapController.identifyGraphicsOverlay(
+        _centersOverlay,
+        screenPoint: screenPoint,
+        tolerance: 22.0,
+        maximumResults: 1,
+      );
+
+      if (!mounted) return;
+
+      final centerGraphic = centerResult.graphics.firstOrNull;
+      final centerAttributes = centerGraphic?.attributes;
+      if (centerGraphic != null &&
+          centerAttributes != null &&
+          centerAttributes.isNotEmpty) {
+        _selectCenter(centerGraphic, centerAttributes);
+        return;
+      }
+
       final artResult = await _mapController.identifyLayer(
         _latineArtLayer,
         screenPoint: screenPoint,
@@ -494,6 +728,34 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       );
     }
+  }
+
+  /// Shows the info card for a tapped campus center and enlarges its marker.
+  void _selectCenter(Graphic graphic, Map<String, dynamic> attributes) {
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedLat = _toDouble(attributes['LATITUDE']);
+      _selectedLng = _toDouble(attributes['LONGITUDE']);
+      _showFullInfo = false;
+      _selectedIsLatineArt = false;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    _selectionOverlay.graphics.add(
+      Graphic(
+        geometry: graphic.geometry,
+        attributes: attributes,
+        symbol: _centerMarkerSymbol(
+          iconAsset: attributes['ICON_ASSET']?.toString(),
+          background: attributes['BACKGROUND']?.toString(),
+          iconScale: _toDouble(attributes['ICON_SCALE']) ?? 1.0,
+          backgroundPadding:
+              _toDouble(attributes['BACKGROUND_PADDING']) ?? 0.12,
+          size: _selectedCenterIconSize,
+        ),
+      ),
+    );
   }
 
   /// Shows the info card for a Latine art location, draws the enlarged pin over
@@ -551,9 +813,14 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   Future<void> _browseLocations() async {
-    if (_resources.isEmpty && _latineArtLocations.isEmpty) return;
+    if (_resources.isEmpty &&
+        _centers.isEmpty &&
+        _latineArtLocations.isEmpty) {
+      return;
+    }
 
     final visibleResources = _visibleResources;
+    final visibleCenters = _visibleCenters;
     final visibleLatineArtLocations = filterLatineArtLocations(
       _latineArtLocations,
       query: _searchQuery,
@@ -595,6 +862,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             );
           },
         ),
+      if (visibleCenters.isNotEmpty)
+        MapLocationSource(
+          name: 'Campus Centers',
+          loadPage: (offset) async {
+            final locations = visibleCenters
+                .skip(offset)
+                .take(mapLocationPageSize)
+                .map(
+                  (center) => MapLocation.fromAttributes(
+                    center.toAttributes(),
+                    category: center.category,
+                  ),
+                )
+                .toList(growable: false);
+            return MapLocationPage(
+              locations,
+              hasMore: offset + locations.length < visibleCenters.length,
+            );
+          },
+        ),
     ]);
     if (!mounted || location == null) return;
 
@@ -605,6 +892,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         scale: 5000,
       );
       return;
+    }
+
+    final centerId = location.attributes['ID']?.toString();
+    if (centerId != null) {
+      for (final center in _centers) {
+        if (center.id == centerId) {
+          await _showCenterOnMap(center);
+          return;
+        }
+      }
     }
 
     final number = location.attributes['NUMBER']?.toString();
@@ -645,6 +942,41 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     await _mapController.setViewpointCenter(point, scale: 5000);
   }
 
+  Future<void> _showCenterOnMap(SomosCampusCenter center) async {
+    final attributes = center.toAttributes();
+    final point = ArcGISPoint(
+      x: center.longitude,
+      y: center.latitude,
+      spatialReference: SpatialReference.wgs84,
+    );
+
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedLat = center.latitude;
+      _selectedLng = center.longitude;
+      _showFullInfo = false;
+      _selectedIsLatineArt = false;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    _selectionOverlay.graphics.add(
+      Graphic(
+        geometry: point,
+        attributes: attributes,
+        symbol: _centerMarkerSymbol(
+          iconAsset: center.iconAsset,
+          background: center.background,
+          iconScale: center.iconScale,
+          backgroundPadding: center.backgroundPadding,
+          size: _selectedCenterIconSize,
+        ),
+      ),
+    );
+
+    await _mapController.setViewpointCenter(point, scale: 5000);
+  }
+
   Future<void> _selectSearchSuggestion(SomosCampusResource resource) async {
     _searchController.text = resource.name;
     setState(() {
@@ -653,6 +985,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     });
     _renderResourceMarkers();
     await _showResourceOnMap(resource);
+  }
+
+  Future<void> _selectCenterSuggestion(SomosCampusCenter center) async {
+    _searchController.text = center.name;
+    setState(() {
+      _searchQuery = center.name;
+      _showSearchSuggestions = false;
+    });
+    _renderResourceMarkers();
+    await _showCenterOnMap(center);
   }
 
   Future<void> _selectLatineArtSuggestion(MapLocation location) async {
@@ -791,17 +1133,19 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 suggestions: _searchSuggestions,
               ),
             ),
-            if (_resources.isNotEmpty) ...[
+            if (_resources.isNotEmpty || _centers.isNotEmpty) ...[
               const SizedBox(width: 12),
               MapFilterButton(
-                key: ValueKey<int>(_resources.length),
+                key: ValueKey<int>(_resources.length + _centers.length),
                 featureLayer: null,
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = somosCampusResourceCategories(
-                    _resources,
-                  ).toSet()..add(latineArtCategory);
+                  final categories = <String>{
+                    ...somosCampusResourceCategories(_resources),
+                    ...somosCampusCenterCategories(_centers),
+                    latineArtCategory,
+                  };
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,
@@ -832,7 +1176,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                   MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
                   _buildTopMapControls(),
                   CurrentLocationButton(onPressed: _getCurrentLocation),
-                  if (_resources.isNotEmpty && _selectedAttributes == null)
+                  if ((_resources.isNotEmpty || _centers.isNotEmpty) &&
+                      _selectedAttributes == null)
                     Positioned(
                       bottom: 24,
                       left: 16,
