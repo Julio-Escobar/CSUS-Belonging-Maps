@@ -20,6 +20,26 @@ LocationInfoData _artLocationData({String? imageAsset}) {
   );
 }
 
+/// Location card data for a Ummah campus center that has its own logo.
+LocationInfoData _centerLocationData({BoxFit? orgLogoFit}) {
+  return LocationInfoData(
+    cardTitle: 'Southwest Asian and North African Center',
+    address: 'AIRC, Room 1012',
+    category: 'Campus Centers',
+    type: '',
+    website: 'https://www.csus.edu/',
+    phone: '',
+    email: '',
+    description: 'A center.',
+    imageUrl: null,
+    socialLinks: const {},
+    orgLogo:
+        'assets/ummah_campus_map_assets/'
+        'southwest_asian_and_north_african_center.png',
+    orgLogoFit: orgLogoFit,
+  );
+}
+
 void main() {
   group('LocationInfoData.fromAttributes', () {
     test('maps sprint 4 popup fields from community map attributes', () {
@@ -495,6 +515,85 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(fullScreenImageViewerKey), findsNothing);
+    });
+
+    testWidgets('a wide organization logo is fitted inside the card', (
+      tester,
+    ) async {
+      final data = _centerLocationData(orgLogoFit: BoxFit.contain);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('Southwest Asian and North African Center'),
+        findsOneWidget,
+      );
+      // Wide wordmarks are scaled down inside a white box, not cropped to fill
+      // a circular avatar, so the whole logo stays readable.
+      const logoAsset =
+          'assets/ummah_campus_map_assets/'
+          'southwest_asian_and_north_african_center.png';
+      final logo = tester.widget<Image>(find.byType(Image));
+      expect(logo.fit, BoxFit.contain);
+      expect(
+        logo.image,
+        isA<AssetImage>().having(
+          (provider) => provider.assetName,
+          'assetName',
+          logoAsset,
+        ),
+      );
+      final avatars = tester.widgetList<CircleAvatar>(
+        find.byType(CircleAvatar),
+      );
+      expect(
+        avatars.where(
+          (avatar) =>
+              avatar.backgroundImage is AssetImage &&
+              (avatar.backgroundImage! as AssetImage).assetName == logoAsset,
+        ),
+        isEmpty,
+      );
+    });
+
+    testWidgets('a square organization logo keeps the circular avatar', (
+      tester,
+    ) async {
+      final data = _centerLocationData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The community, SOMOS, and Ubuntu maps pass no fit, so their logos keep
+      // the original circular avatar.
+      expect(find.byType(CircleAvatar), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
     });
   });
 }

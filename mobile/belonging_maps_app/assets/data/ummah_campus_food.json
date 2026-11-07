@@ -1,0 +1,4 @@
+[
+  {"id": "gyro-2-go", "name": "Gyro 2 Go", "building": "River Front Center", "room": "", "category": "Halal Food", "description": "Gyro 2 Go in the River Front Center is one of the campus dining locations the Ummah Resource Map lists as a halal food option. The River Front Center sits on the north side of campus, next to the University Union.", "website": "https://www.dining.csus.edu/gyro-2-go-new/", "icon": "HF11px.png", "latitude": 38.563549, "longitude": -121.423944},
+  {"id": "student-dining-hall", "name": "Student Dining Hall", "building": "American River Courtyard", "room": "", "category": "Halal Food", "description": "The Student Dining Hall in the American River Courtyard housing complex is the second halal food option listed by the Ummah Resource Map. It serves the residential community on the north side of campus.", "website": "https://www.dining.csus.edu/dining-commons/", "icon": "HF11px.png", "latitude": 38.565841, "longitude": -121.426349}
+]

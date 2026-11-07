@@ -44,6 +44,12 @@ class LocationInfoData {
   final double? locationLng;
   final String? orgLogo;
 
+  /// How the organization logo is fitted inside the card's logo box. When null
+  /// the logo keeps the original circular avatar and is cropped to fill it,
+  /// which suits square crests. Wide wordmarks pass [BoxFit.contain] so the
+  /// whole logo stays visible inside a white rounded box.
+  final BoxFit? orgLogoFit;
+
   const LocationInfoData({
     required this.cardTitle,
     required this.address,
@@ -59,6 +65,7 @@ class LocationInfoData {
     this.locationLat,
     this.locationLng,
     this.orgLogo,
+    this.orgLogoFit,
   });
 
   /// Whether the card has a photo to show, either bundled with the app or
@@ -328,6 +335,7 @@ class LocationInfoCard extends StatelessWidget {
               : _PreviewLocationInfoCard(
                   cardTitle: data.cardTitle,
                   orgLogo: data.orgLogo,
+                  orgLogoFit: data.orgLogoFit,
                   category: data.category,
                   imageAsset: data.imageAsset,
                   onClose: onClose,
@@ -384,11 +392,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (data.orgLogo != null) ...[
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white,
-                    backgroundImage: AssetImage(data.orgLogo!),
-                  ),
+                  _OrgLogoAvatar(logo: data.orgLogo!, fit: data.orgLogoFit),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
@@ -482,6 +486,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
 class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
   final String? orgLogo;
+  final BoxFit? orgLogoFit;
   final String category;
   final String? imageAsset;
   final VoidCallback onClose;
@@ -490,6 +495,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   const _PreviewLocationInfoCard({
     required this.cardTitle,
     this.orgLogo,
+    this.orgLogoFit,
     required this.category,
     this.imageAsset,
     required this.onClose,
@@ -510,11 +516,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (orgLogo != null) ...[
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white,
-                    backgroundImage: AssetImage(orgLogo!),
-                  ),
+                  _OrgLogoAvatar(logo: orgLogo!, fit: orgLogoFit),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
@@ -656,11 +658,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (data.orgLogo != null) ...[
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.white,
-                  backgroundImage: AssetImage(data.orgLogo!),
-                ),
+                _OrgLogoAvatar(logo: data.orgLogo!, fit: data.orgLogoFit),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -1010,3 +1008,53 @@ class _LocationInfoImage extends StatelessWidget {
     );
   }
 }
+
+/// Draws the organization logo shown beside the location card title.
+///
+/// Square crests keep the original circular avatar and are cropped to fill it.
+/// Wide wordmarks (the Ummah campus center logos, for example) pass a [fit] so
+/// the whole logo is scaled down inside a white rounded box instead of being
+/// cropped to an unreadable sliver.
+class _OrgLogoAvatar extends StatelessWidget {
+  const _OrgLogoAvatar({required this.logo, this.fit});
+
+  /// The logo box, sized to keep the height of the 40 px circular avatar it
+  /// replaced while giving wide wordmarks some extra width.
+  static const double _boxWidth = 48;
+  static const double _boxHeight = 40;
+
+  /// The bundled asset path of the logo.
+  final String logo;
+
+  /// How the logo is fitted inside its box. Null keeps the circular, cropped
+  /// avatar used by the community, SOMOS, and Ubuntu maps.
+  final BoxFit? fit;
+
+  @override
+  Widget build(BuildContext context) {
+    final BoxFit? boxFit = fit;
+    if (boxFit == null) {
+      return CircleAvatar(
+        radius: _boxHeight / 2,
+        backgroundColor: Colors.white,
+        backgroundImage: AssetImage(logo),
+      );
+    }
+
+    return Container(
+      width: _boxWidth,
+      height: _boxHeight,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Image.asset(
+        logo,
+        fit: boxFit,
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
