@@ -307,7 +307,8 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasCategory = category.trim().isNotEmpty;
 
-    return SingleChildScrollView(
+    return LocationCardScrollArea(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 18, 12, 18),
         child: Column(
@@ -489,7 +490,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
         ),
         const Divider(height: 1, color: mapInfoDividerColor),
         Expanded(
-          child: SingleChildScrollView(
+          child: LocationCardScrollArea(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -701,6 +702,65 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Scrollable body of a location card with a visible scrollbar (P1-335).
+///
+/// The thumb only paints when the content is taller than the card, so short
+/// cards look the same as before. It sits in a gutter on the right edge so it
+/// never covers text or buttons, follows the scroll position, and can be
+/// dragged as well as touch-scrolled. Screen readers get a labelled scroll
+/// region with the usual scroll actions.
+class LocationCardScrollArea extends StatefulWidget {
+  /// Width kept clear on the right for the scrollbar thumb.
+  static const double scrollbarGutter = 10;
+
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  const LocationCardScrollArea({
+    super.key,
+    required this.padding,
+    required this.child,
+  });
+
+  @override
+  State<LocationCardScrollArea> createState() => _LocationCardScrollAreaState();
+}
+
+class _LocationCardScrollAreaState extends State<LocationCardScrollArea> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: 'Location details',
+      child: RawScrollbar(
+        key: const Key('locationCardScrollbar'),
+        controller: _controller,
+        thumbVisibility: true,
+        thickness: 5,
+        radius: const Radius.circular(4),
+        thumbColor: mapInfoSecondaryTextColor,
+        mainAxisMargin: 8,
+        crossAxisMargin: 3,
+        child: SingleChildScrollView(
+          controller: _controller,
+          padding: widget.padding.add(
+            const EdgeInsets.only(right: LocationCardScrollArea.scrollbarGutter),
+          ),
+          child: widget.child,
+        ),
+      ),
     );
   }
 }
