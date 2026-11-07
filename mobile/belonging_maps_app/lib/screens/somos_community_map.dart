@@ -11,8 +11,7 @@ import '/widgets/location_info_card.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
-import '/services/layer_search.dart';
-import '/services/layer_filter.dart';
+import '/services/community_map_search.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 import '/services/map_location_source.dart';
@@ -45,8 +44,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   bool _showInfoCard = false;
 
   final TextEditingController _searchController = TextEditingController();
-  List<MapLocation> _searchSuggestions = const [];
-  int _suggestionRequest = 0;
+  CommunityMapSearchResult _searchResult = CommunityMapSearchResult.none;
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
@@ -195,45 +193,24 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     super.dispose();
   }
 
-  /// Recomputes every layer's definition expression from the current type
-  /// filters and search text, so the two combine (AND) instead of overwriting
-  /// each other.
-  Future<void> _applyFilters() async {
-    for (final entry in _layerEntries) {
-      final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
-      final searchClause = await buildLayerSearchClause(
-        entry.layer,
-        _searchController.text,
-      );
-
-      final clauses = <String>[
-        if (typeClause.isNotEmpty) typeClause,
-        if (searchClause.isNotEmpty) '($searchClause)',
-      ];
-      entry.layer.definitionExpression = clauses.join(' AND ');
-    }
-  }
+  /// Shared search (P1-328): filters the layers by name, category and
+  /// address, then loads suggestions for the search bar.
+  late final CommunityMapSearch _search = CommunityMapSearch.forLayers(
+    _layerEntries,
+  );
 
   Future<void> _onSearchChanged(String query) async {
-    final request = ++_suggestionRequest;
-    await _applyFilters();
-    if (query.trim().isEmpty) {
-      if (mounted && request == _suggestionRequest) {
-        setState(() => _searchSuggestions = const []);
-      }
-      return;
-    }
-
-    final suggestions = await loadMapLocationSuggestions(
-      _visibleLocationSources,
-      query: query,
-    );
-    if (!mounted || request != _suggestionRequest) return;
-    setState(() => _searchSuggestions = suggestions);
+    final result = await _search.search(query);
+    if (!mounted || result == null) return;
+    setState(() => _searchResult = result);
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay);
+    return showCurrentLocation(
+      _mapController,
+      _userOverlay,
+      context: context,
+    );
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {
@@ -315,7 +292,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
     _searchController.text = location.name;
     await _onSearchChanged(location.name);
     if (!mounted) return;
-    setState(() => _searchSuggestions = const []);
+    setState(() => _searchResult = CommunityMapSearchResult.none);
     await _showLocation(
       location.attributes,
       location.category,
@@ -440,7 +417,8 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
               child: MapSearchBar(
                 controller: _searchController,
                 onChanged: (query) => unawaited(_onSearchChanged(query)),
-                suggestions: _searchSuggestions
+                noResultsMessage: _searchResult.noResultsMessage,
+                suggestions: _searchResult.suggestions
                     .map(
                       (location) => SearchSuggestion(
                         title: location.name,
