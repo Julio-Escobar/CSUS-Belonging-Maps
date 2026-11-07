@@ -15,12 +15,14 @@ namespace BelongingMaps.API.Controllers
             _context = context;
         }
 
+        /// <summary>Returns every organization resource.</summary>
         [HttpGet]
         public IActionResult GetOrganizationResources()
         {
             return Ok(_context.OrganizationResources.ToList());
         }
 
+        /// <summary>Returns one organization resource.</summary>
         [HttpGet("{id}")]
         public IActionResult GetOrganizationResource(int id)
         {
@@ -31,6 +33,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(resource);
         }
 
+        /// <summary>Creates an organization resource.</summary>
         [HttpPost]
         public IActionResult AddOrganizationResource([FromBody] OrganizationResource resource)
         {
@@ -40,6 +43,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(resource);
         }
 
+        /// <summary>Updates an organization resource.</summary>
         [HttpPut("{id}")]
         public IActionResult EditOrganizationResource(int id, [FromBody] OrganizationResource updated)
         {
@@ -57,6 +61,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(resource);
         }
 
+        /// <summary>Deletes an organization resource.</summary>
         [HttpDelete("{id}")]
         public IActionResult DeleteOrganizationResource(int id)
         {

@@ -29,13 +29,69 @@ namespace BelongingMaps.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Facebook")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Instagram")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
+
+                    b.Property<string>("LinkedIn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Longitude")
                         .HasColumnType("float");
 
+                    b.Property<string>("OrgLogo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TikTok")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TwitterX")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Website")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -46,17 +102,45 @@ namespace BelongingMaps.API.Migrations
                     b.HasData(
                         new
                         {
+                            Address = "",
+                            Category = "",
+                            Description = "",
+                            Email = "",
+                            Facebook = "",
+                            ImageUrl = "",
+                            Instagram = "",
                             Id = 1,
                             Latitude = 38.575000000000003,
+                            LinkedIn = "",
                             Longitude = -121.47799999999999,
-                            Title = "Community Center"
+                            OrgLogo = "",
+                            Phone = "",
+                            TikTok = "",
+                            Title = "Community Center",
+                            TwitterX = "",
+                            Type = "",
+                            Website = ""
                         },
                         new
                         {
+                            Address = "",
+                            Category = "",
+                            Description = "",
+                            Email = "",
+                            Facebook = "",
+                            ImageUrl = "",
+                            Instagram = "",
                             Id = 2,
                             Latitude = 38.576000000000001,
+                            LinkedIn = "",
                             Longitude = -121.48,
-                            Title = "School"
+                            OrgLogo = "",
+                            Phone = "",
+                            TikTok = "",
+                            Title = "School",
+                            TwitterX = "",
+                            Type = "",
+                            Website = ""
                         });
                 });
 
