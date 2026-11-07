@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
 import '/models/somos_campus_center.dart';
+import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
 import '/services/current_location.dart';
@@ -12,6 +13,7 @@ import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
 import '/services/map_location_source.dart';
 import '/services/somos_campus_centers.dart';
+import '/services/somos_campus_food.dart';
 import '/services/somos_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_zoom_controls.dart';
@@ -46,6 +48,11 @@ const double _selectedLatineArtIconSize = 42;
 // wordmarks stay legible, and enlarged further when selected.
 const double _centerIconSize = 40;
 const double _selectedCenterIconSize = 56;
+
+// The Latine food icons match the numbered markers, which are drawn at 30 px
+// and enlarged to 42 px when selected (see `_markerSymbol`).
+const double _foodIconSize = 30;
+const double _selectedFoodIconSize = 42;
 const double _campusLatitude = 38.56091;
 const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
@@ -70,6 +77,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   final TextEditingController _searchController = TextEditingController();
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
   final GraphicsOverlay _centersOverlay = GraphicsOverlay();
+  final GraphicsOverlay _foodOverlay = GraphicsOverlay();
   final GraphicsOverlay _resourcesOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   final Map<String, CompositeSymbol> _markerSymbolCache = {};
@@ -85,8 +93,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
   List<SomosCampusResource> _resources = const [];
   List<SomosCampusCenter> _centers = const [];
+  List<SomosCampusFood> _food = const [];
   final Map<String, ArcGISImage> _centerIconImages = {};
   final Map<String, ArcGISImage> _centerBackgroundImages = {};
+  final Map<String, ArcGISImage> _foodIconImages = {};
   Map<String, dynamic>? _selectedAttributes;
   double? _selectedLat;
   double? _selectedLng;
@@ -114,8 +124,15 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     categories: _selectedCategories,
   );
 
-  /// Suggestions for the current query: the bundled SOMOS resources first, then
-  /// the Latine art locations that match the search and category filter.
+  List<SomosCampusFood> get _visibleFood => filterSomosCampusFood(
+    _food,
+    query: _searchQuery,
+    categories: _selectedCategories,
+  );
+
+  /// Suggestions for the current query: the bundled SOMOS resources and
+  /// centers first, then the Latine food options and art locations that match
+  /// the search and category filter.
   List<SearchSuggestion> get _searchSuggestions {
     if (_searchQuery.isEmpty || !_showSearchSuggestions) return const [];
 
@@ -139,6 +156,17 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
               subtitle: center.locationLabel,
               onSelected: () {
                 _selectCenterSuggestion(center);
+              },
+            ),
+          ),
+      ..._visibleFood
+          .take(5)
+          .map(
+            (food) => SearchSuggestion(
+              title: food.name,
+              subtitle: food.locationLabel,
+              onSelected: () {
+                _selectFoodSuggestion(food);
               },
             ),
           ),
@@ -215,6 +243,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
       _centersOverlay,
+      _foodOverlay,
       _resourcesOverlay,
       _selectionOverlay,
     ]);
@@ -281,16 +310,19 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       });
       _refreshResourceMarkers();
       await _loadCampusCenters();
+      await _loadCampusFood();
     } catch (error) {
       debugPrint('Failed to load the SOMOS campus resources: $error');
       if (!mounted) return;
 
       _centersOverlay.graphics.clear();
+      _foodOverlay.graphics.clear();
       _resourcesOverlay.graphics.clear();
       _selectionOverlay.graphics.clear();
       setState(() {
         _resources = const [];
         _centers = const [];
+        _food = const [];
         _latineArtLocations.clear();
         _isLoading = false;
         _loadFailed = true;
@@ -316,6 +348,43 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     }
   }
 
+  /// Loads the Latine food options from the bundled dataset and draws their
+  /// markers. A failure is logged instead of failing the whole screen, because
+  /// the numbered resources, centers, and art locations still work.
+  Future<void> _loadCampusFood() async {
+    try {
+      final food = await loadSomosCampusFood();
+      if (!mounted) return;
+
+      setState(() {
+        _food = food;
+      });
+      _renderFoodMarkers();
+      unawaited(_loadFoodIcons());
+    } catch (error) {
+      debugPrint('Failed to load the Latine food options: $error');
+    }
+  }
+
+  /// Loads the bundled icon for each distinct food marker and redraws them.
+  /// Missing icons are skipped so the other markers still render.
+  Future<void> _loadFoodIcons() async {
+    final assets = <String>{for (final food in _food) food.iconAsset};
+
+    for (final asset in assets) {
+      try {
+        final image = await ArcGISImage.fromAsset(asset);
+        if (!mounted) return;
+        _foodIconImages[asset] = image;
+      } catch (error) {
+        debugPrint('Failed to load the Latine food icon $asset: $error');
+      }
+    }
+
+    if (!mounted) return;
+    _renderFoodMarkers();
+  }
+
   /// Loads the bundled icon for each distinct center marker and redraws them.
   /// Missing icons are skipped so the other centers still render.
   Future<void> _loadCenterIcons() async {
@@ -330,7 +399,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         if (!mounted) return;
         _centerIconImages[asset] = image;
       } catch (error) {
-        debugPrint('Failed to load the SOMOS campus center icon $asset: $error');
+        debugPrint(
+          'Failed to load the SOMOS campus center icon $asset: $error',
+        );
       }
     }
 
@@ -382,10 +453,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       Paint()..color = color,
     );
     final picture = recorder.endRecording();
-    final image = await picture.toImage(
-      dimension.toInt(),
-      dimension.toInt(),
-    );
+    final image = await picture.toImage(dimension.toInt(), dimension.toInt());
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     picture.dispose();
     image.dispose();
@@ -500,6 +568,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     }
     _renderResourceMarkers();
     _renderCenterMarkers();
+    _renderFoodMarkers();
     _updateLatineArtVisibility();
   }
 
@@ -559,6 +628,46 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       );
     }
+  }
+
+  /// Draws the Latine food options with their food icons. They live in their own
+  /// overlay so they stay separate from the numbered resource icons and the
+  /// campus center logos.
+  void _renderFoodMarkers() {
+    _foodOverlay.graphics.clear();
+
+    for (final food in _visibleFood) {
+      final point = ArcGISPoint(
+        x: food.longitude,
+        y: food.latitude,
+        spatialReference: SpatialReference.wgs84,
+      );
+
+      _foodOverlay.graphics.add(
+        Graphic(
+          geometry: point,
+          attributes: food.toAttributes(),
+          symbol: _foodMarkerSymbol(food.iconAsset),
+        ),
+      );
+    }
+  }
+
+  /// The marker drawn for a Latine food option. Uses the bundled food icon when
+  /// it has loaded, or a circle until then.
+  ArcGISSymbol _foodMarkerSymbol(
+    String iconAsset, {
+    double size = _foodIconSize,
+  }) {
+    final image = _foodIconImages[iconAsset];
+    if (image == null) {
+      return SimpleMarkerSymbol(
+        style: SimpleMarkerSymbolStyle.circle,
+        color: _somosMarkerColor,
+        size: size,
+      )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
+    }
+    return _pictureMarkerSymbol(image, size);
   }
 
   /// The marker drawn for a campus center. Uses the center's own icon when it
@@ -685,6 +794,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         return;
       }
 
+      // The Latine food icons sit below the numbered markers and the campus
+      // centers, and above the art locations.
+      final foodResult = await _mapController.identifyGraphicsOverlay(
+        _foodOverlay,
+        screenPoint: screenPoint,
+        tolerance: 22.0,
+        maximumResults: 1,
+      );
+
+      if (!mounted) return;
+
+      final foodGraphic = foodResult.graphics.firstOrNull;
+      final foodAttributes = foodGraphic?.attributes;
+      if (foodGraphic != null &&
+          foodAttributes != null &&
+          foodAttributes.isNotEmpty) {
+        _selectFood(foodGraphic, foodAttributes);
+        return;
+      }
+
       final artResult = await _mapController.identifyLayer(
         _latineArtLayer,
         screenPoint: screenPoint,
@@ -758,6 +887,31 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     );
   }
 
+  /// Shows the info card for a tapped Latine food option and enlarges its icon.
+  void _selectFood(Graphic graphic, Map<String, dynamic> attributes) {
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedLat = _toDouble(attributes['LATITUDE']);
+      _selectedLng = _toDouble(attributes['LONGITUDE']);
+      _showFullInfo = false;
+      _selectedIsLatineArt = false;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    _selectionOverlay.graphics.add(
+      Graphic(
+        geometry: graphic.geometry,
+        attributes: attributes,
+        symbol: _foodMarkerSymbol(
+          attributes['ICON_ASSET']?.toString() ??
+              SomosCampusFood.defaultIconAsset,
+          size: _selectedFoodIconSize,
+        ),
+      ),
+    );
+  }
+
   /// Shows the info card for a Latine art location, draws the enlarged pin over
   /// it, and optionally recenters the map (used when browsing or searching).
   Future<void> _showLatineArtOnMap(
@@ -815,12 +969,14 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   Future<void> _browseLocations() async {
     if (_resources.isEmpty &&
         _centers.isEmpty &&
+        _food.isEmpty &&
         _latineArtLocations.isEmpty) {
       return;
     }
 
     final visibleResources = _visibleResources;
     final visibleCenters = _visibleCenters;
+    final visibleFood = _visibleFood;
     final visibleLatineArtLocations = filterLatineArtLocations(
       _latineArtLocations,
       query: _searchQuery,
@@ -882,6 +1038,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             );
           },
         ),
+      if (visibleFood.isNotEmpty)
+        MapLocationSource(
+          name: latineFoodCategory,
+          loadPage: (offset) async {
+            final locations = visibleFood
+                .skip(offset)
+                .take(mapLocationPageSize)
+                .map(
+                  (food) => MapLocation.fromAttributes(
+                    food.toAttributes(),
+                    category: food.category,
+                  ),
+                )
+                .toList(growable: false);
+            return MapLocationPage(
+              locations,
+              hasMore: offset + locations.length < visibleFood.length,
+            );
+          },
+        ),
     ]);
     if (!mounted || location == null) return;
 
@@ -892,6 +1068,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         scale: 5000,
       );
       return;
+    }
+
+    final foodId = location.attributes['ID']?.toString();
+    if (foodId != null) {
+      for (final food in _food) {
+        if (food.id == foodId) {
+          await _showFoodOnMap(food);
+          return;
+        }
+      }
     }
 
     final centerId = location.attributes['ID']?.toString();
@@ -977,6 +1163,35 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     await _mapController.setViewpointCenter(point, scale: 5000);
   }
 
+  Future<void> _showFoodOnMap(SomosCampusFood food) async {
+    final attributes = food.toAttributes();
+    final point = ArcGISPoint(
+      x: food.longitude,
+      y: food.latitude,
+      spatialReference: SpatialReference.wgs84,
+    );
+
+    setState(() {
+      _selectedAttributes = attributes;
+      _selectedLat = food.latitude;
+      _selectedLng = food.longitude;
+      _showFullInfo = false;
+      _selectedIsLatineArt = false;
+      _showInfoCard = true;
+    });
+
+    _selectionOverlay.graphics.clear();
+    _selectionOverlay.graphics.add(
+      Graphic(
+        geometry: point,
+        attributes: attributes,
+        symbol: _foodMarkerSymbol(food.iconAsset, size: _selectedFoodIconSize),
+      ),
+    );
+
+    await _mapController.setViewpointCenter(point, scale: 5000);
+  }
+
   Future<void> _selectSearchSuggestion(SomosCampusResource resource) async {
     _searchController.text = resource.name;
     setState(() {
@@ -995,6 +1210,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     });
     _renderResourceMarkers();
     await _showCenterOnMap(center);
+  }
+
+  Future<void> _selectFoodSuggestion(SomosCampusFood food) async {
+    _searchController.text = food.name;
+    setState(() {
+      _searchQuery = food.name;
+      _showSearchSuggestions = false;
+    });
+    _renderResourceMarkers();
+    await _showFoodOnMap(food);
   }
 
   Future<void> _selectLatineArtSuggestion(MapLocation location) async {
@@ -1133,10 +1358,14 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 suggestions: _searchSuggestions,
               ),
             ),
-            if (_resources.isNotEmpty || _centers.isNotEmpty) ...[
+            if (_resources.isNotEmpty ||
+                _centers.isNotEmpty ||
+                _food.isNotEmpty) ...[
               const SizedBox(width: 12),
               MapFilterButton(
-                key: ValueKey<int>(_resources.length + _centers.length),
+                key: ValueKey<int>(
+                  _resources.length + _centers.length + _food.length,
+                ),
                 featureLayer: null,
                 filterField: 'CATEGORY',
                 label: 'Category',
@@ -1144,6 +1373,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                   final categories = <String>{
                     ...somosCampusResourceCategories(_resources),
                     ...somosCampusCenterCategories(_centers),
+                    ...somosCampusFoodCategories(_food),
                     latineArtCategory,
                   };
                   return categories.toList()..sort();
@@ -1176,7 +1406,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                   MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
                   _buildTopMapControls(),
                   CurrentLocationButton(onPressed: _getCurrentLocation),
-                  if ((_resources.isNotEmpty || _centers.isNotEmpty) &&
+                  if ((_resources.isNotEmpty ||
+                          _centers.isNotEmpty ||
+                          _food.isNotEmpty) &&
                       _selectedAttributes == null)
                     Positioned(
                       bottom: 24,
