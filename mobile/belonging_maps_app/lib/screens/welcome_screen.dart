@@ -12,9 +12,11 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: colors.cardBackground,
-      foregroundColor: colors.primary,
+      // The brand green is too dark to read on dark buttons (P1-281).
+      foregroundColor: isDark ? colors.primaryText : colors.primary,
       minimumSize: const Size(48, 48),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
