@@ -37,8 +37,6 @@ const String _openStreetMapBasemapUrl =
 const String somosCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
-const Color _somosMarkerColor = Color(0xFF2F5F3E);
-
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
 // enlarged to 42 px when selected (see `_markerSymbol`).
 const double _latineArtIconSize = 30;
@@ -81,6 +79,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   final GraphicsOverlay _resourcesOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   final Map<String, CompositeSymbol> _markerSymbolCache = {};
+
+  /// Marker color from the active accessibility palette. Updated in
+  /// [didChangeDependencies] so the pins follow the colorblind setting.
+  Color _markerColor = AccessibilityColors.normal.primary;
 
   /// The Latine art locations cached once the feature layer has loaded, so they
   /// can be searched and browsed like the bundled campus resources.
@@ -229,7 +231,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
           ..renderer = SimpleRenderer(
             symbol: SimpleMarkerSymbol(
               style: SimpleMarkerSymbolStyle.circle,
-              color: _somosMarkerColor,
+              color: _markerColor,
               size: _latineArtIconSize,
             )..outline = SimpleLineSymbol(color: Colors.white, width: 2),
           );
@@ -249,6 +251,22 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     ]);
     unawaited(_applyLatineArtIcon());
     _loadMapData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final color = AccessibilityColors.of(context).primary;
+    if (color != _markerColor) {
+      _markerColor = color;
+      // Symbols and center backgrounds are cached with the old color.
+      _markerSymbolCache.clear();
+      _centerBackgroundImages.clear();
+      if (!_isLoading) {
+        _refreshResourceMarkers();
+        unawaited(_loadCenterIcons());
+      }
+    }
   }
 
   /// Loads the Latine art pin from the bundled asset and draws it for every art
@@ -434,7 +452,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     switch (token?.trim()) {
       case 'darkGreen':
         // Matches the SOMOS location info card header color.
-        return mapInfoCardColor;
+        return _markerColor;
       case 'white':
         return Colors.white;
       default:
@@ -663,7 +681,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     if (image == null) {
       return SimpleMarkerSymbol(
         style: SimpleMarkerSymbolStyle.circle,
-        color: _somosMarkerColor,
+        color: _markerColor,
         size: size,
       )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
     }
@@ -687,7 +705,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     if (image == null) {
       return SimpleMarkerSymbol(
         style: SimpleMarkerSymbolStyle.circle,
-        color: _somosMarkerColor,
+        color: _markerColor,
         size: size,
       )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
     }
@@ -735,7 +753,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     final circle = SimpleMarkerSymbol(
       style: SimpleMarkerSymbolStyle.circle,
-      color: _somosMarkerColor,
+      color: _markerColor,
       size: size,
     )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
 
@@ -944,7 +962,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     } else {
       symbol = SimpleMarkerSymbol(
         style: SimpleMarkerSymbolStyle.circle,
-        color: _somosMarkerColor,
+        color: _markerColor,
         size: _selectedLatineArtIconSize,
       )..outline = SimpleLineSymbol(color: Colors.white, width: 2);
     }

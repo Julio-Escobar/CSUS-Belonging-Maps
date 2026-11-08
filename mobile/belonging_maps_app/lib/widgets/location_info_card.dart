@@ -1,12 +1,15 @@
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 
+import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/location_attributes.dart';
 import 'full_screen_image_viewer.dart';
+
+import '../services/accessibility_settings.dart';
 
 // Color constants
 const Color mapInfoCardColor = Color.fromARGB(255, 47, 95, 62);
@@ -286,7 +289,7 @@ class LocationInfoCard extends StatelessWidget {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
 
     if (summaryOnly) {
-      return _buildSummaryCard(mediaQuery);
+      return _buildSummaryCard(context, mediaQuery);
     }
 
     final double expandedHeight = mediaQuery.size.height * 0.72;
@@ -309,7 +312,7 @@ class LocationInfoCard extends StatelessWidget {
         height: showFullInfo ? expandedHeight : collapsedHeight,
         margin: const EdgeInsets.all(12),
         child: Card(
-          color: mapInfoCardColor,
+          color: AccessibilityColors.of(context).primary,
           elevation: 10,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
@@ -340,14 +343,14 @@ class LocationInfoCard extends StatelessWidget {
 
   /// Builds the fixed card used for the Latine art locations. It never expands
   /// and only shows the photo, the title, the type, and the address.
-  Widget _buildSummaryCard(MediaQueryData mediaQuery) {
+  Widget _buildSummaryCard(BuildContext context, MediaQueryData mediaQuery) {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         margin: const EdgeInsets.all(12),
         constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.8),
         child: Card(
-          color: mapInfoCardColor,
+          color: AccessibilityColors.of(context).primary,
           elevation: 10,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
@@ -823,7 +826,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                         tooltip: 'Open ${entry.key}',
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: mapInfoCardColor,
+                          foregroundColor: AccessibilityColors.of(context).primary,
                         ),
                         icon: Icon(getSocialIcon(entry.key)),
                       );

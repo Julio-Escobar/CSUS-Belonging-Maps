@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-const Color zoomButtonBackgroundColor = Color.fromARGB(255, 47, 95, 62);
-const Color zoomButtonIconColor = Colors.white;
+import '../services/accessibility_theme.dart';
 
 class MapZoomControls extends StatelessWidget {
   final VoidCallback onZoomIn;
@@ -52,8 +51,10 @@ class _ZoomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Material(
-      color: zoomButtonBackgroundColor,
+      color: colors.primary,
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
       child: Semantics(
@@ -64,7 +65,7 @@ class _ZoomButton extends StatelessWidget {
           child: IconButton(
             tooltip: label,
             onPressed: onTap,
-            icon: Icon(icon, color: zoomButtonIconColor),
+            icon: Icon(icon, color: colors.onPrimary),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
         ),
