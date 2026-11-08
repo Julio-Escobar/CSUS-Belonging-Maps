@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:belonging_maps_app/screens/community_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'package:belonging_maps_app/widgets/resource_image_field.dart';
 import 'helpers/fake_community_resources_api.dart';
 import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
@@ -159,6 +162,66 @@ void main() {
     expect(find.text('Add Resource'), findsNothing);
     expect(find.text('Resource added'), findsOneWidget);
     expect(api.resources.map((r) => r['title']), contains('Book Exchange'));
+  });
+
+  testWidgets('admin adds a resource with an image', (tester) async {
+    AuthService.isAdmin = true;
+    // A real 1x1 PNG so the preview can decode it.
+    ResourceImageField.pickImage = (_) async => base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    );
+    addTearDown(() => ResourceImageField.pickImage = (_) async => null);
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Add resource'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Garden Club');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Grow food.');
+    await tester.enterText(find.byType(TextFormField).at(2), 'Food');
+
+    await tester.ensureVisible(find.text('Add image'));
+    await tester.tap(find.text('Add image'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from photos'));
+    await tester.pumpAndSettle();
+
+    // The picked photo is previewed and can be removed or changed.
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == 'Selected image',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Change image'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resource added'), findsOneWidget);
+    expect(api.uploadedImages, 1);
+    final saved = api.resources.firstWhere((r) => r['title'] == 'Garden Club');
+    expect(saved['imageId'], isNotNull);
+  });
+
+  testWidgets('admin can remove an image from a resource', (tester) async {
+    AuthService.isAdmin = true;
+    api.resources.first['imageId'] = 42;
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Edit Food Pantry'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Remove image'));
+    await tester.tap(find.text('Remove image'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add image'), findsOneWidget);
+
+    await tester.tap(find.text('Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resource updated'), findsOneWidget);
+    expect(api.resources.first['imageId'], isNull);
+    expect(api.uploadedImages, 0);
   });
 
   testWidgets('a resource added on one device shows up on another', (
