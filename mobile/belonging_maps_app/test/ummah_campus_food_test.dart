@@ -56,6 +56,15 @@ void main() {
       }
     });
 
+    test('the descriptions are not padded with story map boilerplate', () async {
+      final food = await loadUmmahCampusFood();
+
+      for (final option in food) {
+        expect(option.description, isNot(contains('Ummah Resource Map')));
+        expect(option.description, isNot(contains('listed by')));
+      }
+    });
+
     test('the attributes expose the fields the info card reads', () async {
       final food = await loadUmmahCampusFood();
       final attributes = food.first.toAttributes();

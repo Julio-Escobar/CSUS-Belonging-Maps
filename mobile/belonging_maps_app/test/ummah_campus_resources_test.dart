@@ -82,6 +82,19 @@ void main() {
     },
   );
 
+  test('the bundled descriptions are not story map boilerplate', () async {
+    final source = await rootBundle.loadString(ummahCampusResourcesAsset);
+    final resources = parseUmmahCampusResources(source);
+
+    for (final resource in resources) {
+      expect(
+        resource.description,
+        isNot(contains('Ummah Resource Map')),
+        reason: '${resource.name} still points at the story map',
+      );
+    }
+  });
+
   test('the bundled dataset lists the story map sections', () async {
     final source = await rootBundle.loadString(ummahCampusResourcesAsset);
     final resources = parseUmmahCampusResources(source);

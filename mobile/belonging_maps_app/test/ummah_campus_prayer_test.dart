@@ -48,6 +48,15 @@ void main() {
       expect(folsom.locationLabel, 'Folsom Hall, 2nd floor');
     });
 
+    test('the descriptions are not padded with story map boilerplate', () async {
+      final rooms = await loadUmmahCampusPrayer();
+
+      for (final room in rooms) {
+        expect(room.description, isNot(contains('Ummah Resource Map')));
+        expect(room.description, isNot(contains('one of the two')));
+      }
+    });
+
     test('the attributes expose the fields the info card reads', () async {
       final rooms = await loadUmmahCampusPrayer();
       final attributes = rooms.first.toAttributes();

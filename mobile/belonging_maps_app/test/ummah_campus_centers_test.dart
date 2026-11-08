@@ -210,6 +210,19 @@ void main() {
       });
     });
 
+    test('the descriptions are not padded with story map boilerplate', () async {
+      final centers = await loadUmmahCampusCenters();
+
+      for (final center in centers) {
+        expect(
+          center.description,
+          isNot(contains('Ummah Resource Map')),
+          reason: '${center.name} still points at the story map',
+        );
+        expect(center.description, isNot(contains('links to the center')));
+      }
+    });
+
     test('the attributes expose the fields the info card reads', () async {
       final centers = await loadUmmahCampusCenters();
       final center = centers.firstWhere(
