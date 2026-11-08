@@ -7,6 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/location_attributes.dart';
 import 'full_screen_image_viewer.dart';
+import 'location_card_style.dart';
 
 // Color constants
 const Color mapInfoCardColor = Color.fromARGB(255, 47, 95, 62);
@@ -399,12 +400,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                       softWrap: true,
-                      style: const TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        height: 1.1,
-                      ),
+                      style: LocationCardText.title(mapInfoPrimaryTextColor),
                     ),
                   ),
                 ),
@@ -426,11 +422,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
               child: Text(
                 data.type,
-                style: const TextStyle(
-                  color: mapInfoPrimaryTextColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: LocationCardText.subtitle(mapInfoPrimaryTextColor),
               ),
             ),
           if (hasAddress)
@@ -451,12 +443,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       data.address,
-                      style: const TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
-                      ),
+                      style: LocationCardText.detail(mapInfoPrimaryTextColor),
                     ),
                   ),
                 ],
@@ -525,12 +512,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                       maxLines: hasCategory ? 3 : 4,
                       overflow: TextOverflow.ellipsis,
                       softWrap: true,
-                      style: const TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        height: 1.1,
-                      ),
+                      style: LocationCardText.title(mapInfoPrimaryTextColor),
                     ),
                   ),
                 ),
@@ -554,11 +536,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                   category,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: mapInfoSecondaryTextColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: LocationCardText.subtitle(mapInfoPrimaryTextColor),
                 ),
               ),
             ],
@@ -567,18 +545,10 @@ class _PreviewLocationInfoCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton(
                 onPressed: onShowMore,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 48),
-                ),
-                child: const Text(
+                style: LocationCardText.linkButtonStyle(),
+                child: Text(
                   'More information',
-                  style: TextStyle(
-                    color: mapInfoPrimaryTextColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
+                  style: LocationCardText.link(mapInfoPrimaryTextColor),
                 ),
               ),
             ),
@@ -669,12 +639,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   child: Text(
                     data.cardTitle,
                     softWrap: true,
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1,
-                    ),
+                    style: LocationCardText.title(mapInfoPrimaryTextColor),
                   ),
                 ),
               ),
@@ -703,7 +668,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Icon(
                           Icons.location_on,
-                          color: mapInfoPrimaryTextColor.withOpacity(0.8),
+                          color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
                           size: 16,
                         ),
                       ),
@@ -711,60 +676,47 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           data.address,
-                          style: const TextStyle(
-                            color: mapInfoPrimaryTextColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            height: 1.4,
+                          style: LocationCardText.detail(
+                            mapInfoPrimaryTextColor,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                 ],
                 if (_hasValue(data.category)) ...[
                   Text(
                     'Category: ${data.category}',
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: LocationCardText.detail(mapInfoPrimaryTextColor),
                   ),
                   const SizedBox(height: 4),
                 ],
                 if (_hasValue(data.type)) ...[
                   Text(
                     'Type: ${data.type}',
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: LocationCardText.detail(mapInfoPrimaryTextColor),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                 ],
                 if (_hasValue(data.website)) ...[
                   TextButton(
                     onPressed: () => launchUrl(data.website),
-                    child: const Text(
+                    style: LocationCardText.linkButtonStyle(),
+                    child: Text(
                       'Open website',
-                      style: TextStyle(color: mapInfoPrimaryTextColor),
+                      style: LocationCardText.link(mapInfoPrimaryTextColor),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                 ],
                 if (_hasValue(data.phone)) ...[
                   TextButton(
                     onPressed: () => launchUrl('tel:${data.phone}'),
+                    style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Call ${data.phone}',
-                      style: const TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: LocationCardText.link(mapInfoPrimaryTextColor),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -772,43 +724,34 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 if (_hasValue(data.email)) ...[
                   TextButton(
                     onPressed: () => launchUrl('mailto:${data.email}'),
+                    style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Email ${data.email}',
-                      style: const TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: LocationCardText.link(mapInfoPrimaryTextColor),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                 ],
                 if (_hasValue(data.description)) ...[
                   Text(
                     data.description,
-                    style: const TextStyle(
-                      color: mapInfoPrimaryTextColor,
-                      fontSize: 15,
-                      height: 1.4,
-                    ),
+                    style: LocationCardText.body(mapInfoPrimaryTextColor),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                 ],
                 if (validSocialLinks.isNotEmpty) ...[
                   Row(
                     children: [
                       Icon(
                         Icons.share,
-                        color: mapInfoPrimaryTextColor.withOpacity(0.8),
+                        color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
                         size: 16,
                       ),
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         'Follow Us',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: mapInfoPrimaryTextColor,
+                        style: LocationCardText.sectionHeader(
+                          mapInfoPrimaryTextColor,
                         ),
                       ),
                     ],
@@ -829,7 +772,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                 ],
                 const SizedBox(height: 18),
                 if (canOpenMaps) ...[
@@ -839,9 +782,9 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                       Icons.directions,
                       color: mapInfoPrimaryTextColor,
                     ),
-                    label: const Text(
+                    label: Text(
                       'Open in Maps',
-                      style: TextStyle(color: mapInfoPrimaryTextColor),
+                      style: LocationCardText.detail(mapInfoPrimaryTextColor),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: mapInfoDividerColor),
@@ -856,19 +799,10 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: TextButton(
                     onPressed: onShowLess,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
+                    style: LocationCardText.linkButtonStyle(),
+                    child: Text(
                       'Show less',
-                      style: TextStyle(
-                        color: mapInfoPrimaryTextColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                      ),
+                      style: LocationCardText.link(mapInfoPrimaryTextColor),
                     ),
                   ),
                 ),
