@@ -56,6 +56,13 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
         ? Duration.zero
         : const Duration(milliseconds: 300);
 
+    final canGoBack = ModalRoute.of(context)?.impliesAppBarDismissal ?? false;
+    final menuButton = IconButton(
+      icon: const Icon(Icons.menu),
+      tooltip: _drawerOpen ? 'Close navigation menu' : 'Open navigation menu',
+      onPressed: _toggleDrawer,
+    );
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colors.primary,
@@ -64,13 +71,27 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
           widget.title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          tooltip: _drawerOpen
-              ? 'Close navigation menu'
-              : 'Open navigation menu',
-          onPressed: _toggleDrawer,
-        ),
+        // Screens opened from another screen get a back arrow next to the
+        // menu, so every page has the menu (P1-203) without losing Back.
+        leadingWidth: canGoBack ? 104 : null,
+        leading: canGoBack
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 4),
+                  BackButton(
+                    onPressed: () {
+                      if (_drawerOpen) {
+                        _closeDrawer();
+                      } else {
+                        Navigator.maybePop(context);
+                      }
+                    },
+                  ),
+                  menuButton,
+                ],
+              )
+            : menuButton,
         actions: widget.actions,
       ),
       body: Stack(
