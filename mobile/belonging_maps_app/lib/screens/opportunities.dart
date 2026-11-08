@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/search_suggestion_list.dart';
+import '../widgets/hamburger_menu.dart';
 
 const Map<String, IconData> _iconOptions = {
   'book': Icons.auto_stories,
@@ -542,136 +543,130 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
               .toList(growable: false);
     final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Opportunities',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-        centerTitle: true,
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Add opportunity',
-              onPressed: () => _showOpportunityDialog(),
-            ),
-        ],
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (value) =>
-                            setState(() => _searchQuery = value),
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          labelText: 'Search opportunities',
-                          hintText: 'Search programs or organizations',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.trim().isEmpty
-                              ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  tooltip: 'Clear opportunity search',
-                                  onPressed: _clearSearch,
-                                ),
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      SearchSuggestionList(suggestions: suggestions),
-                    ],
-                  ),
-                ),
-                if (categories.isNotEmpty)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+    return HamburgerMenu(
+      title: 'Opportunities',
+      actions: [
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Add opportunity',
+            onPressed: () => _showOpportunityDialog(),
+          ),
+      ],
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: _isLoading
+            ? Center(child: CircularProgressIndicator(color: colors.primary))
+            : Column(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Row(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (final category in [null, ...categories])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(category ?? 'All'),
-                              selected: selected == category,
-                              onSelected: (_) =>
-                                  setState(() => _selectedCategory = category),
-                            ),
+                        TextField(
+                          controller: _searchController,
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            labelText: 'Search opportunities',
+                            hintText: 'Search programs or organizations',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchQuery.trim().isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    tooltip: 'Clear opportunity search',
+                                    onPressed: _clearSearch,
+                                  ),
+                            border: const OutlineInputBorder(),
                           ),
+                        ),
+                        SearchSuggestionList(suggestions: suggestions),
                       ],
                     ),
                   ),
-                Semantics(
-                  liveRegion: true,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(resultLabel),
+                  if (categories.isNotEmpty)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: Row(
+                        children: [
+                          for (final category in [null, ...categories])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(category ?? 'All'),
+                                selected: selected == category,
+                                onSelected: (_) =>
+                                    setState(() => _selectedCategory = category),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  Semantics(
+                    liveRegion: true,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(resultLabel),
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: visibleIndexes.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'No opportunities found.',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Try another keyword or clear your filters.',
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                if (hasActiveFilters)
-                                  TextButton.icon(
-                                    onPressed: _clearFilters,
-                                    icon: const Icon(Icons.clear),
-                                    label: const Text('Clear filters'),
+                  Expanded(
+                    child: visibleIndexes.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'No opportunities found.',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Try another keyword or clear your filters.',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (hasActiveFilters)
+                                    TextButton.icon(
+                                      onPressed: _clearFilters,
+                                      icon: const Icon(Icons.clear),
+                                      label: const Text('Clear filters'),
+                                    ),
+                                ],
+                              ),
                             ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: visibleIndexes.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, i) {
+                              final index = visibleIndexes[i];
+                              final resource = _resources[index];
+                              return _ResourceCard(
+                                resource: resource,
+                                isAdmin: isAdmin,
+                                onTap: () =>
+                                    _showResourceInformation(context, resource),
+                                onDelete: () => _deleteResource(index),
+                                onEdit: () =>
+                                    _showOpportunityDialog(index: index),
+                              );
+                            },
                           ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: visibleIndexes.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final index = visibleIndexes[i];
-                            final resource = _resources[index];
-                            return _ResourceCard(
-                              resource: resource,
-                              isAdmin: isAdmin,
-                              onTap: () =>
-                                  _showResourceInformation(context, resource),
-                              onDelete: () => _deleteResource(index),
-                              onEdit: () =>
-                                  _showOpportunityDialog(index: index),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

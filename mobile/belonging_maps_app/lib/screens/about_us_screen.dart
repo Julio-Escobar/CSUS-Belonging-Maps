@@ -1,99 +1,95 @@
 import 'package:flutter/material.dart';
 import '../constants/strings.dart';
+import '../widgets/hamburger_menu.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 47, 95, 62),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'About Us',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // App logo / hero area
-            Center(
-              child: Column(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 47, 95, 62),
-                      borderRadius: BorderRadius.circular(16),
+    return HamburgerMenu(
+      title: 'About Us',
+      body: Scaffold(
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // App logo / hero area
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 47, 95, 62),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.white,
+                        size: 44,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.white,
-                      size: 44,
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Belonging Maps',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Belonging Maps',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Version 1.0.0',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Version 1.0.0',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
- 
-            const SizedBox(height: 32),
-            const Divider(),
-            const SizedBox(height: 24),
- 
-            // About section
-            const _SectionHeader(title: 'About'),
-            const SizedBox(height: 12),
-            const Text(
-              AppStrings.aboutDescription,
-  style: TextStyle(fontSize: 15, height: 1.6),
-            
-        ),
-            const SizedBox(height: 32),
-
-            // Acknowledgements section
-            const _SectionHeader(title: 'Acknowledgements'),
-            const SizedBox(height: 12),
-            const Text(
-              AppStrings.acknowledgementIntro,
-              style: TextStyle(fontSize: 15, height: 1.6),
-            ),
-            
-
-            // Footer
-            Center(
-              child: Text(
-
-                '© 2025 CSUS Belonging Maps. All rights reserved.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+ 
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 24),
+ 
+              // About section
+              const _SectionHeader(title: 'About'),
+              const SizedBox(height: 12),
+              const Text(
+                AppStrings.aboutDescription,
+    style: TextStyle(fontSize: 15, height: 1.6),
+            
+          ),
+              const SizedBox(height: 32),
+
+              // Acknowledgements section
+              const _SectionHeader(title: 'Acknowledgements'),
+              const SizedBox(height: 12),
+              const Text(
+                AppStrings.acknowledgementIntro,
+                style: TextStyle(fontSize: 15, height: 1.6),
+              ),
+            
+
+              // Footer
+              Center(
+                child: Text(
+
+                  '© 2025 CSUS Belonging Maps. All rights reserved.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

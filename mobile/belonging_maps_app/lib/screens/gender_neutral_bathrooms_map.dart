@@ -5,6 +5,7 @@ import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/widgets/gender_neutral_bathroom_info_card.dart';
 import '/widgets/map_zoom_controls.dart';
+import '/widgets/hamburger_menu.dart';
 
 /// Point locations of gender neutral bathrooms across the Sacramento State
 /// campus, from the MLRC Campus_MLRC Story Map.
@@ -235,41 +236,37 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(onPressed: () => Navigator.maybePop(context)),
-        title: const Text(
-          'Gender Neutral Bathrooms',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: _loadFailed
-          ? _buildErrorState(context)
-          : Stack(
-              children: [
-                ArcGISMapView(
-                  controllerProvider: () => _mapController,
-                  onTap: _handleMapTap,
-                ),
-                MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
-                if (_isLoading)
-                  Positioned.fill(
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      child: const Center(
-                        child: CircularProgressIndicator.adaptive(),
+    return HamburgerMenu(
+      title: 'Gender Neutral Bathrooms',
+      body: Scaffold(
+        body: _loadFailed
+            ? _buildErrorState(context)
+            : Stack(
+                children: [
+                  ArcGISMapView(
+                    controllerProvider: () => _mapController,
+                    onTap: _handleMapTap,
+                  ),
+                  MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
+                  if (_isLoading)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        child: const Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        ),
                       ),
                     ),
-                  ),
-                if (_selectedAttributes != null && !_isLoading)
-                  GenderNeutralBathroomInfoCard(
-                    buildingName: _selectedBuildingName,
-                    floor: _selectedFloor,
-                    description: _selectedDescription,
-                    onClose: _dismissLocationCard,
-                  ),
-              ],
-            ),
+                  if (_selectedAttributes != null && !_isLoading)
+                    GenderNeutralBathroomInfoCard(
+                      buildingName: _selectedBuildingName,
+                      floor: _selectedFloor,
+                      description: _selectedDescription,
+                      onClose: _dismissLocationCard,
+                    ),
+                ],
+              ),
+      ),
     );
   }
 
