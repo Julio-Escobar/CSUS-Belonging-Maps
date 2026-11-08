@@ -15,5 +15,8 @@ namespace BelongingMaps.API.Models
         // Matches the icon keys the Flutter app understands:
         // food, health, housing, education, financial, career, transportation, family.
         public string IconKey { get; set; } = "food";
+
+        // Optional photo uploaded through /api/images (P1-319).
+        public int? ImageId { get; set; }
     }
 }
