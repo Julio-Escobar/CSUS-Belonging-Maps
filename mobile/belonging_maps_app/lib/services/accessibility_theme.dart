@@ -65,30 +65,31 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     outline: Colors.black,
   );
 
-  // Dark palettes (P1-281) used when the device is in dark mode.
+  // Dark palettes (P1-281) used when the device is in dark mode. App bars and
+  // buttons keep the light-mode brand green so the dark screens stay muted.
   static const normalDark = AccessibilityColors(
     pageBackground: Color(0xFF121412),
     cardBackground: Color(0xFF1E211F),
-    primary: Color(0xFF8FD3A6),
-    onPrimary: Color(0xFF0B2614),
+    primary: Color(0xFF2F5F3E),
+    onPrimary: Colors.white,
     primaryText: Color(0xFFECECEC),
     secondaryText: Color(0xFFBDBDBD),
     action: Color(0xFF7DD3FC),
-    destructive: Color(0xFFFF9AA5),
-    menuIcon: Color(0xFF0B2614),
+    destructive: Color(0xFFCC4757),
+    menuIcon: Colors.white,
     outline: Color(0xFF8FD3A6),
   );
 
   static const colorSafeDark = AccessibilityColors(
     pageBackground: Color(0xFF0F1417),
     cardBackground: Color(0xFF1B2328),
-    primary: Color(0xFF7FD4E8),
-    onPrimary: Color(0xFF00242E),
+    primary: Color(0xFF2B8099),
+    onPrimary: Colors.white,
     primaryText: Color(0xFFEDF2F7),
     secondaryText: Color(0xFFC0C8D0),
     action: Color(0xFF7FD4E8),
-    destructive: Color(0xFFFF9AA5),
-    menuIcon: Color(0xFF00242E),
+    destructive: Color(0xFFCC4757),
+    menuIcon: Colors.white,
     outline: Color(0xFF7FD4E8),
   );
 
@@ -106,8 +107,14 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
   }
 
   static AccessibilityColors highContrastDarkColors(bool colorSafePalette) {
+    // High contrast trades the muted bars for bright fills with dark text.
     final base = colorSafePalette ? colorSafeDark : normalDark;
     return base.copyWith(
+      primary: colorSafePalette
+          ? const Color(0xFF7FD4E8)
+          : const Color(0xFF8FD3A6),
+      onPrimary: Colors.black,
+      menuIcon: Colors.black,
       pageBackground: Colors.black,
       cardBackground: Colors.black,
       primaryText: Colors.white,
@@ -213,7 +220,7 @@ class AppTheme {
             surface: colors.cardBackground,
             onSurface: colors.primaryText,
             error: colors.destructive,
-            onError: Colors.black,
+            onError: Colors.white,
             outline: colors.outline,
           )
         : ColorScheme.light(
