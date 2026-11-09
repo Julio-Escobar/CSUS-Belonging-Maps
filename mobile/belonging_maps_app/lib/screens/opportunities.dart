@@ -32,6 +32,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   bool _isLoading = true;
   List<_ScholarshipResource> _resources = List.of(_defaultResources);
   String? _selectedCategory;
+  bool _includeExpired = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late final http.Client _client;
@@ -373,10 +374,17 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     BuildContext context,
     _ScholarshipResource resource,
   ) {
+    final visibleLinks = resource.visibleLinks(
+      DateUtils.dateOnly(DateTime.now()),
+      AuthService.isAdmin && _includeExpired,
+    );
     showDialog<void>(
       context: context,
-      builder: (dialogContext) =>
-          _ResourceInfoDialog(resource: resource, onOpenLink: _openLink),
+      builder: (dialogContext) => _ResourceInfoDialog(
+        resource: resource,
+        links: visibleLinks,
+        onOpenLink: _openLink,
+      ),
     );
   }
 
@@ -515,13 +523,23 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final selected = categories.contains(_selectedCategory)
         ? _selectedCategory
         : null;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final includeExpired = isAdmin && _includeExpired;
     // Keep original indexes so edit/delete target the right resource.
     final visibleIndexes = [
       for (var i = 0; i < _resources.length; i++)
         if ((selected == null || _resources[i].category == selected) &&
-            _resources[i].matchesKeyword(_searchQuery))
+            _resources[i].matchesKeyword(_searchQuery) &&
+            _resources[i].hasVisibleLinks(today, includeExpired))
           i,
     ];
+    visibleIndexes.sort(
+      (left, right) => _resources[left].compareDisplayedOrder(
+        _resources[right],
+        today,
+        includeExpired,
+      ),
+    );
     final resultLabel = visibleIndexes.length == 1
         ? '1 opportunity found'
         : '${visibleIndexes.length} opportunities found';
@@ -612,6 +630,14 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                       ],
                     ),
                   ),
+                if (isAdmin)
+                  SwitchListTile.adaptive(
+                    contentPadding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    title: const Text('Include expired opportunities'),
+                    value: _includeExpired,
+                    onChanged: (value) =>
+                        setState(() => _includeExpired = value),
+                  ),
                 Semantics(
                   liveRegion: true,
                   child: Padding(
@@ -661,6 +687,10 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                             return _ResourceCard(
                               resource: resource,
                               isAdmin: isAdmin,
+                              deadline: resource.nextVisibleDeadline(
+                                today,
+                                includeExpired,
+                              ),
                               onTap: () =>
                                   _showResourceInformation(context, resource),
                               onDelete: () => _deleteResource(index),
@@ -678,9 +708,14 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
 
 class _ResourceInfoDialog extends StatefulWidget {
   final _ScholarshipResource resource;
+  final List<_ScholarshipLink> links;
   final Function(BuildContext, String) onOpenLink;
 
-  const _ResourceInfoDialog({required this.resource, required this.onOpenLink});
+  const _ResourceInfoDialog({
+    required this.resource,
+    required this.links,
+    required this.onOpenLink,
+  });
 
   @override
   State<_ResourceInfoDialog> createState() => _ResourceInfoDialogState();
@@ -770,7 +805,7 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
               ),
               const SizedBox(height: 10),
               Flexible(
-                child: widget.resource.links.isEmpty
+                child: widget.links.isEmpty
                     ? Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
@@ -786,10 +821,10 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                         child: ListView.separated(
                           controller: linksScrollController,
                           shrinkWrap: true,
-                          itemCount: widget.resource.links.length,
+                          itemCount: widget.links.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
-                            final link = widget.resource.links[index];
+                            final link = widget.links[index];
                             final hasUrl = link.url.trim().isNotEmpty;
                             return Semantics(
                               container: true,
@@ -813,6 +848,11 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  subtitle: link.deadline == null
+                                      ? null
+                                      : Text(
+                                          'Deadline: ${MaterialLocalizations.of(context).formatMediumDate(link.deadline!)}',
+                                        ),
                                   trailing: Icon(
                                     hasUrl
                                         ? Icons.open_in_new
@@ -868,7 +908,13 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
     selectedIcon = target?.iconKey ?? 'book';
     linkEditors =
         target?.links
-            .map((link) => _LinkEditorModel(name: link.name, url: link.url))
+            .map(
+              (link) => _LinkEditorModel(
+                name: link.name,
+                url: link.url,
+                deadline: _DateOnlyDeadline.formatForInput(link.deadline) ?? '',
+              ),
+            )
             .toList() ??
         [];
   }
@@ -987,6 +1033,20 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                                   isDense: true,
                                 ),
                               ),
+                              TextFormField(
+                                key: ValueKey('opportunity-link-deadline-$i'),
+                                controller: linkEditors[i].deadlineController,
+                                keyboardType: TextInputType.datetime,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Deadline #${i + 1} (YYYY-MM-DD, optional)',
+                                  isDense: true,
+                                ),
+                                validator: (value) =>
+                                    _DateOnlyDeadline.isValidOptional(value)
+                                    ? null
+                                    : 'Use YYYY-MM-DD',
+                              ),
                             ],
                           ),
                         ),
@@ -1026,6 +1086,9 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   (e) => _ScholarshipLink(
                     name: e.nameController.text.trim(),
                     url: e.urlController.text.trim(),
+                    deadline: _DateOnlyDeadline.tryParse(
+                      e.deadlineController.text,
+                    ),
                   ),
                 )
                 .toList();
@@ -1051,30 +1114,75 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
 class _LinkEditorModel {
   final TextEditingController nameController;
   final TextEditingController urlController;
+  final TextEditingController deadlineController;
 
-  _LinkEditorModel({String name = '', String url = ''})
+  _LinkEditorModel({String name = '', String url = '', String deadline = ''})
     : nameController = TextEditingController(text: name),
-      urlController = TextEditingController(text: url);
+      urlController = TextEditingController(text: url),
+      deadlineController = TextEditingController(text: deadline);
 
   void dispose() {
     nameController.dispose();
     urlController.dispose();
+    deadlineController.dispose();
   }
 }
 
 class _ScholarshipLink {
   final String name;
   final String url;
+  final DateTime? deadline;
 
-  const _ScholarshipLink({required this.name, required this.url});
+  const _ScholarshipLink({
+    required this.name,
+    required this.url,
+    this.deadline,
+  });
 
-  Map<String, dynamic> toJson() => {'name': name, 'url': url};
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'url': url,
+    'deadline': _DateOnlyDeadline.formatForInput(deadline),
+  };
 
   factory _ScholarshipLink.fromJson(Map<String, dynamic> json) =>
       _ScholarshipLink(
         name: json['name'] as String? ?? '',
         url: json['url'] as String? ?? '',
+        deadline: _DateOnlyDeadline.tryParse(json['deadline']),
       );
+}
+
+class _DateOnlyDeadline {
+  static final RegExp _datePattern = RegExp(
+    r'^([0-9]{4})-([0-9]{2})-([0-9]{2})$',
+  );
+
+  static DateTime? tryParse(Object? value) {
+    if (value is! String) return null;
+    final match = _datePattern.firstMatch(value.trim());
+    if (match == null) return null;
+    final parsed = DateTime.tryParse(value.trim());
+    if (parsed == null ||
+        parsed.year != int.parse(match.group(1)!) ||
+        parsed.month != int.parse(match.group(2)!) ||
+        parsed.day != int.parse(match.group(3)!)) {
+      return null;
+    }
+    return DateUtils.dateOnly(parsed);
+  }
+
+  static bool isValidOptional(String? value) =>
+      value == null || value.trim().isEmpty || tryParse(value) != null;
+
+  static bool isExpired(DateTime? deadline, DateTime today) =>
+      deadline != null && deadline.isBefore(DateUtils.dateOnly(today));
+
+  static String? formatForInput(DateTime? deadline) {
+    if (deadline == null) return null;
+    final date = DateUtils.dateOnly(deadline);
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 }
 
 class _ScholarshipResource {
@@ -1109,6 +1217,38 @@ class _ScholarshipResource {
     return searchableText.contains(keyword);
   }
 
+  List<_ScholarshipLink> visibleLinks(DateTime today, bool includeExpired) =>
+      includeExpired
+      ? links
+      : links
+            .where((link) => !_DateOnlyDeadline.isExpired(link.deadline, today))
+            .toList(growable: false);
+
+  bool hasVisibleLinks(DateTime today, bool includeExpired) =>
+      links.isEmpty || visibleLinks(today, includeExpired).isNotEmpty;
+
+  DateTime? nextVisibleDeadline(DateTime today, bool includeExpired) {
+    final deadlines = visibleLinks(
+      today,
+      includeExpired,
+    ).map((link) => link.deadline).whereType<DateTime>().toList()..sort();
+    return deadlines.isEmpty ? null : deadlines.first;
+  }
+
+  int compareDisplayedOrder(
+    _ScholarshipResource other,
+    DateTime today,
+    bool includeExpired,
+  ) {
+    final deadline = nextVisibleDeadline(today, includeExpired);
+    final otherDeadline = other.nextVisibleDeadline(today, includeExpired);
+    if (deadline == null && otherDeadline == null)
+      return title.compareTo(other.title);
+    if (deadline == null) return 1;
+    if (otherDeadline == null) return -1;
+    return deadline.compareTo(otherDeadline);
+  }
+
   Map<String, dynamic> toJson() => {
     'title': title,
     'description': description,
@@ -1138,6 +1278,7 @@ class _ScholarshipResource {
 class _ResourceCard extends StatelessWidget {
   final _ScholarshipResource resource;
   final bool isAdmin;
+  final DateTime? deadline;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
@@ -1145,6 +1286,7 @@ class _ResourceCard extends StatelessWidget {
   const _ResourceCard({
     required this.resource,
     required this.isAdmin,
+    required this.deadline,
     required this.onTap,
     required this.onDelete,
     required this.onEdit,
@@ -1210,6 +1352,17 @@ class _ResourceCard extends StatelessWidget {
                                       height: 1.4,
                                     ),
                               ),
+                              if (deadline != null) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Deadline: ${MaterialLocalizations.of(context).formatMediumDate(deadline!)}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: colors.secondaryText,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

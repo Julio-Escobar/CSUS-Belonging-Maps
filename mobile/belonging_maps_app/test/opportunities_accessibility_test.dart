@@ -30,7 +30,8 @@ http.Client _opportunitiesClient({int getStatus = 200}) {
       'id': 2,
       'title': 'Ummah Scholarships',
       'category': 'Ummah',
-      'description': 'List of scholarships and opportunities for Ummah students.',
+      'description':
+          'List of scholarships and opportunities for Ummah students.',
       'iconKey': 'book',
       'links': [],
     },
@@ -38,7 +39,8 @@ http.Client _opportunitiesClient({int getStatus = 200}) {
       'id': 3,
       'title': 'Ubuntu Scholarships',
       'category': 'Ubuntu',
-      'description': 'List of scholarships and opportunities for Ubuntu students.',
+      'description':
+          'List of scholarships and opportunities for Ubuntu students.',
       'iconKey': 'book',
       'links': [],
     },
@@ -260,5 +262,160 @@ void main() {
       find.text('Could not load opportunities. Please try again.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('hides expired links by default and orders visible deadlines', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final today = DateTime.now();
+    String date(DateTime value) =>
+        '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+    final client = MockClient((request) async {
+      return http.Response(
+        jsonEncode([
+          {
+            'id': 1,
+            'title': 'Expired opportunity',
+            'description': 'This must stay available to admins only.',
+            'category': 'SOMOS',
+            'iconKey': 'book',
+            'links': [
+              {
+                'name': 'Expired link',
+                'url': 'https://example.com/expired',
+                'deadline': date(today.subtract(const Duration(days: 1))),
+              },
+            ],
+          },
+          {
+            'id': 2,
+            'title': 'No-deadline opportunity',
+            'description': 'This belongs after dated opportunities.',
+            'category': 'SOMOS',
+            'iconKey': 'book',
+            'links': [
+              {'name': 'Undated link', 'url': 'https://example.com/undated'},
+            ],
+          },
+          {
+            'id': 3,
+            'title': 'Current opportunity',
+            'description': 'This must remain visible today.',
+            'category': 'SOMOS',
+            'iconKey': 'book',
+            'links': [
+              {
+                'name': 'Current link',
+                'url': 'https://example.com/current',
+                'deadline': date(today),
+              },
+            ],
+          },
+          {
+            'id': 4,
+            'title': 'Soon opportunity',
+            'description': 'This belongs first.',
+            'category': 'SOMOS',
+            'iconKey': 'book',
+            'links': [
+              {
+                'name': 'Soon link',
+                'url': 'https://example.com/soon',
+                'deadline': date(today.add(const Duration(days: 1))),
+              },
+            ],
+          },
+          {
+            'id': 5,
+            'title': 'Later opportunity',
+            'description': 'This belongs after the soon deadline.',
+            'category': 'SOMOS',
+            'iconKey': 'book',
+            'links': [
+              {
+                'name': 'Later link',
+                'url': 'https://example.com/later',
+                'deadline': date(today.add(const Duration(days: 14))),
+              },
+            ],
+          },
+        ]),
+        200,
+      );
+    });
+
+    await pumpOpportunities(tester, client: client);
+
+    expect(find.text('Expired opportunity'), findsNothing);
+    expect(find.textContaining('Deadline:'), findsNWidgets(3));
+    expect(
+      tester.getTopLeft(find.text('Current opportunity')).dy,
+      lessThan(tester.getTopLeft(find.text('Soon opportunity')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Soon opportunity')).dy,
+      lessThan(tester.getTopLeft(find.text('Later opportunity')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Later opportunity')).dy,
+      lessThan(tester.getTopLeft(find.text('No-deadline opportunity')).dy),
+    );
+
+    await tester.tap(find.text('Include expired opportunities'));
+    await tester.pumpAndSettle();
+    expect(find.text('Expired opportunity'), findsOneWidget);
+  });
+
+  testWidgets('admin saves and clears a link deadline', (tester) async {
+    Map<String, dynamic>? savedOpportunity;
+    final client = MockClient((request) async {
+      if (request.method == 'GET') {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 7,
+              'title': 'Editor deadline opportunity',
+              'description': 'Tests deadline changes from the editor.',
+              'category': 'SOMOS',
+              'iconKey': 'book',
+              'links': [
+                {'name': 'Apply', 'url': 'https://example.com/apply'},
+              ],
+            },
+          ]),
+          200,
+        );
+      }
+
+      savedOpportunity = Map<String, dynamic>.from(
+        jsonDecode(request.body) as Map,
+      );
+      savedOpportunity!['id'] = 7;
+      return http.Response(jsonEncode(savedOpportunity), 200);
+    });
+    final deadlineField = find.byKey(
+      const ValueKey('opportunity-link-deadline-0'),
+    );
+
+    await pumpOpportunities(tester, client: client);
+    await tester.tap(find.byTooltip('Edit Editor deadline opportunity'));
+    await tester.pumpAndSettle();
+    await tester.enterText(deadlineField, '2026-12-15');
+    await tester.tap(find.text('Update'));
+    await tester.pumpAndSettle();
+    expect(savedOpportunity!['links'][0]['deadline'], '2026-12-15');
+
+    await tester.tap(find.byTooltip('Edit Editor deadline opportunity'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextFormField>(deadlineField).controller!.text,
+      '2026-12-15',
+    );
+    await tester.enterText(deadlineField, '');
+    await tester.tap(find.text('Update'));
+    await tester.pumpAndSettle();
+    expect(savedOpportunity!['links'][0]['deadline'], isNull);
   });
 }
