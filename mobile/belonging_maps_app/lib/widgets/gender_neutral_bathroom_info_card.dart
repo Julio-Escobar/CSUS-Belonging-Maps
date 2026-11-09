@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/accessibility_theme.dart';
+import 'location_card_style.dart';
 
 /// Compact popup used by the Gender Neutral Bathrooms map.
 ///
@@ -75,12 +76,7 @@ class GenderNeutralBathroomInfoCard extends StatelessWidget {
                             header: true,
                             child: Text(
                               title,
-                              style: TextStyle(
-                                color: colors.onPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                height: 1.15,
-                              ),
+                              style: LocationCardText.title(colors.onPrimary),
                             ),
                           ),
                         ),
@@ -117,10 +113,8 @@ class GenderNeutralBathroomInfoCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   'Floor $floor',
-                                  style: TextStyle(
-                                    color: colors.onPrimary,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                                  style: LocationCardText.detail(
+                                    colors.onPrimary,
                                   ),
                                 ),
                               ),
@@ -130,11 +124,7 @@ class GenderNeutralBathroomInfoCard extends StatelessWidget {
                         ],
                         Text(
                           details,
-                          style: TextStyle(
-                            color: colors.onPrimary,
-                            fontSize: 15,
-                            height: 1.45,
-                          ),
+                          style: LocationCardText.body(colors.onPrimary),
                         ),
                       ],
                     ),

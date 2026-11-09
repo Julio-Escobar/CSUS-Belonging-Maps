@@ -11,12 +11,16 @@ class CommunityResource {
   /// transportation, family.
   final String iconKey;
 
+  /// Optional uploaded photo (P1-319). Null means no image.
+  final int? imageId;
+
   const CommunityResource({
     this.id = 0,
     required this.title,
     required this.category,
     required this.description,
     this.iconKey = 'food',
+    this.imageId,
   });
 
   factory CommunityResource.fromJson(Map<String, dynamic> json) {
@@ -26,6 +30,7 @@ class CommunityResource {
       category: json['category'] as String? ?? '',
       description: json['description'] as String? ?? '',
       iconKey: json['iconKey'] as String? ?? 'food',
+      imageId: json['imageId'] as int?,
     );
   }
 
@@ -35,5 +40,6 @@ class CommunityResource {
         'category': category,
         'description': description,
         'iconKey': iconKey,
+        'imageId': imageId,
       };
 }
