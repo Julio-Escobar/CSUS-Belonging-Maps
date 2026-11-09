@@ -78,7 +78,7 @@ void main() {
       AccessibilitySettingsScope(
         controller: controller,
         child: MediaQuery(
-          data: MediaQueryData(
+          data: MediaQueryData.fromView(tester.view).copyWith(
             textScaler: TextScaler.linear(textScale),
             highContrast: highContrast,
           ),
@@ -245,8 +245,18 @@ void main() {
   ) async {
     await pumpOpportunities(tester, highContrast: true, textScale: 1.8);
 
-    expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
+    expect(find.text('SOMOS Scholarships'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Ummah Scholarships'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Ummah Scholarships'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Ubuntu Scholarships'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Ubuntu Scholarships'), findsOneWidget);
   });
 
