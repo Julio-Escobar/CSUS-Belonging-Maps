@@ -5,8 +5,6 @@ import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
-import 'helpers/fake_community_resources_api.dart';
-import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,40 +12,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-http.Client _organizationResourcesClient() {
-  final resources = <Map<String, dynamic>>[
-    {
-      'id': 1,
-      'title': 'SOMOS Student Organization',
-      'category': 'SOMOS',
-      'description': 'Student support and community events.',
-      'iconKey': 'groups',
-      'orgKey': 'somos',
-    },
-  ];
-
-  return MockClient((request) async {
-    if (request.method == 'GET') {
-      return http.Response(jsonEncode(resources), 200);
-    }
-
-    final id = int.tryParse(request.url.pathSegments.last);
-    final index = resources.indexWhere((resource) => resource['id'] == id);
-    if (index == -1) return http.Response('', 404);
-
-    if (request.method == 'PUT') {
-      final body = Map<String, dynamic>.from(jsonDecode(request.body) as Map);
-      body['id'] = id;
-      resources[index] = body;
-      return http.Response(jsonEncode(body), 200);
-    }
-    if (request.method == 'DELETE') {
-      resources.removeAt(index);
-      return http.Response('', 200);
-    }
-    return http.Response('', 405);
-  });
-}
+import 'helpers/fake_community_resources_api.dart';
+import 'helpers/fake_organization_resources_api.dart';
+import 'helpers/semantics_finders.dart';
 
 void main() {
   setUp(() {
@@ -108,7 +75,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: OrganizationResourcesScreen(
-          client: _organizationResourcesClient(),
+          client: fakeOrganizationResourcesClient(),
         ),
       ),
     );
@@ -140,7 +107,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: OrganizationResourcesScreen(
-          client: _organizationResourcesClient(),
+          client: fakeOrganizationResourcesClient(),
         ),
       ),
     );
@@ -175,7 +142,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: OrganizationResourcesScreen(
-          client: _organizationResourcesClient(),
+          client: fakeOrganizationResourcesClient(),
         ),
       ),
     );

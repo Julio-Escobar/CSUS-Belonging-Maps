@@ -581,7 +581,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : Column(
+          : ListView(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -648,58 +648,57 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: visibleIndexes.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'No opportunities found.',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Try another keyword or clear your filters.',
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                if (hasActiveFilters)
-                                  TextButton.icon(
-                                    onPressed: _clearFilters,
-                                    icon: const Icon(Icons.clear),
-                                    label: const Text('Clear filters'),
-                                  ),
-                              ],
+                if (visibleIndexes.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'No opportunities found.',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Try another keyword or clear your filters.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        if (hasActiveFilters)
+                          TextButton.icon(
+                            onPressed: _clearFilters,
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear filters'),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < visibleIndexes.length; i++) ...[
+                          _ResourceCard(
+                            resource: _resources[visibleIndexes[i]],
+                            isAdmin: isAdmin,
+                            deadline: _resources[visibleIndexes[i]]
+                                .nextVisibleDeadline(today, includeExpired),
+                            onTap: () => _showResourceInformation(
+                              context,
+                              _resources[visibleIndexes[i]],
+                            ),
+                            onDelete: () => _deleteResource(visibleIndexes[i]),
+                            onEdit: () => _showOpportunityDialog(
+                              index: visibleIndexes[i],
                             ),
                           ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: visibleIndexes.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final index = visibleIndexes[i];
-                            final resource = _resources[index];
-                            return _ResourceCard(
-                              resource: resource,
-                              isAdmin: isAdmin,
-                              deadline: resource.nextVisibleDeadline(
-                                today,
-                                includeExpired,
-                              ),
-                              onTap: () =>
-                                  _showResourceInformation(context, resource),
-                              onDelete: () => _deleteResource(index),
-                              onEdit: () =>
-                                  _showOpportunityDialog(index: index),
-                            );
-                          },
-                        ),
-                ),
+                          if (i < visibleIndexes.length - 1)
+                            const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                  ),
               ],
             ),
     );
