@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:belonging_maps_app/widgets/map_search_bar.dart';
 import 'package:belonging_maps_app/widgets/search_suggestion_list.dart';
 
+import 'helpers/semantics_finders.dart';
+
 void main() {
   testWidgets('exposes a location suggestion as an accessible action', (
     tester,
@@ -46,9 +48,10 @@ void main() {
     await tester.pump();
     expect(find.text('Student Union'), findsOneWidget);
 
-    await tester.tap(
-      find.bySemanticsLabel(RegExp('^Open Student Union, Campus locations\$')),
+    tester.semantics.tap(
+      semanticTapByLabel(RegExp('^Open Student Union, Campus locations\$')),
     );
+    await tester.pump();
     expect(selected, isTrue);
     semantics.dispose();
   });

@@ -201,6 +201,7 @@ namespace BelongingMaps.API.Migrations
                     b.HasData(
                         new
                         {
+                            Id = 1,
                             Address = "",
                             Category = "",
                             Description = "",
@@ -208,7 +209,6 @@ namespace BelongingMaps.API.Migrations
                             Facebook = "",
                             ImageUrl = "",
                             Instagram = "",
-                            Id = 1,
                             Latitude = 38.575000000000003,
                             LinkedIn = "",
                             Longitude = -121.47799999999999,
@@ -222,6 +222,7 @@ namespace BelongingMaps.API.Migrations
                         },
                         new
                         {
+                            Id = 2,
                             Address = "",
                             Category = "",
                             Description = "",
@@ -229,7 +230,6 @@ namespace BelongingMaps.API.Migrations
                             Facebook = "",
                             ImageUrl = "",
                             Instagram = "",
-                            Id = 2,
                             Latitude = 38.576000000000001,
                             LinkedIn = "",
                             Longitude = -121.48,
@@ -279,6 +279,9 @@ namespace BelongingMaps.API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("Deadline")
+                        .HasColumnType("date");
 
                     b.Property<string>("Name")
                         .IsRequired()

@@ -5,16 +5,23 @@ import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
-import 'helpers/fake_community_resources_api.dart';
-import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers/fake_community_resources_api.dart';
+import 'helpers/fake_organization_resources_api.dart';
+import 'helpers/semantics_finders.dart';
 
 void main() {
-  setUp(useFakeCommunityResourcesApi);
+  setUp(() {
+    useFakeCommunityResourcesApi();
+    dotenv.loadFromString(envString: 'API_BASE_URL=http://fake-api');
+    SharedPreferences.setMockInitialValues({});
+  });
   tearDown(() => AuthService.isAdmin = false);
 
   testWidgets(
@@ -66,8 +73,13 @@ void main() {
     expect(find.text('Food Pantry'), findsNothing);
 
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: fakeOrganizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
     tester.semantics.tap(
       semanticTapByTooltip('Edit SOMOS Student Organization'),
     );
@@ -93,8 +105,13 @@ void main() {
     final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: fakeOrganizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
 
     expect(
       find.bySemanticsLabel(
@@ -123,8 +140,13 @@ void main() {
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: fakeOrganizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Edit ')), findsNothing);
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
   });

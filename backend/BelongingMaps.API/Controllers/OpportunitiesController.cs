@@ -68,7 +68,12 @@ namespace BelongingMaps.API.Controllers
             // Replace the whole link list with the one sent by the client.
             _context.OpportunityLinks.RemoveRange(opportunity.Links);
             opportunity.Links = updated.Links
-                .Select(l => new OpportunityLink { Name = l.Name, Url = l.Url })
+                .Select(l => new OpportunityLink
+                {
+                    Name = l.Name,
+                    Url = l.Url,
+                    Deadline = l.Deadline,
+                })
                 .ToList();
             _context.SaveChanges();
 

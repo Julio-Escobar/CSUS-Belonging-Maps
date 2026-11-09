@@ -15,6 +15,7 @@ namespace BelongingMaps.API.Models
         public int Id { get; set; }
         public string Name { get; set; } = "";
         public string Url { get; set; } = "";
+        public DateOnly? Deadline { get; set; }
         public int OpportunityId { get; set; }
     }
 }

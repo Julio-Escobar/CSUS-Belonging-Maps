@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/accessibility_theme.dart';
 import 'search_suggestion_list.dart';
 
 class MapSearchBar extends StatefulWidget {
@@ -40,6 +41,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return TapRegion(
       groupId: _tapRegionGroupId,
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
@@ -47,6 +49,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Material(
+            color: colors.cardBackground,
             elevation: 6,
             borderRadius: BorderRadius.circular(18),
             child: Focus(
@@ -57,18 +60,24 @@ class _MapSearchBarState extends State<MapSearchBar> {
                   controller: widget.controller,
                   onChanged: widget.onChanged,
                   textInputAction: TextInputAction.search,
+                  style: TextStyle(color: colors.primaryText),
+                  cursorColor: colors.primary,
                   decoration: InputDecoration(
                     labelText: 'Search map locations',
                     hintText: 'Name, category, or address',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: Icon(Icons.search, color: colors.primary),
                     suffixIcon: value.text.isEmpty
                         ? null
                         : IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: Icon(Icons.clear, color: colors.primary),
                             tooltip: 'Clear search',
                             onPressed: _clear,
                           ),
                     border: InputBorder.none,
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: colors.primary, width: 2),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,

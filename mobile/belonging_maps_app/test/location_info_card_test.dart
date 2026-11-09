@@ -1,5 +1,6 @@
 import 'package:belonging_maps_app/widgets/full_screen_image_viewer.dart';
 import 'package:belonging_maps_app/widgets/location_info_card.dart';
+import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -94,6 +95,35 @@ void main() {
   });
 
   group('LocationInfoCard', () {
+    testWidgets('uses the active accessibility palette', (tester) async {
+      final colors = AccessibilityColors.forSettings(
+        colorSafePalette: true,
+        highContrast: false,
+      );
+      final data = _artLocationData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(colorSafePalette: true, highContrast: false),
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: true,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.widget<Card>(find.byType(Card)).color, colors.primary);
+      expect(
+        tester.widget<Text>(find.text(data.cardTitle).first).style!.color,
+        colors.onPrimary,
+      );
+    });
+
     testWidgets('long campus name leaves more information reachable', (
       tester,
     ) async {
