@@ -8,6 +8,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/location_attributes.dart';
 import '../services/accessibility_theme.dart';
+import '../services/favorites_store.dart';
+import 'favorite_toggle_button.dart';
 import 'full_screen_image_viewer.dart';
 import 'location_card_style.dart';
 
@@ -81,6 +83,7 @@ class LocationInfoData {
   final double? locationLat;
   final double? locationLng;
   final String? orgLogo;
+  final String? id;
 
   /// How the organization logo is fitted inside the card's logo box. When null
   /// the logo keeps the original circular avatar and is cropped to fill it,
@@ -104,7 +107,69 @@ class LocationInfoData {
     this.locationLng,
     this.orgLogo,
     this.orgLogoFit,
+    this.id,
   });
+
+  String get stableFavoriteId {
+    final explicitId = cleanField(id);
+    if (explicitId.isNotEmpty) return explicitId;
+    return '${category.trim().toLowerCase()}::${cardTitle.trim().toLowerCase()}';
+  }
+
+  FavoriteEntry get favoriteEntry => FavoriteEntry(
+    type: FavoriteType.location,
+    id: stableFavoriteId,
+    title: cardTitle,
+    data: toFavoriteJson(),
+  );
+
+  Map<String, dynamic> toFavoriteJson() => {
+    'id': id,
+    'cardTitle': cardTitle,
+    'address': address,
+    'category': category,
+    'type': type,
+    'website': website,
+    'phone': phone,
+    'email': email,
+    'description': description,
+    'imageUrl': imageUrl,
+    'imageAsset': imageAsset,
+    'socialLinks': socialLinks,
+    'locationLat': locationLat,
+    'locationLng': locationLng,
+    'orgLogo': orgLogo,
+    'orgLogoFit': orgLogoFit?.name,
+  };
+
+  factory LocationInfoData.fromFavoriteJson(Map<String, dynamic> json) {
+    final title = json['cardTitle'];
+    if (title is! String || title.isEmpty) {
+      throw const FormatException('Saved location has no title.');
+    }
+    final socialLinks = json['socialLinks'];
+    final fitName = json['orgLogoFit'];
+    return LocationInfoData(
+      id: json['id'] as String?,
+      cardTitle: title,
+      address: json['address'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+      website: json['website'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      imageAsset: json['imageAsset'] as String?,
+      socialLinks: socialLinks is Map
+          ? Map<String, String>.from(socialLinks)
+          : const {},
+      locationLat: (json['locationLat'] as num?)?.toDouble(),
+      locationLng: (json['locationLng'] as num?)?.toDouble(),
+      orgLogo: json['orgLogo'] as String?,
+      orgLogoFit: BoxFit.values.where((fit) => fit.name == fitName).firstOrNull,
+    );
+  }
 
   /// Whether the card has a photo to show, either bundled with the app or
   /// served from the network.
@@ -143,6 +208,14 @@ class LocationInfoData {
 
     return LocationInfoData(
       cardTitle: locationTitleFromAttributes(attributes),
+      id: cleanField(
+        attributes?['ID'] ??
+            attributes?['id'] ??
+            attributes?['OBJECTID'] ??
+            attributes?['ObjectId'] ??
+            attributes?['GlobalID'] ??
+            attributes?['globalid'],
+      ),
       address: addressField.isNotEmpty
           ? addressField
           : locationField.isNotEmpty
@@ -419,6 +492,7 @@ class LocationInfoCard extends StatelessWidget {
                   getSocialIcon: _getSocialIcon,
                 )
               : _PreviewLocationInfoCard(
+                  data: data,
                   cardTitle: data.cardTitle,
                   orgLogo: data.orgLogo,
                   orgLogoFit: data.orgLogoFit,
@@ -503,6 +577,11 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                       style: LocationCardText.title(palette.foreground),
                     ),
                   ),
+                ),
+                FavoriteToggleButton(
+                  favorite: data.favoriteEntry,
+                  iconColor: palette.foreground,
+                  iconSize: 28,
                 ),
                 IconButton(
                   onPressed: onClose,
@@ -608,6 +687,7 @@ class _LocationShareButton extends StatelessWidget {
 }
 
 class _PreviewLocationInfoCard extends StatelessWidget {
+  final LocationInfoData data;
   final String cardTitle;
   final String? orgLogo;
   final BoxFit? orgLogoFit;
@@ -618,6 +698,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   final Future<void> Function(BuildContext) onShare;
 
   const _PreviewLocationInfoCard({
+    required this.data,
     required this.cardTitle,
     this.orgLogo,
     this.orgLogoFit,
@@ -658,6 +739,11 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                       style: LocationCardText.title(palette.foreground),
                     ),
                   ),
+                ),
+                FavoriteToggleButton(
+                  favorite: data.favoriteEntry,
+                  iconColor: palette.foreground,
+                  iconSize: 28,
                 ),
                 IconButton(
                   onPressed: onClose,
@@ -792,6 +878,11 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     style: LocationCardText.title(palette.foreground),
                   ),
                 ),
+              ),
+              FavoriteToggleButton(
+                favorite: data.favoriteEntry,
+                iconColor: palette.foreground,
+                iconSize: 28,
               ),
               IconButton(
                 onPressed: onClose,
@@ -1208,4 +1299,3 @@ class _OrgLogoAvatar extends StatelessWidget {
     );
   }
 }
-
