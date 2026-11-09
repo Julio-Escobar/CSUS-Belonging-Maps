@@ -1,4 +1,5 @@
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
+import 'package:belonging_maps_app/screens/lactation_rooms_map.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:belonging_maps_app/widgets/map_selection_card.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,18 @@ Finder get interactiveMapButton =>
 Finder get genderNeutralBathroomsButton =>
     find.widgetWithText(ElevatedButton, 'Gender Neutral Bathrooms');
 
+Finder get lactationRoomsButton =>
+    find.widgetWithText(ElevatedButton, 'Lactation Rooms');
+
+class _RouteRecorder extends NavigatorObserver {
+  Route<dynamic>? pushedRoute;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (previousRoute != null) pushedRoute = route;
+  }
+}
+
 void main() {
   late FakeUrlLauncherPlatform launcher;
   late UrlLauncherPlatform originalLauncher;
@@ -68,17 +81,48 @@ void main() {
 
     expect(interactiveMapButton, findsOneWidget);
     expect(genderNeutralBathroomsButton, findsOneWidget);
+    expect(lactationRoomsButton, findsOneWidget);
     // The three campus maps appear before the Storymaps website buttons.
     expect(find.byType(MapSelectionCard), findsNWidgets(3));
 
     final buttonRect = tester.getRect(interactiveMapButton);
     final bathroomsButtonRect = tester.getRect(genderNeutralBathroomsButton);
+    final lactationButtonRect = tester.getRect(lactationRoomsButton);
     final firstCardRect = tester.getRect(find.byType(MapSelectionCard).first);
     expect(buttonRect.top, lessThan(firstCardRect.top));
     expect(buttonRect.height, greaterThanOrEqualTo(48));
     expect(bathroomsButtonRect.top, greaterThan(buttonRect.bottom));
-    expect(bathroomsButtonRect.top, lessThan(firstCardRect.top));
+    expect(lactationButtonRect.top, greaterThan(bathroomsButtonRect.bottom));
+    expect(lactationButtonRect.top, lessThan(firstCardRect.top));
     expect(bathroomsButtonRect.height, greaterThanOrEqualTo(48));
+    expect(lactationButtonRect.height, greaterThanOrEqualTo(48));
+  });
+
+  testWidgets('Lactation Rooms opens its map from an accessible action', (
+    tester,
+  ) async {
+    final observer = _RouteRecorder();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(colorSafePalette: false, highContrast: false),
+        navigatorObservers: [observer],
+        home: const CampusMapsScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final action = find.semantics.byLabel('Lactation Rooms');
+    expect(action, findsOneWidget);
+    tester.semantics.tap(action);
+
+    final route = observer.pushedRoute as MaterialPageRoute<dynamic>;
+    expect(
+      route.builder(tester.element(find.byType(CampusMapsScreen))).runtimeType,
+      LactationRoomsMap,
+    );
+    observer.navigator!.removeRoute(route);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('opens the map site in the in-app browser', (tester) async {
@@ -172,6 +216,15 @@ void main() {
     expect(bathroomsRect.width, greaterThanOrEqualTo(48));
     expect(bathroomsRect.height, greaterThanOrEqualTo(48));
     expect(genderNeutralBathroomsButton.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(lactationRoomsButton);
+    final lactationRect = tester.getRect(lactationRoomsButton);
+    expect(lactationRect.left, greaterThanOrEqualTo(0));
+    expect(lactationRect.right, lessThanOrEqualTo(320));
+    expect(lactationRect.width, greaterThanOrEqualTo(48));
+    expect(lactationRect.height, greaterThanOrEqualTo(48));
+    expect(lactationRoomsButton.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));

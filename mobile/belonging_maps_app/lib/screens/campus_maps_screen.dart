@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/accessibility_theme.dart';
 import '../widgets/map_selection_card.dart';
 import 'gender_neutral_bathrooms_map.dart';
+import 'lactation_rooms_map.dart';
 import 'somos_campus_map.dart';
 import 'ummah_campus_map.dart';
 import 'ubuntu_campus_map.dart';
@@ -170,6 +171,45 @@ class CampusMapsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              Semantics(
+                hint: 'Opens the lactation rooms map',
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LactationRoomsMap(),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.child_care),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Lactation Rooms',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               Divider(
                 height: 1,
@@ -307,11 +347,8 @@ class _CampusWebsiteButton extends StatelessWidget {
                       child: Image.asset(
                         logoPath,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Icon(
-                          Icons.public,
-                          color: colors.primary,
-                          size: 32,
-                        ),
+                        errorBuilder: (_, _, _) =>
+                            Icon(Icons.public, color: colors.primary, size: 32),
                       ),
                     ),
                   ),
