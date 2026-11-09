@@ -40,6 +40,8 @@ captured.
 | --- | --- |
 | `flutter test --reporter expanded test/admin_actions_accessibility_test.dart` | Passed: 7 tests. |
 | `flutter test --reporter expanded test/navigation_accessibility_test.dart test/map_location_browser_test.dart` | Passed: 26 tests. |
+| Narrow-screen 200%-text admin layout, edit, details, and delete checks | Passed: 16 tests, including semantic view/edit/delete actions and an in-memory organization-resource API. |
+| Full Flutter suite | Passed: 235 tests. |
 | `flutter test -d emulator-5554 --reporter expanded integration_test/p1_264_accessibility_flows_test.dart` | Passed: 1 Android integration test (Welcome → Campus Maps → Back). |
 
 ## Completion checklist
