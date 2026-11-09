@@ -14,6 +14,7 @@ public class AuthController : ControllerBase
         _context = context;
     }
 
+    /// <summary>Validates credentials and returns the user's role.</summary>
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {

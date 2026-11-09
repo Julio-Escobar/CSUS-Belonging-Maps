@@ -17,12 +17,14 @@ namespace BelongingMaps.API.Controllers
             _context = context;
         }
 
+        /// <summary>Returns every opportunity and its links.</summary>
         [HttpGet]
         public IActionResult GetOpportunities()
         {
             return Ok(_context.Opportunities.Include(o => o.Links).ToList());
         }
 
+        /// <summary>Returns one opportunity and its links.</summary>
         [HttpGet("{id}")]
         public IActionResult GetOpportunity(int id)
         {
@@ -35,6 +37,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(opportunity);
         }
 
+        /// <summary>Creates an opportunity.</summary>
         [HttpPost]
         public IActionResult AddOpportunity([FromBody] Opportunity opportunity)
         {
@@ -47,6 +50,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(opportunity);
         }
 
+        /// <summary>Updates an opportunity.</summary>
         [HttpPut("{id}")]
         public IActionResult EditOpportunity(int id, [FromBody] Opportunity updated)
         {
@@ -71,6 +75,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(opportunity);
         }
 
+        /// <summary>Deletes an opportunity.</summary>
         [HttpDelete("{id}")]
         public IActionResult DeleteOpportunity(int id)
         {

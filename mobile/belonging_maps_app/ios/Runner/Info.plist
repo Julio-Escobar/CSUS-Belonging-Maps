@@ -49,6 +49,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Belonging Maps uses the camera so admins can take a photo for a resource or organization post.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Belonging Maps uses your photo library so admins can add a picture to a resource or organization post.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

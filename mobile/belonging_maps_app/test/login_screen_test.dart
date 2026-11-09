@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
+import 'package:belonging_maps_app/screens/welcome_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -66,6 +67,21 @@ void main() {
 
     expect(find.text('Invalid credentials'), findsOneWidget);
     expect(AuthService.isAdmin, isFalse);
+  });
+
+  testWidgets('admin lands on the Welcome page after login (P1-252)', (
+    tester,
+  ) async {
+    final client = MockClient(
+      (_) async => http.Response('{"role":"Admin"}', 200),
+    );
+    await _pumpLogin(tester, client);
+
+    await _submit(tester);
+
+    expect(find.byType(WelcomeScreen), findsOneWidget);
+    expect(find.byType(LoginScreen), findsNothing);
+    expect(AuthService.isAdmin, isTrue);
   });
 
   testWidgets('tells the dev when API_BASE_URL is missing (P1-214)', (

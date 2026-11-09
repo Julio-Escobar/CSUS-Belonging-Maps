@@ -38,12 +38,14 @@ dependencies:
   font_awesome_flutter: ^10.6.0
   arcgis_maps: ^200.8.0+4672
   flutter_dotenv: ^6.0.0
+  webview_flutter: ^4.10.0
 
   # 🔥 ADDED THIS (do not remove)
   http: ^1.2.0
   geolocator: ^14.0.2
   shared_preferences: ^2.5.5
   package_info_plus: ^8.3.1
+  image_picker: ^1.2.4
 
 dev_dependencies:
   flutter_test:
@@ -104,6 +106,14 @@ flutter:
   assets:
     - assets/
     - assets/data/
+    # Latine art photos shown inside the SOMOS campus map location cards.
+    # Flutter only bundles files located directly in a listed directory, so
+    # each asset subdirectory needs its own entry.
+    - assets/somos_campus_map_art/
+    # Icons drawn for the SOMOS campus center markers (one per center).
+    - assets/somos_campus_map_assets/
+    # Icons drawn for the Ubuntu campus center markers (one per center).
+    - assets/ubuntu_campus_map_assets/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.

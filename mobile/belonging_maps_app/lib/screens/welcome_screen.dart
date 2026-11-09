@@ -12,9 +12,14 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+    final logoAsset = colors.primary == AccessibilityColors.colorSafe.primary
+        ? 'assets/blue_logo.png'
+        : 'assets/logo.png';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: colors.cardBackground,
-      foregroundColor: colors.primary,
+      // The brand green is too dark to read on dark buttons (P1-281).
+      foregroundColor: isDark ? colors.primaryText : colors.primary,
       minimumSize: const Size(48, 48),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -30,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Image.asset(
-                    'assets/logo.png',
+                    logoAsset,
                     width: 200,
                     height: 200,
                     semanticLabel: 'Belonging Maps logo',

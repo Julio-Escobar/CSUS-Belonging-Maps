@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/community_resource.dart';
@@ -5,6 +7,8 @@ import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../services/community_resource_service.dart';
 import '../widgets/hamburger_menu.dart';
+import '../widgets/resource_image.dart';
+import '../widgets/resource_image_field.dart';
 
 /// Icon keys an admin can pick, in dropdown order, with their labels.
 const Map<String, String> _iconOptions = {
@@ -125,6 +129,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _ResourceFormDialog(
+        uploadImage: _service.uploadImage,
         onSave: (draft) async {
           final created = await _service.create(draft);
           if (mounted) setState(() => _resources.add(created));
@@ -142,6 +147,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       context: context,
       builder: (_) => _ResourceFormDialog(
         existing: resource,
+        uploadImage: _service.uploadImage,
         onSave: (draft) async {
           final updated = await _service.update(draft);
           if (!mounted) return;
@@ -207,6 +213,14 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (resource.imageId != null) ...[
+                ResourceImage(
+                  imageId: resource.imageId,
+                  height: 200,
+                  semanticLabel: 'Photo for ${resource.title}',
+                ),
+                const SizedBox(height: 12),
+              ],
               _CategoryLabel(category: resource.category),
               const SizedBox(height: 16),
               Text(
@@ -418,6 +432,13 @@ class _ResourceCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (resource.imageId != null) ...[
+                const SizedBox(height: 12),
+                ResourceImage(
+                  imageId: resource.imageId,
+                  semanticLabel: 'Photo for ${resource.title}',
+                ),
+              ],
               const SizedBox(height: 12),
               Text(
                 resource.description,
@@ -490,7 +511,14 @@ class _ResourceFormDialog extends StatefulWidget {
   /// failure.
   final Future<void> Function(CommunityResource draft) onSave;
 
-  const _ResourceFormDialog({this.existing, required this.onSave});
+  /// Uploads a newly picked photo and returns its image id.
+  final Future<int> Function(Uint8List bytes) uploadImage;
+
+  const _ResourceFormDialog({
+    this.existing,
+    required this.onSave,
+    required this.uploadImage,
+  });
 
   @override
   State<_ResourceFormDialog> createState() => _ResourceFormDialogState();
@@ -502,6 +530,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _categoryController;
   late String _selectedIcon;
+  late ImageSelection _image;
   bool _isSaving = false;
   String? _saveError;
 
@@ -517,6 +546,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
     _selectedIcon = _iconOptions.containsKey(existing?.iconKey)
         ? existing!.iconKey
         : 'food';
+    _image = ImageSelection(existingImageId: existing?.imageId);
   }
 
   @override
@@ -538,15 +568,23 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
       _saveError = null;
     });
 
-    final draft = CommunityResource(
-      id: widget.existing?.id ?? 0,
-      title: _titleController.text.trim(),
-      category: _categoryController.text.trim(),
-      description: _descriptionController.text.trim(),
-      iconKey: _selectedIcon,
-    );
-
     try {
+      // Upload a newly picked photo first. Remember its id so a retry after
+      // a failed save doesn't upload it twice.
+      if (_image.newBytes != null) {
+        final imageId = await widget.uploadImage(_image.newBytes!);
+        if (!mounted) return;
+        setState(() => _image = ImageSelection(existingImageId: imageId));
+      }
+
+      final draft = CommunityResource(
+        id: widget.existing?.id ?? 0,
+        title: _titleController.text.trim(),
+        category: _categoryController.text.trim(),
+        description: _descriptionController.text.trim(),
+        iconKey: _selectedIcon,
+        imageId: _image.existingImageId,
+      );
       await widget.onSave(draft);
       if (mounted) Navigator.of(context).pop(true);
     } on CommunityResourceException catch (e) {
@@ -608,6 +646,12 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
                           setState(() => _selectedIcon = value);
                         }
                       },
+              ),
+              const SizedBox(height: 16),
+              ResourceImageField(
+                value: _image,
+                enabled: !_isSaving,
+                onChanged: (selection) => setState(() => _image = selection),
               ),
               if (_saveError != null) ...[
                 const SizedBox(height: 16),
