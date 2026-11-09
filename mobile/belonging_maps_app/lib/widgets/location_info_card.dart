@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -176,6 +177,26 @@ class LocationInfoData {
   }
 }
 
+/// Formats the useful fields of a location for the platform share sheet.
+/// Optional address and website values are omitted instead of leaving blank
+/// lines in the shared content.
+String buildLocationShareText(LocationInfoData data) {
+  String optionalValue(String value) {
+    final normalized = LocationInfoData.cleanField(value);
+    return normalized.toLowerCase() == 'n/a' ||
+            normalized.toLowerCase() == 'null'
+        ? ''
+        : normalized;
+  }
+
+  final fields = <String>[data.cardTitle.trim()];
+  final address = optionalValue(data.address);
+  final website = optionalValue(data.website);
+  if (address.isNotEmpty) fields.add(address);
+  if (website.isNotEmpty) fields.add(website);
+  return fields.join('\n');
+}
+
 class LocationInfoCard extends StatelessWidget {
   final LocationInfoData data;
   final bool showFullInfo;
@@ -187,6 +208,7 @@ class LocationInfoCard extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onShowMore;
   final VoidCallback onShowLess;
+  final Future<void> Function(String text)? onShare;
 
   const LocationInfoCard({
     super.key,
@@ -196,6 +218,7 @@ class LocationInfoCard extends StatelessWidget {
     required this.onClose,
     required this.onShowMore,
     required this.onShowLess,
+    this.onShare,
   });
 
   bool _hasValue(String value) {
@@ -213,6 +236,30 @@ class LocationInfoCard extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       debugPrint('Could not launch $normalizedUrl');
+    }
+  }
+
+  Future<void> _shareLocation(BuildContext originContext) async {
+    final text = buildLocationShareText(data);
+    try {
+      if (onShare != null) {
+        await onShare!(text);
+        return;
+      }
+
+      final box = originContext.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text,
+          title: data.cardTitle,
+          subject: data.cardTitle,
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (error) {
+      debugPrint('Could not share ${data.cardTitle}: $error');
     }
   }
 
@@ -360,6 +407,7 @@ class LocationInfoCard extends StatelessWidget {
                   onClose: onClose,
                   onShowLess: onShowLess,
                   onOpenInMaps: _openInMaps,
+                  onShare: _shareLocation,
                   launchUrl: _launchUrl,
                   getSocialIcon: _getSocialIcon,
                 )
@@ -370,6 +418,7 @@ class LocationInfoCard extends StatelessWidget {
                   imageAsset: data.imageAsset,
                   onClose: onClose,
                   onShowMore: onShowMore,
+                  onShare: _shareLocation,
                 ),
         ),
       ),
@@ -393,7 +442,11 @@ class LocationInfoCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
           ),
           clipBehavior: Clip.antiAlias,
-          child: _SummaryLocationInfoCard(data: data, onClose: onClose),
+          child: _SummaryLocationInfoCard(
+            data: data,
+            onClose: onClose,
+            onShare: _shareLocation,
+          ),
         ),
       ),
     );
@@ -403,8 +456,13 @@ class LocationInfoCard extends StatelessWidget {
 class _SummaryLocationInfoCard extends StatelessWidget {
   final LocationInfoData data;
   final VoidCallback onClose;
+  final Future<void> Function(BuildContext) onShare;
 
-  const _SummaryLocationInfoCard({required this.data, required this.onClose});
+  const _SummaryLocationInfoCard({
+    required this.data,
+    required this.onClose,
+    required this.onShare,
+  });
 
   bool _hasValue(String value) => LocationInfoData.cleanField(value).isNotEmpty;
 
@@ -489,6 +547,14 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                 ],
               ),
             ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _LocationShareButton(
+              title: data.cardTitle,
+              foreground: palette.foreground,
+              onShare: onShare,
+            ),
+          ),
           if (data.hasImage)
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
@@ -506,6 +572,39 @@ class _SummaryLocationInfoCard extends StatelessWidget {
   }
 }
 
+class _LocationShareButton extends StatelessWidget {
+  const _LocationShareButton({
+    required this.title,
+    required this.foreground,
+    required this.onShare,
+  });
+
+  final String title;
+  final Color foreground;
+  final Future<void> Function(BuildContext) onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Share $title',
+      hint: 'Opens the device share sheet.',
+      onTap: () => onShare(context),
+      child: ExcludeSemantics(
+        child: TextButton.icon(
+          onPressed: () => onShare(context),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            foregroundColor: foreground,
+          ),
+          icon: const Icon(Icons.share),
+          label: const Text('Share'),
+        ),
+      ),
+    );
+  }
+}
+
 class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
   final String? orgLogo;
@@ -513,6 +612,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   final String? imageAsset;
   final VoidCallback onClose;
   final VoidCallback onShowMore;
+  final Future<void> Function(BuildContext) onShare;
 
   const _PreviewLocationInfoCard({
     required this.cardTitle,
@@ -521,6 +621,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
     this.imageAsset,
     required this.onClose,
     required this.onShowMore,
+    required this.onShare,
   });
 
   @override
@@ -593,6 +694,14 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                 ),
               ),
             ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _LocationShareButton(
+                title: cardTitle,
+                foreground: palette.foreground,
+                onShare: onShare,
+              ),
+            ),
             if (_LocationInfoImage.hasAsset(imageAsset)) ...[
               const SizedBox(height: _previewImageGap),
               _LocationInfoImage(
@@ -614,6 +723,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onShowLess;
   final VoidCallback onOpenInMaps;
+  final Future<void> Function(BuildContext) onShare;
   final Future<void> Function(String) launchUrl;
   final IconData Function(String) getSocialIcon;
 
@@ -623,6 +733,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
     required this.onClose,
     required this.onShowLess,
     required this.onOpenInMaps,
+    required this.onShare,
     required this.launchUrl,
     required this.getSocialIcon,
   });
@@ -718,9 +829,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           data.address,
-                          style: LocationCardText.detail(
-                            palette.foreground,
-                          ),
+                          style: LocationCardText.detail(palette.foreground),
                         ),
                       ),
                     ],
@@ -774,6 +883,12 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                 ],
+                _LocationShareButton(
+                  title: data.cardTitle,
+                  foreground: palette.foreground,
+                  onShare: onShare,
+                ),
+                const SizedBox(height: 16),
                 if (_hasValue(data.description)) ...[
                   Text(
                     data.description,
