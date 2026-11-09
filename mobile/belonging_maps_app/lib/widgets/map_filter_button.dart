@@ -99,12 +99,144 @@ class _MapFilterButtonState extends State<MapFilterButton> {
     final selected = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _MapFilterSheet(
-        label: widget.label,
-        initiallySelected: _selectedFilters,
-        loadFilters: _loadFilters,
+      backgroundColor: AccessibilityColors.of(context).cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        final colors = AccessibilityColors.of(context);
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter by ${widget.label}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colors.primary,
+                        ),
+                      ),
+                      if (tempSelected.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            setSheetState(() => tempSelected.clear());
+                          },
+                          child: Text(
+                            'Clear all',
+                            style: TextStyle(color: colors.primary),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_isLoading)
+                    Center(
+                      child: CircularProgressIndicator(
+                        color: colors.primary,
+                      ),
+                    )
+                  else if (_availableFilters.isEmpty)
+                    Text(
+                      'No filter options available.',
+                      style: TextStyle(color: colors.secondaryText),
+                    )
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _availableFilters.map((filter) {
+                        final isSelected = tempSelected.contains(filter);
+                        return FilterChip(
+                          label: Text(
+                            filter,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? colors.onPrimary
+                                  : colors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setSheetState(() {
+                              if (selected) {
+                                tempSelected.add(filter);
+                              } else {
+                                tempSelected.remove(filter);
+                              }
+                            });
+                          },
+                          selectedColor: colors.primary,
+                          backgroundColor: colors.cardBackground,
+                          checkmarkColor: colors.onPrimary,
+                          side: BorderSide(
+                            color: colors.primary,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedFilters
+                            ..clear()
+                            ..addAll(tempSelected);
+                        });
+                        _applyFilter();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        tempSelected.isEmpty
+                            ? 'Show All'
+                            : 'Apply (${tempSelected.length} selected)',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
 
     if (!mounted || selected == null) return;
@@ -120,6 +252,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(

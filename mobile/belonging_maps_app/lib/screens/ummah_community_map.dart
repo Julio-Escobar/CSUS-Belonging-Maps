@@ -11,12 +11,12 @@ import '/widgets/location_info_card.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
-import '/services/layer_search.dart';
-import '/services/layer_filter.dart';
+import '/services/community_map_search.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 import '/services/map_location_source.dart';
 import '/widgets/map_location_browser.dart';
+import '/widgets/search_suggestion_list.dart';
 
 class UmmahCommunityMap extends StatefulWidget {
   const UmmahCommunityMap({super.key});
@@ -49,6 +49,7 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   bool _showInfoCard = false;
 
   final TextEditingController _searchController = TextEditingController();
+  CommunityMapSearchResult _searchResult = CommunityMapSearchResult.none;
 
   final GraphicsOverlay _userOverlay = GraphicsOverlay();
 
@@ -313,27 +314,36 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
     );
   }
 
-  /// Recomputes every layer's definition expression from the current type
-  /// filters and search text, so the two combine (AND) instead of overwriting
-  /// each other.
-  Future<void> _applyFilters() async {
-    for (final entry in _layerEntries) {
-      final typeClause = buildTypeClause(entry.types, entry.selectedTypes);
-      final searchClause = await buildLayerSearchClause(
-        entry.layer,
-        _searchController.text,
-      );
+  /// Shared search (P1-328): filters the layers by name, category and
+  /// address, then loads suggestions for the search bar.
+  late final CommunityMapSearch _search = CommunityMapSearch.forLayers(
+    _layerEntries,
+  );
 
-      final clauses = <String>[
-        if (typeClause.isNotEmpty) typeClause,
-        if (searchClause.isNotEmpty) '($searchClause)',
-      ];
-      entry.layer.definitionExpression = clauses.join(' AND ');
-    }
+  Future<void> _onSearchChanged(String query) async {
+    final result = await _search.search(query);
+    if (!mounted || result == null) return;
+    setState(() => _searchResult = result);
+  }
+
+  Future<void> _selectSearchSuggestion(MapLocation location) async {
+    _searchController.text = location.name;
+    await _onSearchChanged(location.name);
+    if (!mounted) return;
+    setState(() => _searchResult = CommunityMapSearchResult.none);
+    _showLocation(
+      location.attributes,
+      location.category,
+      geometry: location.geometry,
+    );
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay);
+    return showCurrentLocation(
+      _mapController,
+      _userOverlay,
+      context: context,
+    );
   }
 
   Widget _buildTopMapControls() {
@@ -351,13 +361,26 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
             Expanded(
               child: MapSearchBar(
                 controller: _searchController,
-                onChanged: (_) => unawaited(_applyFilters()),
+                onChanged: (query) => unawaited(_onSearchChanged(query)),
+                noResultsMessage: _searchResult.noResultsMessage,
+                suggestions: _searchResult.suggestions
+                    .map(
+                      (location) => SearchSuggestion(
+                        title: location.name,
+                        subtitle: location.category,
+                        onSelected: () {
+                          unawaited(_selectSearchSuggestion(location));
+                        },
+                      ),
+                    )
+                    .toList(growable: false),
               ),
             ),
             const SizedBox(width: 12),
             MapLayersButton(
               entries: _layerEntries,
-              onFilterChanged: () => unawaited(_applyFilters()),
+              onFilterChanged: () =>
+                  unawaited(_onSearchChanged(_searchController.text)),
             ),
           ],
         ),

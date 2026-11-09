@@ -10,6 +10,7 @@ class CurrentLocationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
+
     return Positioned(
       bottom: 100,
       right: 16,
