@@ -34,6 +34,26 @@ captured.
 | --- | --- | --- |
 | Welcome, map selection, Ummah Browse/details, and admin actions with VoiceOver | **Pending.** This Windows environment has no macOS/Xcode iOS simulator or physical iOS device. | Story assignee: Julio Escobar. Run on an iPhone/iPad or Xcode simulator and record device, iOS version, VoiceOver settings, Dynamic Type 200%, contrast setting, focus order, activation, Back, and close behavior. |
 
+## Human walkthrough scripts
+
+Run each row with the named screen reader enabled. Record the actual spoken
+focus order and every pass/fail result before replacing **Pending**. A failed
+row needs a linked Jira defect or a remediation owner; unavailable hardware or
+software stays pending.
+
+| Platform | Flow and steps | Expected behavior | Actual result | Status |
+| --- | --- | --- | --- | --- |
+| Android TalkBack | From Welcome, swipe through navigation, branding, description, Campus Maps, and Community Maps. Double-tap Campus Maps, choose a map, use Back, then close any opened panel. | Focus order is meaningful; every named action activates once; Back and Close return to the expected prior screen. | Pending human walkthrough. | Pending |
+| Android TalkBack | Open the Ummah map, use Browse locations, swipe through sections and locations, double-tap an item, review its details, then use Back and Close. | Browse labels, location details, Back, and Close are announced and work without focus traps. | Pending human walkthrough. | Pending |
+| Android TalkBack | Sign in as an administrator, swipe to named view/edit/delete actions, activate each flow, cancel or close dialogs, then log out. | Controls announce their item and action; dialogs have reachable close/cancel actions; logout clears admin access. | Pending human walkthrough. | Pending |
+| iOS VoiceOver | Repeat the Welcome, map selection, Ummah Browse/details, and admin-action flows above with VoiceOver. Repeat key screens at Dynamic Type 200% and with available contrast settings. | The same actions are announced and usable; text remains readable and controls remain reachable at 200%. | Pending: no iOS simulator or device is available in this environment. | Pending |
+
+## Failure handling
+
+For every failed human row, create or link the Jira defect here and name the
+remediation owner. Do not change a pending row to passed based only on widget
+or integration test output.
+
 ## Automated verification rerun
 
 | Command / scope | Result |
