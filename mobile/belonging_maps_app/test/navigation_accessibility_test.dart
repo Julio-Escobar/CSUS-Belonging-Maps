@@ -76,14 +76,11 @@ void main() {
   for (final (page, destinations) in [
     (
       const CampusMapsScreen(),
-      ['SomosCampusMap', 'UmmahCampusMap', 'UbuntuCampusMap', 'SomosCampusMap'],
+      ['SomosCampusMap', 'UmmahCampusMap', 'UbuntuCampusMap'],
     ),
     (
       const CommunityMapsDirectory(),
       [
-        'SomosCommunityMap',
-        'UmmahCommunityMap',
-        'UbuntuCommunityMap',
         'SomosCommunityMap',
         'UmmahCommunityMap',
         'UbuntuCommunityMap',
