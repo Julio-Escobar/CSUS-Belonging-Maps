@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
-
-const String _storageKey = 'opportunities_resources_v1';
+import '../services/favorites_store.dart';
+import '../widgets/favorite_toggle_button.dart';
+import '../widgets/search_suggestion_list.dart';
 
 const Map<String, IconData> _iconOptions = {
   'book': Icons.auto_stories,
@@ -18,19 +20,35 @@ const Map<String, IconData> _iconOptions = {
 };
 
 class OpportunitiesScreen extends StatefulWidget {
-  const OpportunitiesScreen({super.key});
+  final http.Client? client;
+  final String? initialOpportunityId;
+
+  const OpportunitiesScreen({
+    super.key,
+    this.client,
+    this.initialOpportunityId,
+  });
 
   @override
   State<OpportunitiesScreen> createState() => _OpportunitiesScreenState();
 }
 
 class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
+  static const Duration _requestTimeout = Duration(seconds: 10);
+
   bool _isLoading = true;
-  List<_ScholarshipResource> _resources = [];
+  List<_ScholarshipResource> _resources = List.of(_defaultResources);
+  String? _selectedCategory;
+  bool _includeExpired = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  late final http.Client _client;
+  late final bool _ownsClient;
 
   static const List<_ScholarshipResource> _defaultResources = [
     _ScholarshipResource(
       title: 'SOMOS Scholarships',
+      category: 'SOMOS',
       description:
           'List of scholarships and opportunities for SOMOS, Ummah, and Ubuntu students.',
       iconKey: 'book',
@@ -102,6 +120,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     ),
     _ScholarshipResource(
       title: 'Ummah Scholarships',
+      category: 'Ummah',
       description: 'List of scholarships and opportunities for Ummah students.',
       iconKey: 'book',
       links: [
@@ -171,6 +190,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     ),
     _ScholarshipResource(
       title: 'Ubuntu Scholarships',
+      category: 'Ubuntu',
       description:
           'List of scholarships and opportunities for Ubuntu students.',
       iconKey: 'book',
@@ -248,42 +268,118 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
+    _ownsClient = widget.client == null;
     _loadResources();
   }
 
-  Future<void> _loadResources() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedJson = prefs.getString(_storageKey);
-
-    if (storedJson != null && storedJson.isNotEmpty) {
-      try {
-        final List<dynamic> decoded = jsonDecode(storedJson);
-        setState(() {
-          _resources = decoded
-              .map(
-                (item) =>
-                    _ScholarshipResource.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-          _isLoading = false;
-        });
-        return;
-      } catch (_) {}
-    }
-
-    setState(() {
-      _resources = List<_ScholarshipResource>.from(_defaultResources);
-      _isLoading = false;
-    });
-    await _saveResources();
+  @override
+  void dispose() {
+    _searchController.dispose();
+    if (_ownsClient) _client.close();
+    super.dispose();
   }
 
-  Future<void> _saveResources() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _storageKey,
-      jsonEncode(_resources.map((res) => res.toJson()).toList()),
-    );
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedCategory = null;
+    });
+  }
+
+  Future<void> _loadResources() async {
+    final uri = _apiUri('/api/opportunities');
+    if (uri == null) {
+      _finishLoadingWithError('API_BASE_URL is missing from .env.');
+      return;
+    }
+
+    try {
+      final response = await _client.get(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('GET returned ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body);
+      if (data is! List) throw const FormatException('Expected a list');
+
+      if (!mounted) return;
+      setState(() {
+        _resources = data
+            .map(
+              (item) =>
+                  _ScholarshipResource.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+        _isLoading = false;
+      });
+      _openInitialFavoriteIfRequested();
+    } catch (_) {
+      _finishLoadingWithError(
+        'Could not load opportunities. Please try again.',
+      );
+    }
+  }
+
+  Uri? _apiUri(String path) {
+    final baseUrl = AuthService.baseUrl;
+    if (baseUrl == null) return null;
+    return Uri.parse('$baseUrl$path');
+  }
+
+  void _finishLoadingWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _resources = [];
+      _isLoading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        if (widget.initialOpportunityId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This saved opportunity is no longer available.'),
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  void _openInitialFavoriteIfRequested() {
+    final id = widget.initialOpportunityId;
+    if (id == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final matches = _resources.where(
+        (resource) => resource.favoriteId == id,
+      );
+      if (matches.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This saved opportunity is no longer available.'),
+          ),
+        );
+        return;
+      }
+      _showResourceInformation(context, matches.first);
+    });
+  }
+
+  void _showRequestError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openLink(BuildContext context, String url) async {
@@ -314,14 +410,21 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     BuildContext context,
     _ScholarshipResource resource,
   ) {
+    final visibleLinks = resource.visibleLinks(
+      DateUtils.dateOnly(DateTime.now()),
+      AuthService.isAdmin && _includeExpired,
+    );
     showDialog<void>(
       context: context,
-      builder: (dialogContext) =>
-          _ResourceInfoDialog(resource: resource, onOpenLink: _openLink),
+      builder: (dialogContext) => _ResourceInfoDialog(
+        resource: resource,
+        links: visibleLinks,
+        onOpenLink: _openLink,
+      ),
     );
   }
 
-  void _showOpportunityDialog({int? index}) async {
+  Future<void> _showOpportunityDialog({int? index}) async {
     final isEditing = index != null;
     final target = isEditing ? _resources[index] : null;
 
@@ -331,30 +434,67 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
           _OpportunityEditorDialog(initialResource: target),
     );
 
-    if (result != null) {
-      setState(() {
-        if (isEditing) {
-          _resources[index] = result;
-        } else {
-          _resources.add(result);
-        }
-      });
+    if (result == null) return;
 
-      await _saveResources();
+    final uri = _apiUri(
+      isEditing ? '/api/opportunities/${result.id}' : '/api/opportunities',
+    );
+    if (uri == null) {
+      _showRequestError('API_BASE_URL is missing from .env.');
+      return;
+    }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Opportunity updated' : 'Opportunity added',
-            ),
-          ),
+    try {
+      final body = jsonEncode(result.toJson());
+      final response = isEditing
+          ? await _client
+                .put(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
+                .timeout(_requestTimeout)
+          : await _client
+                .post(
+                  uri,
+                  headers: {'Content-Type': 'application/json'},
+                  body: body,
+                )
+                .timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError(
+          '${isEditing ? 'PUT' : 'POST'} returned ${response.statusCode}',
         );
       }
+
+      final saved = _ScholarshipResource.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (isEditing) {
+          _resources[index] = saved;
+        } else {
+          _resources.add(saved);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEditing ? 'Opportunity updated' : 'Opportunity added',
+          ),
+        ),
+      );
+    } catch (_) {
+      _showRequestError(
+        isEditing
+            ? 'Could not update the opportunity. Please try again.'
+            : 'Could not add the opportunity. Please try again.',
+      );
     }
   }
 
-  void _deleteResource(int index) async {
+  Future<void> _deleteResource(int index) async {
     final colors = AccessibilityColors.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -380,15 +520,28 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
     );
 
-    if (shouldDelete == true) {
-      setState(() => _resources.removeAt(index));
-      await _saveResources();
+    if (shouldDelete != true) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
+    final id = _resources[index].id;
+    final uri = id == null ? null : _apiUri('/api/opportunities/$id');
+    if (uri == null) {
+      _showRequestError('Could not delete the opportunity. Please try again.');
+      return;
+    }
+
+    try {
+      final response = await _client.delete(uri).timeout(_requestTimeout);
+      if (response.statusCode != 200) {
+        throw StateError('DELETE returned ${response.statusCode}');
       }
+
+      if (!mounted) return;
+      setState(() => _resources.removeAt(index));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
+    } catch (_) {
+      _showRequestError('Could not delete the opportunity. Please try again.');
     }
   }
 
@@ -396,6 +549,52 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
     final isAdmin = AuthService.isAdmin;
+
+    final categories = _resources
+        .map((r) => r.category)
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList();
+    // Fall back to "All" if the selected category no longer exists.
+    final selected = categories.contains(_selectedCategory)
+        ? _selectedCategory
+        : null;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final includeExpired = isAdmin && _includeExpired;
+    // Keep original indexes so edit/delete target the right resource.
+    final visibleIndexes = [
+      for (var i = 0; i < _resources.length; i++)
+        if ((selected == null || _resources[i].category == selected) &&
+            _resources[i].matchesKeyword(_searchQuery) &&
+            _resources[i].hasVisibleLinks(today, includeExpired))
+          i,
+    ];
+    visibleIndexes.sort(
+      (left, right) => _resources[left].compareDisplayedOrder(
+        _resources[right],
+        today,
+        includeExpired,
+      ),
+    );
+    final resultLabel = visibleIndexes.length == 1
+        ? '1 opportunity found'
+        : '${visibleIndexes.length} opportunities found';
+    final suggestions = _searchQuery.trim().isEmpty
+        ? const <SearchSuggestion>[]
+        : visibleIndexes
+              .take(5)
+              .map((index) {
+                final resource = _resources[index];
+                return SearchSuggestion(
+                  title: resource.title,
+                  subtitle: resource.category.isEmpty
+                      ? null
+                      : resource.category,
+                  onSelected: () => _showResourceInformation(context, resource),
+                );
+              })
+              .toList(growable: false);
+    final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: colors.pageBackground,
@@ -418,20 +617,125 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _resources.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final resource = _resources[index];
-                return _ResourceCard(
-                  resource: resource,
-                  isAdmin: isAdmin,
-                  onTap: () => _showResourceInformation(context, resource),
-                  onDelete: () => _deleteResource(index),
-                  onEdit: () => _showOpportunityDialog(index: index),
-                );
-              },
+          : ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          labelText: 'Search opportunities',
+                          hintText: 'Search programs or organizations',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchQuery.trim().isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  tooltip: 'Clear opportunity search',
+                                  onPressed: _clearSearch,
+                                ),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      SearchSuggestionList(suggestions: suggestions),
+                    ],
+                  ),
+                ),
+                if (categories.isNotEmpty)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        for (final category in [null, ...categories])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(category ?? 'All'),
+                              selected: selected == category,
+                              onSelected: (_) =>
+                                  setState(() => _selectedCategory = category),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (isAdmin)
+                  SwitchListTile.adaptive(
+                    contentPadding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    title: const Text('Include expired opportunities'),
+                    value: _includeExpired,
+                    onChanged: (value) =>
+                        setState(() => _includeExpired = value),
+                  ),
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(resultLabel),
+                    ),
+                  ),
+                ),
+                if (visibleIndexes.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'No opportunities found.',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Try another keyword or clear your filters.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        if (hasActiveFilters)
+                          TextButton.icon(
+                            onPressed: _clearFilters,
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear filters'),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < visibleIndexes.length; i++) ...[
+                          _ResourceCard(
+                            resource: _resources[visibleIndexes[i]],
+                            isAdmin: isAdmin,
+                            deadline: _resources[visibleIndexes[i]]
+                                .nextVisibleDeadline(today, includeExpired),
+                            onTap: () => _showResourceInformation(
+                              context,
+                              _resources[visibleIndexes[i]],
+                            ),
+                            onDelete: () => _deleteResource(visibleIndexes[i]),
+                            onEdit: () => _showOpportunityDialog(
+                              index: visibleIndexes[i],
+                            ),
+                          ),
+                          if (i < visibleIndexes.length - 1)
+                            const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
             ),
     );
   }
@@ -439,9 +743,14 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
 
 class _ResourceInfoDialog extends StatefulWidget {
   final _ScholarshipResource resource;
+  final List<_ScholarshipLink> links;
   final Function(BuildContext, String) onOpenLink;
 
-  const _ResourceInfoDialog({required this.resource, required this.onOpenLink});
+  const _ResourceInfoDialog({
+    required this.resource,
+    required this.links,
+    required this.onOpenLink,
+  });
 
   @override
   State<_ResourceInfoDialog> createState() => _ResourceInfoDialogState();
@@ -531,7 +840,7 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
               ),
               const SizedBox(height: 10),
               Flexible(
-                child: widget.resource.links.isEmpty
+                child: widget.links.isEmpty
                     ? Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
@@ -547,10 +856,10 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                         child: ListView.separated(
                           controller: linksScrollController,
                           shrinkWrap: true,
-                          itemCount: widget.resource.links.length,
+                          itemCount: widget.links.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
-                            final link = widget.resource.links[index];
+                            final link = widget.links[index];
                             final hasUrl = link.url.trim().isNotEmpty;
                             return Semantics(
                               container: true,
@@ -574,6 +883,11 @@ class _ResourceInfoDialogState extends State<_ResourceInfoDialog> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  subtitle: link.deadline == null
+                                      ? null
+                                      : Text(
+                                          'Deadline: ${MaterialLocalizations.of(context).formatMediumDate(link.deadline!)}',
+                                        ),
                                   trailing: Icon(
                                     hasUrl
                                         ? Icons.open_in_new
@@ -611,6 +925,7 @@ class _OpportunityEditorDialog extends StatefulWidget {
 class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
   late TextEditingController titleController;
   late TextEditingController descriptionController;
+  late TextEditingController categoryController;
   late String selectedIcon;
   late List<_LinkEditorModel> linkEditors;
 
@@ -624,10 +939,17 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
     descriptionController = TextEditingController(
       text: target?.description ?? '',
     );
+    categoryController = TextEditingController(text: target?.category ?? '');
     selectedIcon = target?.iconKey ?? 'book';
     linkEditors =
         target?.links
-            .map((link) => _LinkEditorModel(name: link.name, url: link.url))
+            .map(
+              (link) => _LinkEditorModel(
+                name: link.name,
+                url: link.url,
+                deadline: _DateOnlyDeadline.formatForInput(link.deadline) ?? '',
+              ),
+            )
             .toList() ??
         [];
   }
@@ -636,6 +958,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
+    categoryController.dispose();
     for (var editor in linkEditors) {
       editor.dispose();
     }
@@ -672,6 +995,10 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'Required'
                       : null,
+                ),
+                TextFormField(
+                  controller: categoryController,
+                  decoration: const InputDecoration(labelText: 'Category'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -741,6 +1068,20 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                                   isDense: true,
                                 ),
                               ),
+                              TextFormField(
+                                key: ValueKey('opportunity-link-deadline-$i'),
+                                controller: linkEditors[i].deadlineController,
+                                keyboardType: TextInputType.datetime,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      'Deadline #${i + 1} (YYYY-MM-DD, optional)',
+                                  isDense: true,
+                                ),
+                                validator: (value) =>
+                                    _DateOnlyDeadline.isValidOptional(value)
+                                    ? null
+                                    : 'Use YYYY-MM-DD',
+                              ),
                             ],
                           ),
                         ),
@@ -780,14 +1121,19 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   (e) => _ScholarshipLink(
                     name: e.nameController.text.trim(),
                     url: e.urlController.text.trim(),
+                    deadline: _DateOnlyDeadline.tryParse(
+                      e.deadlineController.text,
+                    ),
                   ),
                 )
                 .toList();
 
             final newResource = _ScholarshipResource(
+              id: widget.initialResource?.id,
               title: titleController.text.trim(),
               description: descriptionController.text.trim(),
               iconKey: selectedIcon,
+              category: categoryController.text.trim(),
               links: parsedLinks,
             );
 
@@ -803,59 +1149,166 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
 class _LinkEditorModel {
   final TextEditingController nameController;
   final TextEditingController urlController;
+  final TextEditingController deadlineController;
 
-  _LinkEditorModel({String name = '', String url = ''})
+  _LinkEditorModel({String name = '', String url = '', String deadline = ''})
     : nameController = TextEditingController(text: name),
-      urlController = TextEditingController(text: url);
+      urlController = TextEditingController(text: url),
+      deadlineController = TextEditingController(text: deadline);
 
   void dispose() {
     nameController.dispose();
     urlController.dispose();
+    deadlineController.dispose();
   }
 }
 
 class _ScholarshipLink {
   final String name;
   final String url;
+  final DateTime? deadline;
 
-  const _ScholarshipLink({required this.name, required this.url});
+  const _ScholarshipLink({
+    required this.name,
+    required this.url,
+    this.deadline,
+  });
 
-  Map<String, dynamic> toJson() => {'name': name, 'url': url};
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'url': url,
+    'deadline': _DateOnlyDeadline.formatForInput(deadline),
+  };
 
   factory _ScholarshipLink.fromJson(Map<String, dynamic> json) =>
       _ScholarshipLink(
         name: json['name'] as String? ?? '',
         url: json['url'] as String? ?? '',
+        deadline: _DateOnlyDeadline.tryParse(json['deadline']),
       );
 }
 
+class _DateOnlyDeadline {
+  static final RegExp _datePattern = RegExp(
+    r'^([0-9]{4})-([0-9]{2})-([0-9]{2})$',
+  );
+
+  static DateTime? tryParse(Object? value) {
+    if (value is! String) return null;
+    final match = _datePattern.firstMatch(value.trim());
+    if (match == null) return null;
+    final parsed = DateTime.tryParse(value.trim());
+    if (parsed == null ||
+        parsed.year != int.parse(match.group(1)!) ||
+        parsed.month != int.parse(match.group(2)!) ||
+        parsed.day != int.parse(match.group(3)!)) {
+      return null;
+    }
+    return DateUtils.dateOnly(parsed);
+  }
+
+  static bool isValidOptional(String? value) =>
+      value == null || value.trim().isEmpty || tryParse(value) != null;
+
+  static bool isExpired(DateTime? deadline, DateTime today) =>
+      deadline != null && deadline.isBefore(DateUtils.dateOnly(today));
+
+  static String? formatForInput(DateTime? deadline) {
+    if (deadline == null) return null;
+    final date = DateUtils.dateOnly(deadline);
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+}
+
 class _ScholarshipResource {
+  final int? id;
   final String title;
   final String description;
   final List<_ScholarshipLink> links;
   final String iconKey;
+  final String category;
 
   const _ScholarshipResource({
+    this.id,
     required this.title,
     required this.description,
     required this.links,
     this.iconKey = 'book',
+    this.category = '',
   });
 
   IconData get icon => _iconOptions[iconKey] ?? Icons.auto_stories;
+
+  String get favoriteId => id?.toString() ??
+      '${category.trim().toLowerCase()}::${title.trim().toLowerCase()}';
+
+  FavoriteEntry get favoriteEntry => FavoriteEntry(
+    type: FavoriteType.opportunity,
+    id: favoriteId,
+    title: title,
+    data: {'id': id, ...toJson()},
+  );
+
+  bool matchesKeyword(String query) {
+    final keyword = query.trim().toLowerCase();
+    if (keyword.isEmpty) return true;
+
+    final searchableText = <String>[
+      title,
+      category,
+      description,
+      ...links.map((link) => link.name),
+    ].join(' ').toLowerCase();
+    return searchableText.contains(keyword);
+  }
+
+  List<_ScholarshipLink> visibleLinks(DateTime today, bool includeExpired) =>
+      includeExpired
+      ? links
+      : links
+            .where((link) => !_DateOnlyDeadline.isExpired(link.deadline, today))
+            .toList(growable: false);
+
+  bool hasVisibleLinks(DateTime today, bool includeExpired) =>
+      links.isEmpty || visibleLinks(today, includeExpired).isNotEmpty;
+
+  DateTime? nextVisibleDeadline(DateTime today, bool includeExpired) {
+    final deadlines = visibleLinks(
+      today,
+      includeExpired,
+    ).map((link) => link.deadline).whereType<DateTime>().toList()..sort();
+    return deadlines.isEmpty ? null : deadlines.first;
+  }
+
+  int compareDisplayedOrder(
+    _ScholarshipResource other,
+    DateTime today,
+    bool includeExpired,
+  ) {
+    final deadline = nextVisibleDeadline(today, includeExpired);
+    final otherDeadline = other.nextVisibleDeadline(today, includeExpired);
+    if (deadline == null && otherDeadline == null)
+      return title.compareTo(other.title);
+    if (deadline == null) return 1;
+    if (otherDeadline == null) return -1;
+    return deadline.compareTo(otherDeadline);
+  }
 
   Map<String, dynamic> toJson() => {
     'title': title,
     'description': description,
     'iconKey': iconKey,
+    'category': category,
     'links': links.map((l) => l.toJson()).toList(),
   };
 
   factory _ScholarshipResource.fromJson(Map<String, dynamic> json) =>
       _ScholarshipResource(
+        id: json['id'] as int?,
         title: json['title'] as String? ?? '',
         description: json['description'] as String? ?? '',
         iconKey: json['iconKey'] as String? ?? 'book',
+        category: json['category'] as String? ?? '',
         links:
             (json['links'] as List<dynamic>?)
                 ?.map(
@@ -870,6 +1323,7 @@ class _ScholarshipResource {
 class _ResourceCard extends StatelessWidget {
   final _ScholarshipResource resource;
   final bool isAdmin;
+  final DateTime? deadline;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
@@ -877,6 +1331,7 @@ class _ResourceCard extends StatelessWidget {
   const _ResourceCard({
     required this.resource,
     required this.isAdmin,
+    required this.deadline,
     required this.onTap,
     required this.onDelete,
     required this.onEdit,
@@ -942,6 +1397,17 @@ class _ResourceCard extends StatelessWidget {
                                       height: 1.4,
                                     ),
                               ),
+                              if (deadline != null) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Deadline: ${MaterialLocalizations.of(context).formatMediumDate(deadline!)}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: colors.secondaryText,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -959,6 +1425,7 @@ class _ResourceCard extends StatelessWidget {
                 ),
               ),
             ),
+            FavoriteToggleButton(favorite: resource.favoriteEntry),
             if (isAdmin) ...[
               const SizedBox(width: 6),
               Column(

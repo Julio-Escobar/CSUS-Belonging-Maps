@@ -53,6 +53,25 @@ public class UmmahMapBrowseAccessibilityTest {
         return null;
     }
 
+    private AccessibilityNodeInfo findByTextOrDescriptionContaining(
+            AccessibilityNodeInfo node, String value) {
+        if (node == null) return null;
+        CharSequence text = node.getText();
+        CharSequence description = node.getContentDescription();
+        CharSequence hint = node.getHintText();
+        if ((text != null && text.toString().contains(value))
+                || (description != null && description.toString().contains(value))
+                || (hint != null && hint.toString().contains(value))) {
+            return node;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo found = findByTextOrDescriptionContaining(
+                    node.getChild(i), value);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     private AccessibilityNodeInfo findScrollableNode(AccessibilityNodeInfo node) {
         if (node == null) return null;
         if (node.isScrollable()) return node;
@@ -100,8 +119,8 @@ public class UmmahMapBrowseAccessibilityTest {
             AccessibilityNodeInfo found = findByDescription(root, description);
             if (found != null) return found;
             AccessibilityNodeInfo scrollable = findScrollableNode(root);
-            if (scrollable == null || !scrollable.performAction(scrollAction)) {
-                return null;
+            if (scrollable != null) {
+                scrollable.performAction(scrollAction);
             }
             SystemClock.sleep(300);
         }
@@ -175,6 +194,52 @@ public class UmmahMapBrowseAccessibilityTest {
                 node.performAction(AccessibilityNodeInfo.ACTION_CLICK));
     }
 
+    private void activateWhileScrolling(UiAutomation automation, String label)
+            throws Exception {
+        AccessibilityNodeInfo node = waitForDescriptionWhileScrolling(
+                automation, label, AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+        assertNotNull("Expected accessible, scrollable node: " + label, node);
+        assertTrue("Expected node to have a tap action: " + label, node.isClickable());
+        assertTrue("ACTION_CLICK should succeed for: " + label,
+                node.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+    }
+
+    private void launchApp(Instrumentation instrumentation) {
+        Intent launch = instrumentation.getTargetContext()
+                .getPackageManager()
+                .getLaunchIntentForPackage(
+                        instrumentation.getTargetContext().getPackageName());
+        assertNotNull("App launch intent should be available", launch);
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        instrumentation.getTargetContext().startActivity(launch);
+    }
+
+    private void openNavigationMenu(UiAutomation automation) throws Exception {
+        activate(automation, "Open navigation menu");
+        assertNotNull("The navigation drawer should finish opening",
+                waitForDescription(automation, "Close navigation menu"));
+        automation.waitForIdle(500, 15000);
+    }
+
+    private void assertBrowseLocationsOpens(
+            UiAutomation automation,
+            String directory,
+            String map,
+            String firstCategory) throws Exception {
+        openNavigationMenu(automation);
+        activate(automation, directory);
+        activateWhileScrolling(automation, map);
+        activate(automation, "Browse locations");
+
+        assertNotNull("The browser should expose its first category for " + map,
+                waitForDescription(
+                        automation, firstCategory + ", Expand locations"));
+        assertTrue("Back should dismiss the location browser for " + map,
+                automation.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK));
+        assertNotNull("The map should still expose Browse locations after closing " + map,
+                waitForDescription(automation, "Browse locations"));
+    }
+
     @Test
     public void screenReaderActivationOpensTheSelectedLayer() throws Exception {
         Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
@@ -209,6 +274,10 @@ public class UmmahMapBrowseAccessibilityTest {
             assertEquals("Focus should stay on the selected heading: " + layer,
                     collapsedLabel, focused.getContentDescription().toString());
             automation.waitForIdle(500, 15000);
+            AccessibilityNodeInfo settledFocused = waitForFocusedDescription(
+                    automation, collapsedLabel);
+            assertNotNull("Focus should remain on the selected heading: " + layer,
+                    settledFocused);
             AccessibilityNodeInfo currentTarget = waitForDescription(
                     automation, collapsedLabel);
             assertNotNull("The selected heading should remain available: " + layer,
@@ -216,13 +285,13 @@ public class UmmahMapBrowseAccessibilityTest {
             Rect targetBounds = new Rect();
             currentTarget.getBoundsInScreen(targetBounds);
             Rect focusedBounds = new Rect();
-            focused.getBoundsInScreen(focusedBounds);
+            settledFocused.getBoundsInScreen(focusedBounds);
             assertFalse("Target should have non-empty bounds: " + targetBounds,
                     targetBounds.isEmpty());
             assertEquals("Focus bounds should match the selected heading: " + layer,
                     targetBounds, focusedBounds);
             assertTrue("Activating the focused node should succeed: " + layer,
-                    focused.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+                    settledFocused.performAction(AccessibilityNodeInfo.ACTION_CLICK));
             assertNotNull("The selected layer should report expanded state: " + layer,
                     waitForDescription(automation, expandedLabel));
             for (String otherLayer : COMMUNITY_LAYERS) {
@@ -237,6 +306,69 @@ public class UmmahMapBrowseAccessibilityTest {
             assertNotNull("The selected layer should collapse again: " + layer,
                     waitForDescription(automation, collapsedLabel));
         }
+    }
+
+    @Test
+    public void somosAndUbuntuMapsExposeBrowsableLocations() throws Exception {
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        UiAutomation automation = instrumentation.getUiAutomation(
+                UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
+
+        launchApp(instrumentation);
+        assertBrowseLocationsOpens(
+                automation,
+                "Campus Maps",
+                "SOMOS Campus Map. SOMOS Campus, Open map",
+                "Campus locations");
+
+        launchApp(instrumentation);
+        assertBrowseLocationsOpens(
+                automation,
+                "Campus Maps",
+                "Ubuntu Campus Map. Ubuntu Campus, Open map",
+                "Campus locations");
+
+        launchApp(instrumentation);
+        assertBrowseLocationsOpens(
+                automation,
+                "Community Maps",
+                "SOMOS Community Map. SOMOS Community, Open map",
+                "Businesses");
+
+        launchApp(instrumentation);
+        assertBrowseLocationsOpens(
+                automation,
+                "Community Maps",
+                "Ubuntu Community Map. Ubuntu Community, Open map",
+                "Black Owned Businesses");
+    }
+
+    @Test
+    public void opportunitiesSearchCanBeEnteredAndCleared() throws Exception {
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        UiAutomation automation = instrumentation.getUiAutomation(
+                UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
+        launchApp(instrumentation);
+
+        openNavigationMenu(automation);
+        activate(automation, "Opportunities");
+        AccessibilityNodeInfo search = waitForTextOrDescriptionContaining(
+                automation, "Search opportunities");
+        assertNotNull("Opportunity search should be exposed to Android accessibility", search);
+        assertTrue("Opportunity search should accept text input", search.isEditable());
+
+        assertTrue("Search field should receive input focus",
+                search.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+        instrumentation.sendStringSync("scholarships");
+        automation.waitForIdle(500, 15000);
+
+        assertNotNull("Entering a query should expose the clear-search action",
+                waitForDescription(automation, "Clear opportunity search"));
+        activate(automation, "Clear opportunity search");
+        SystemClock.sleep(250);
+        assertNull("Clearing the query should hide the clear-search action",
+                findByDescription(
+                        automation.getRootInActiveWindow(), "Clear opportunity search"));
     }
 
     @Test
@@ -288,6 +420,9 @@ public class UmmahMapBrowseAccessibilityTest {
                 automation, secondLayer + ", Expand locations");
         assertNotNull("Focus should move to the next layer heading", focusedSecond);
         automation.waitForIdle(500, 15000);
+        focusedSecond = waitForFocusedDescription(
+                automation, secondLayer + ", Expand locations");
+        assertNotNull("Focus should remain on the next layer heading", focusedSecond);
         assertTrue("The next focused heading should activate",
                 focusedSecond.performAction(AccessibilityNodeInfo.ACTION_CLICK));
         AccessibilityNodeInfo expandedSecond = waitForDescription(
@@ -345,6 +480,9 @@ public class UmmahMapBrowseAccessibilityTest {
                 automation, secondLayer + ", Expand locations");
         assertNotNull("Focus should move to the next heading", focusedSecond);
         automation.waitForIdle(500, 15000);
+        focusedSecond = waitForFocusedDescription(
+                automation, secondLayer + ", Expand locations");
+        assertNotNull("Focus should remain on the next heading", focusedSecond);
         AccessibilityNodeInfo currentSecond = waitForDescription(
                 automation, secondLayer + ", Expand locations");
         assertNotNull("The focused heading should still be available", currentSecond);
@@ -433,6 +571,18 @@ public class UmmahMapBrowseAccessibilityTest {
         long deadline = SystemClock.uptimeMillis() + 15000;
         while (SystemClock.uptimeMillis() < deadline) {
             AccessibilityNodeInfo found = findByTextOrDescription(
+                    automation.getRootInActiveWindow(), value);
+            if (found != null) return found;
+            SystemClock.sleep(250);
+        }
+        return null;
+    }
+
+    private AccessibilityNodeInfo waitForTextOrDescriptionContaining(
+            UiAutomation automation, String value) throws Exception {
+        long deadline = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < deadline) {
+            AccessibilityNodeInfo found = findByTextOrDescriptionContaining(
                     automation.getRootInActiveWindow(), value);
             if (found != null) return found;
             SystemClock.sleep(250);

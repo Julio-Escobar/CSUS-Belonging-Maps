@@ -1,0 +1,4 @@
+[
+  {"id": "folsom-hall-prayer-room", "name": "Folsom Hall Prayer Room", "building": "Folsom Hall", "room": "", "floor": "2nd floor", "category": "Prayer & Wudu", "description": "Prayer room on the second floor of Folsom Hall, with wudu (ablution) stations available to students, faculty, and staff.", "amenities": ["Prayer space", "Wudu stations"], "website": "", "icon": "MIC11px.png", "latitude": 38.551412, "longitude": -121.414278},
+  {"id": "university-union-prayer-room", "name": "University Union Prayer Room", "building": "University Union", "room": "", "floor": "2nd floor", "category": "Prayer & Wudu", "description": "Prayer room on the second floor of the University Union, the Student Union at the center of campus, with wudu (ablution) stations available to students, faculty, and staff.", "amenities": ["Prayer space", "Wudu stations"], "website": "", "icon": "MIC11px.png", "latitude": 38.559701, "longitude": -121.422311}
+]

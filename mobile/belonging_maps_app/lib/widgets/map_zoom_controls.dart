@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-const Color zoomButtonBackgroundColor = Color.fromARGB(255, 47, 95, 62);
-const Color zoomButtonIconColor = Colors.white;
+import '../services/accessibility_theme.dart';
 
 class MapZoomControls extends StatelessWidget {
   final VoidCallback onZoomIn;
@@ -19,18 +18,27 @@ class MapZoomControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return Positioned(
       top: top,
       left: left,
       child: SafeArea(
         child: Column(
           children: [
-            _ZoomButton(icon: Icons.add, label: 'Zoom in', onTap: onZoomIn),
+            _ZoomButton(
+              icon: Icons.add,
+              label: 'Zoom in',
+              onTap: onZoomIn,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+            ),
             const SizedBox(height: 10),
             _ZoomButton(
               icon: Icons.remove,
               label: 'Zoom out',
               onTap: onZoomOut,
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
             ),
           ],
         ),
@@ -43,17 +51,23 @@ class _ZoomButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color foregroundColor;
 
   const _ZoomButton({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.backgroundColor,
+    required this.foregroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Material(
-      color: zoomButtonBackgroundColor,
+      color: colors.primary,
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
       child: Semantics(
@@ -64,7 +78,7 @@ class _ZoomButton extends StatelessWidget {
           child: IconButton(
             tooltip: label,
             onPressed: onTap,
-            icon: Icon(icon, color: zoomButtonIconColor),
+            icon: Icon(icon, color: colors.onPrimary),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
         ),

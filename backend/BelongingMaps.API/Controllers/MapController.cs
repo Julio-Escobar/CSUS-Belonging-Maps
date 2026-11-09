@@ -15,6 +15,7 @@ namespace BelongingMaps.API.Controllers
             _context = context;
         }
 
+        /// <summary>Returns saved map locations.</summary>
         [HttpGet]
         public IActionResult GetLocations()
         {

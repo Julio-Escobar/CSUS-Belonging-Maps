@@ -12,18 +12,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_api.dart';
+import 'helpers/fake_community_resources_api.dart';
+import 'helpers/fake_organization_resources_api.dart';
+import 'helpers/semantics_finders.dart';
+
 void main() {
+  setUpAll(loadTestEnv);
+  setUp(useFakeCommunityResourcesApi);
+
   final screens = <_AdminScreenCase>[
     _AdminScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Add opportunity'),
       dialogTitle: 'Add Opportunity',
       addLink: true,
     ),
     _AdminScreenCase(
       name: 'Surveys',
-      build: () => const SurveysScreen(),
+      build: () => SurveysScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Add survey'),
       dialogTitle: 'Add Survey',
     ),
@@ -35,7 +43,9 @@ void main() {
     ),
     _AdminScreenCase(
       name: 'Organization Resources',
-      build: () => const OrganizationResourcesScreen(),
+      build: () => OrganizationResourcesScreen(
+        client: fakeOrganizationResourcesClient(),
+      ),
       action: () => find.byTooltip('Add resource'),
       dialogTitle: 'Add Resource',
     ),
@@ -83,8 +93,7 @@ void main() {
         expect(tester.takeException(), isNull, reason: screen.name);
 
         final action = screen.action();
-        await tester.ensureVisible(action);
-        await tester.tap(action);
+        await _tapAction(tester, action);
         await tester.pumpAndSettle();
 
         expect(find.text(screen.dialogTitle), findsOneWidget);
@@ -95,7 +104,13 @@ void main() {
         }
 
         if (screen.addLink) {
-          await tester.tap(find.text('Add Link'));
+          final addLink = find.text('Add Link');
+          await tester.scrollUntilVisible(
+            addLink,
+            120,
+            scrollable: find.byType(Scrollable).last,
+          );
+          await tester.tap(addLink);
           await tester.pumpAndSettle();
         }
 
@@ -107,13 +122,13 @@ void main() {
   final editScreens = <_EditScreenCase>[
     _EditScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Edit SOMOS Scholarships'),
       dialogTitle: 'Edit Opportunity',
     ),
     _EditScreenCase(
       name: 'Surveys',
-      build: () => const SurveysScreen(),
+      build: () => SurveysScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Edit Feedback Survey'),
       dialogTitle: 'Edit Survey',
     ),
@@ -125,7 +140,9 @@ void main() {
     ),
     _EditScreenCase(
       name: 'Organization Resources',
-      build: () => const OrganizationResourcesScreen(),
+      build: () => OrganizationResourcesScreen(
+        client: fakeOrganizationResourcesClient(),
+      ),
       action: () => find.byTooltip('Edit SOMOS Student Organization'),
       dialogTitle: 'Edit Resource',
     ),
@@ -144,8 +161,7 @@ void main() {
 
       await _pumpAdminScreen(tester, screen.build());
       final action = screen.action();
-      await tester.ensureVisible(action);
-      await tester.tap(action);
+      await _tapAction(tester, action);
       await tester.pumpAndSettle();
 
       expect(find.text(screen.dialogTitle), findsOneWidget);
@@ -157,20 +173,22 @@ void main() {
   final detailsScreens = <_DetailsScreenCase>[
     _DetailsScreenCase(
       name: 'Opportunities',
-      build: () => const OpportunitiesScreen(),
-      action: () => find.text('SOMOS Scholarships').first,
+      build: () => OpportunitiesScreen(client: fakeApiClient()),
+      semanticLabel: RegExp('^SOMOS Scholarships\\.'),
       details: 'Tap a scholarship to visit its website',
     ),
     _DetailsScreenCase(
       name: 'Community Resources',
       build: () => const CommunityResourcesScreen(),
-      action: () => find.text('Food Pantry').first,
+      semanticLabel: RegExp('^View information for Food Pantry'),
       details: 'Resource information',
     ),
     _DetailsScreenCase(
       name: 'Organization Resources',
-      build: () => const OrganizationResourcesScreen(),
-      action: () => find.text('SOMOS Student Organization').first,
+      build: () => OrganizationResourcesScreen(
+        client: fakeOrganizationResourcesClient(),
+      ),
+      semanticLabel: RegExp('^View information for SOMOS Student Organization'),
       details: 'Resource information',
     ),
   ];
@@ -187,7 +205,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await _pumpAdminScreen(tester, screen.build());
-      await tester.tap(screen.action());
+      final semantics = tester.ensureSemantics();
+      tester.semantics.tap(semanticTapByLabel(screen.semanticLabel));
+      semantics.dispose();
       await tester.pumpAndSettle();
 
       expect(find.text(screen.details), findsOneWidget);
@@ -219,11 +239,11 @@ void main() {
   ) async {
     final deleteScreens = <_DeleteScreenCase>[
       _DeleteScreenCase(
-        build: () => const OpportunitiesScreen(),
+        build: () => OpportunitiesScreen(client: fakeApiClient()),
         action: () => find.byTooltip('Delete SOMOS Scholarships'),
       ),
       _DeleteScreenCase(
-        build: () => const SurveysScreen(),
+        build: () => SurveysScreen(client: fakeApiClient()),
         action: () => find.byTooltip('Delete Feedback Survey'),
       ),
       _DeleteScreenCase(
@@ -231,7 +251,9 @@ void main() {
         action: () => find.byTooltip('Delete Food Pantry'),
       ),
       _DeleteScreenCase(
-        build: () => const OrganizationResourcesScreen(),
+        build: () => OrganizationResourcesScreen(
+          client: fakeOrganizationResourcesClient(),
+        ),
         action: () => find.byTooltip('Delete SOMOS Student Organization'),
       ),
       _DeleteScreenCase(
@@ -259,8 +281,7 @@ void main() {
     for (final screen in deleteScreens) {
       await _pumpAdminScreen(tester, screen.build());
       final action = screen.action();
-      await tester.ensureVisible(action);
-      await tester.tap(action);
+      await _tapAction(tester, action);
       await tester.pumpAndSettle();
 
       final deleteButton = tester.widget<ElevatedButton>(
@@ -362,6 +383,26 @@ Future<void> _pumpAdminScreen(WidgetTester tester, Widget screen) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _tapAction(WidgetTester tester, Finder target) async {
+  final iconButton = find.ancestor(
+    of: target,
+    matching: find.byType(IconButton),
+  );
+  final control = iconButton.evaluate().isEmpty ? target : iconButton;
+
+  if (iconButton.evaluate().isNotEmpty) {
+    final tooltip = tester.widget<IconButton>(iconButton).tooltip;
+    if (tooltip != null) {
+      final semantics = tester.ensureSemantics();
+      tester.semantics.tap(semanticTapByTooltip(tooltip));
+      semantics.dispose();
+      return;
+    }
+  }
+
+  await tester.tap(control);
+}
+
 class _AdminScreenCase {
   const _AdminScreenCase({
     required this.name,
@@ -405,12 +446,12 @@ class _DetailsScreenCase {
   const _DetailsScreenCase({
     required this.name,
     required this.build,
-    required this.action,
+    required this.semanticLabel,
     required this.details,
   });
 
   final String name;
   final Widget Function() build;
-  final Finder Function() action;
+  final Pattern semanticLabel;
   final String details;
 }

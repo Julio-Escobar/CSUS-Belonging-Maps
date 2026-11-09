@@ -2,7 +2,6 @@ import 'package:belonging_maps_app/screens/accessibility_settings_screen.dart';
 import 'package:belonging_maps_app/screens/opportunities.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
-import 'package:belonging_maps_app/screens/map_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
@@ -12,6 +11,7 @@ import 'services/accessibility_theme.dart';
 import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/about_us_screen.dart';
+import 'screens/favorites_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,14 +59,23 @@ class BelongingMapsApp extends StatelessWidget {
             colorSafePalette: settings.colorSafePalette,
             highContrast: true,
           ),
+          darkTheme: AppTheme.dark(
+            colorSafePalette: settings.colorSafePalette,
+            highContrast: settings.highContrastFallback,
+          ),
+          highContrastDarkTheme: AppTheme.dark(
+            colorSafePalette: settings.colorSafePalette,
+            highContrast: true,
+          ),
+          themeMode: ThemeMode.system,
           initialRoute: initial,
           routes: {
             '/': (context) => const WelcomeScreen(),
             '/welcome': (context) => const WelcomeScreen(),
             '/campus': (context) => const CampusMapsScreen(),
             '/community': (context) => const CommunityMapsDirectory(),
-            '/map': (context) => const MapScreen(),
             '/opportunities': (context) => const OpportunitiesScreen(),
+            '/favorites': (context) => const FavoritesScreen(),
             '/opportunites': (context) => const OpportunitiesScreen(),
             'opportunites': (context) => const OpportunitiesScreen(),
             '/accessibility-settings': (context) =>

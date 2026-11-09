@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
 import '/constants/map_icon_config.dart';
+import '/services/accessibility_theme.dart';
 import '/services/layer_filter.dart';
 
 const Color layersButtonBackgroundColor = Color.fromARGB(255, 47, 95, 62);
@@ -54,8 +55,10 @@ class MapLayersButton extends StatelessWidget {
   });
 
   void _openLayerPanel(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     showModalBottomSheet(
       context: context,
+      backgroundColor: colors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -66,14 +69,15 @@ class MapLayersButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return Material(
-      color: layersButtonBackgroundColor,
+      color: colors.primary,
       elevation: 4,
       borderRadius: BorderRadius.circular(12),
       child: IconButton(
         tooltip: 'Map layers',
         onPressed: () => _openLayerPanel(context),
-        icon: const Icon(Icons.layers, color: layersButtonIconColor),
+        icon: Icon(Icons.layers, color: colors.onPrimary),
         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
       ),
     );
@@ -159,16 +163,17 @@ class _LayerPanelState extends State<_LayerPanel> {
     widget.onFilterChanged?.call();
   }
 
-  List<Widget> _buildTypeTiles(MapLayerEntry entry) {
+  List<Widget> _buildTypeTiles(BuildContext context, MapLayerEntry entry) {
+    final colors = AccessibilityColors.of(context);
     if (!entry.hasTypes) {
       if (entry.isLoadingTypes) {
-        return const [
+        return [
           Padding(
             padding: EdgeInsets.fromLTRB(52, 0, 20, 12),
             child: Text(
               'Loading types…',
               style: TextStyle(
-                color: Colors.black54,
+                color: colors.secondaryText,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -181,44 +186,52 @@ class _LayerPanelState extends State<_LayerPanel> {
     return [
       CheckboxListTile(
         value: entry.allTypesSelected,
-        activeColor: layersButtonBackgroundColor,
+        activeColor: colors.primary,
         dense: true,
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: const EdgeInsets.only(left: 32),
-        title: const Text(
+        title: Text(
           'All',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: colors.primaryText,
+          ),
         ),
         onChanged: (checked) => _onAllTypesChanged(entry, checked ?? false),
       ),
       for (final type in entry.types)
         CheckboxListTile(
           value: entry.selectedTypes.contains(type),
-          activeColor: layersButtonBackgroundColor,
+          activeColor: colors.primary,
           dense: true,
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: const EdgeInsets.only(left: 32),
-          title: Text(type, style: const TextStyle(fontSize: 14)),
+          title: Text(
+            type,
+            style: TextStyle(fontSize: 14, color: colors.primaryText),
+          ),
           onChanged: (checked) => _onTypeChanged(entry, type, checked ?? false),
         ),
     ];
   }
 
-  Widget _buildEntry(MapLayerEntry entry) {
+  Widget _buildEntry(BuildContext context, MapLayerEntry entry) {
+    final colors = AccessibilityColors.of(context);
     return ExpansionTile(
       key: PageStorageKey<String>(entry.label),
       controlAffinity: ListTileControlAffinity.trailing,
       leading: Checkbox(
         value: entry.layer.isVisible,
-        activeColor: layersButtonBackgroundColor,
+        activeColor: colors.primary,
         onChanged: (checked) => _onCategoryChanged(entry, checked ?? true),
       ),
-      title: Text(entry.label),
+      title: Text(entry.label, style: TextStyle(color: colors.primaryText)),
       children: [
         // When the category is hidden, its types are dimmed to show that
         // checked types are not currently active. Interaction is preserved so
         // selecting a type can re-enable the category.
-        for (final tile in _buildTypeTiles(entry))
+        for (final tile in _buildTypeTiles(context, entry))
           AnimatedOpacity(
             duration: const Duration(milliseconds: 150),
             opacity: entry.layer.isVisible ? 1.0 : 0.4,
@@ -230,23 +243,28 @@ class _LayerPanelState extends State<_LayerPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
             child: Text(
               'Map Layers',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colors.primaryText,
+              ),
             ),
           ),
           Flexible(
             child: ListView(
               shrinkWrap: true,
               children: [
-                for (final entry in widget.entries) _buildEntry(entry),
+                for (final entry in widget.entries) _buildEntry(context, entry),
               ],
             ),
           ),

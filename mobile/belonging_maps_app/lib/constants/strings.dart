@@ -40,8 +40,22 @@ class AppStrings {
       'in this work and helping us amplify the voices and stories '
       'that make our communities stronger.';
 
-  // TODO: Replace with the real survey links from the project sponsor.
-  static const String feedbackSurveyUrl = 'https://forms.gle/feedback-survey';
-  static const String whatIsMissingSurveyUrl =
-      'https://forms.gle/what-is-missing-survey';
+  static const String somosSacStateSurveyUrl =
+      'https://survey123.arcgis.com/share/56d94520eea24deaa5a1e57b3ab43e08';
+  static const String somosSacCommunitySurveyUrl =
+      'https://survey123.arcgis.com/share/ffa13b155b684041ab4b4335d4ccf029';
+  static const String ummahSacStateSurveyUrl =
+      'https://survey123.arcgis.com/share/9859d4081f2742449fcf4331ea9122f9';
+  static const String ummahSacCommunitySurveyUrl =
+      'https://survey123.arcgis.com/share/2d1fe1696b794a239cbdecdae736f289';
+  static const String ubuntuSacStateSurveyUrl =
+      'https://storymaps.arcgis.com/stories/0533e5adea024e10a69568c547544c07';
+  static const String ubuntuSacCommunitySurveyUrl =
+      'https://survey123.arcgis.com/share/e4a218f5291f4fa9a31078cf8f067d84';
+  static const String somosSomethingMissingSurveyUrl =
+      'https://survey123.arcgis.com/share/0b9123ed6c9f4cf6a0e1f3e076ffd5ae';
+  static const String ummahSomethingMissingSurveyUrl =
+      'https://survey123.arcgis.com/share/8688bd88b2e64da6bf369f4972161f2f';
+  static const String ubuntuSomethingMissingSurveyUrl =
+      'https://survey123.arcgis.com/share/b97c6c9ce15c4fa194d8aa4392d0e6c7';
 }

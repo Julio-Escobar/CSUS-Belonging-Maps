@@ -16,12 +16,14 @@ namespace BelongingMaps.API.Controllers
             _context = context;
         }
 
+        /// <summary>Returns every survey.</summary>
         [HttpGet]
         public IActionResult GetSurveys()
         {
             return Ok(_context.Surveys.ToList());
         }
 
+        /// <summary>Creates a survey.</summary>
         [HttpPost]
         public IActionResult AddSurvey([FromBody] Survey survey)
         {
@@ -31,6 +33,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(survey);
         }
 
+        /// <summary>Updates a survey.</summary>
         [HttpPut("{id}")]
         public IActionResult EditSurvey(int id, [FromBody] Survey updated)
         {
@@ -46,6 +49,7 @@ namespace BelongingMaps.API.Controllers
             return Ok(survey);
         }
 
+        /// <summary>Deletes a survey.</summary>
         [HttpDelete("{id}")]
         public IActionResult DeleteSurvey(int id)
         {

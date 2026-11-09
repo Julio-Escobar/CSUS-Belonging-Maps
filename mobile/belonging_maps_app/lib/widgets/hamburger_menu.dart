@@ -6,10 +6,12 @@ import '../screens/community_resources_screen.dart';
 import '../screens/organization_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
+import '../screens/favorites_screen.dart';
 import '../screens/accessibility_settings_screen.dart';
 import '../screens/opportunities.dart';
 import '../screens/surveys_screen.dart';
 import '../screens/forums_screen.dart';
+import '../screens/change_password_screen.dart';
 import '../services/auth_service.dart';
 import '../services/accessibility_theme.dart';
 
@@ -111,22 +113,8 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.waving_hand_sharp),
-                            title: const Text('Welcome'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const WelcomeScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
-                          ),
+                          // P1-306: every map destination sits together at the
+                          // top so people find the maps first.
                           const Divider(),
                           ListTile(
                             leading: const Icon(Icons.school_outlined),
@@ -138,6 +126,39 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const CampusMapsScreen(),
+                                ),
+                              );
+                              _closeDrawer();
+                            },
+                          ),
+                          const Divider(),
+                          ListTile(
+                            leading: const Icon(Icons.location_city_outlined),
+                            title: const Text('Community Maps'),
+                            textColor: colors.onPrimary,
+                            iconColor: colors.menuIcon,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CommunityMapsDirectory(),
+                                ),
+                              );
+                              _closeDrawer();
+                            },
+                          ),
+                          const Divider(),
+                          ListTile(
+                            leading: const Icon(Icons.waving_hand_sharp),
+                            title: const Text('Welcome'),
+                            textColor: colors.onPrimary,
+                            iconColor: colors.menuIcon,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const WelcomeScreen(),
                                 ),
                               );
                               _closeDrawer();
@@ -178,23 +199,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             },
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.location_city_outlined),
-                            title: const Text('Community Maps'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const CommunityMapsDirectory(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
-                          ),
-                          const Divider(),
 
                           ListTile(
                             leading: const Icon(Icons.announcement_outlined),
@@ -206,6 +210,23 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const OpportunitiesScreen(),
+                                ),
+                              );
+                              _closeDrawer();
+                            },
+                          ),
+                          const Divider(),
+
+                          ListTile(
+                            leading: const Icon(Icons.star_outline),
+                            title: const Text('Favorites'),
+                            textColor: colors.onPrimary,
+                            iconColor: colors.menuIcon,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FavoritesScreen(),
                                 ),
                               );
                               _closeDrawer();
@@ -272,6 +293,22 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 "ADMIN PANEL",
                                 style: TextStyle(color: Colors.white70),
                               ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.password),
+                              title: const Text('Change Password'),
+                              textColor: colors.onPrimary,
+                              iconColor: colors.menuIcon,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ChangePasswordScreen(),
+                                  ),
+                                );
+                                _closeDrawer();
+                              },
                             ),
                             ListTile(
                               leading: const Icon(Icons.edit),

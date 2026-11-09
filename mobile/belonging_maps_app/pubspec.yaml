@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.8.1
@@ -38,14 +38,20 @@ dependencies:
   font_awesome_flutter: ^10.6.0
   arcgis_maps: ^200.8.0+4672
   flutter_dotenv: ^6.0.0
+  webview_flutter: ^4.10.0
 
   # 🔥 ADDED THIS (do not remove)
   http: ^1.2.0
   geolocator: ^14.0.2
   shared_preferences: ^2.5.5
+  package_info_plus: ^8.3.1
+  image_picker: ^1.2.4
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -54,6 +60,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  # Used to fake the platform browser in widget tests.
+  url_launcher_platform_interface: ^2.3.2
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.1
 
@@ -100,6 +108,17 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/
+    - assets/data/
+    # Latine art photos shown inside the SOMOS campus map location cards.
+    # Flutter only bundles files located directly in a listed directory, so
+    # each asset subdirectory needs its own entry.
+    - assets/somos_campus_map_art/
+    # Icons drawn for the SOMOS campus center markers (one per center).
+    - assets/somos_campus_map_assets/
+    # Icons drawn for the Ummah campus center markers (one per center).
+    - assets/ummah_campus_map_assets/
+    # Icons drawn for the Ubuntu campus center markers (one per center).
+    - assets/ubuntu_campus_map_assets/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.
@@ -110,6 +129,7 @@ flutter:
     - assets/map_icons/community-service/
     - assets/map_icons/edcuation/
     - assets/map_icons/food/
+    - assets/map_icons/general/
     - assets/map_icons/public-art/
     - assets/map_icons/religious/
 
