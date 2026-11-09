@@ -12,9 +12,49 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+http.Client _organizationResourcesClient() {
+  final resources = <Map<String, dynamic>>[
+    {
+      'id': 1,
+      'title': 'SOMOS Student Organization',
+      'category': 'SOMOS',
+      'description': 'Student support and community events.',
+      'iconKey': 'groups',
+      'orgKey': 'somos',
+    },
+  ];
+
+  return MockClient((request) async {
+    if (request.method == 'GET') {
+      return http.Response(jsonEncode(resources), 200);
+    }
+
+    final id = int.tryParse(request.url.pathSegments.last);
+    final index = resources.indexWhere((resource) => resource['id'] == id);
+    if (index == -1) return http.Response('', 404);
+
+    if (request.method == 'PUT') {
+      final body = Map<String, dynamic>.from(jsonDecode(request.body) as Map);
+      body['id'] = id;
+      resources[index] = body;
+      return http.Response(jsonEncode(body), 200);
+    }
+    if (request.method == 'DELETE') {
+      resources.removeAt(index);
+      return http.Response('', 200);
+    }
+    return http.Response('', 405);
+  });
+}
 
 void main() {
-  setUp(useFakeCommunityResourcesApi);
+  setUp(() {
+    useFakeCommunityResourcesApi();
+    dotenv.loadFromString(envString: 'API_BASE_URL=http://fake-api');
+    SharedPreferences.setMockInitialValues({});
+  });
   tearDown(() => AuthService.isAdmin = false);
 
   testWidgets(
@@ -66,8 +106,13 @@ void main() {
     expect(find.text('Food Pantry'), findsNothing);
 
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: _organizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
     tester.semantics.tap(
       semanticTapByTooltip('Edit SOMOS Student Organization'),
     );
@@ -93,8 +138,13 @@ void main() {
     final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: _organizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
 
     expect(
       find.bySemanticsLabel(
@@ -123,8 +173,13 @@ void main() {
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
 
     await tester.pumpWidget(
-      const MaterialApp(home: OrganizationResourcesScreen()),
+      MaterialApp(
+        home: OrganizationResourcesScreen(
+          client: _organizationResourcesClient(),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Edit ')), findsNothing);
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
   });
