@@ -78,6 +78,39 @@ void main() {
     expect(find.text('Resource information'), findsNothing);
   });
 
+  testWidgets('search filters by title and description and can be cleared', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+
+    final semantics = tester.ensureSemantics();
+    final searchField = find.byType(TextField);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Search resources').first).label,
+      'Search resources',
+    );
+
+    await tester.enterText(searchField, 'Counseling');
+    await tester.pumpAndSettle();
+    expect(find.text('Mental Health Services'), findsOneWidget);
+    expect(find.text('Food Pantry'), findsNothing);
+
+    await tester.enterText(searchField, 'Pantry');
+    await tester.pumpAndSettle();
+    expect(find.text('Food Pantry'), findsOneWidget);
+    expect(find.text('Mental Health Services'), findsNothing);
+
+    await tester.enterText(searchField, 'no resource matches this');
+    await tester.pumpAndSettle();
+    expect(find.text('No matches'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Clear search'));
+    await tester.pumpAndSettle();
+    expect(find.text('Food Pantry'), findsOneWidget);
+    expect(find.text('Mental Health Services'), findsOneWidget);
+    semantics.dispose();
+  });
+
   testWidgets('shows an error with Retry when loading fails', (tester) async {
     api.failRequests = true;
     await pumpScreen(tester);
