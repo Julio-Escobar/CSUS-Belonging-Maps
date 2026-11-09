@@ -6,7 +6,10 @@ import 'package:http/http.dart' as http;
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
+import '../services/image_upload_service.dart';
 import '../widgets/hamburger_menu.dart';
+import '../widgets/resource_image.dart';
+import '../widgets/resource_image_field.dart';
 import 'somos_community_map.dart';
 import 'ummah_community_map.dart';
 import 'ubuntu_community_map.dart';
@@ -144,9 +147,10 @@ class _OrganizationResourcesScreenState
     );
     String selectedIcon = existing?.iconKey ?? 'groups';
     String selectedOrgKey = existing?.orgKey ?? _orgLabels.keys.first;
+    var selectedImage = ImageSelection(existingImageId: existing?.imageId);
     final formKey = GlobalKey<FormState>();
 
-    final result = await showDialog<_OrganizationResource>(
+    final result = await showDialog<(_OrganizationResource, ImageSelection)>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
@@ -239,6 +243,12 @@ class _OrganizationResourcesScreenState
                           }
                         },
                       ),
+                      const SizedBox(height: 16),
+                      ResourceImageField(
+                        value: selectedImage,
+                        onChanged: (selection) =>
+                            dialogSetState(() => selectedImage = selection),
+                      ),
                     ],
                   ),
                 ),
@@ -262,8 +272,9 @@ class _OrganizationResourcesScreenState
                       description: descriptionController.text.trim(),
                       iconKey: selectedIcon,
                       orgKey: selectedOrgKey,
+                      imageId: selectedImage.existingImageId,
                     );
-                    Navigator.of(dialogContext).pop(resource);
+                    Navigator.of(dialogContext).pop((resource, selectedImage));
                   },
                   child: Text(isEditing ? 'Update' : 'Add'),
                 ),
@@ -275,13 +286,28 @@ class _OrganizationResourcesScreenState
     );
 
     if (result == null) return;
+    var (draft, image) = result;
+
+    // Upload a newly picked photo first, then save the post with its id
+    // (P1-318).
+    if (image.newBytes != null) {
+      try {
+        final imageId = await ImageUploadService(
+          client: _client,
+        ).upload(image.newBytes!);
+        draft = draft.copyWithImage(imageId);
+      } on ImageUploadException catch (e) {
+        _showRequestError(e.message);
+        return;
+      }
+    }
 
     final uri = _apiUri(
       isEditing
-          ? '/api/organizationresources/${result.id}'
+          ? '/api/organizationresources/${draft.id}'
           : '/api/organizationresources',
     );
-    if (uri == null || (isEditing && result.id == null)) {
+    if (uri == null || (isEditing && draft.id == null)) {
       _showRequestError(
         'Could not save the organization resource. Please try again.',
       );
@@ -294,14 +320,14 @@ class _OrganizationResourcesScreenState
                 .put(
                   uri,
                   headers: {'Content-Type': 'application/json'},
-                  body: jsonEncode(result.toJson()),
+                  body: jsonEncode(draft.toJson()),
                 )
                 .timeout(_requestTimeout)
           : await _client
                 .post(
                   uri,
                   headers: {'Content-Type': 'application/json'},
-                  body: jsonEncode(result.toJson()),
+                  body: jsonEncode(draft.toJson()),
                 )
                 .timeout(_requestTimeout);
       if (response.statusCode != 200) {
@@ -346,6 +372,14 @@ class _OrganizationResourcesScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (resource.imageId != null) ...[
+                ResourceImage(
+                  imageId: resource.imageId,
+                  height: 200,
+                  semanticLabel: 'Photo for ${resource.title}',
+                ),
+                const SizedBox(height: 12),
+              ],
               _CategoryLabel(category: resource.category),
               const SizedBox(height: 16),
               Text(
@@ -490,6 +524,9 @@ class _OrganizationResource {
   final String iconKey;
   final String orgKey;
 
+  /// Optional uploaded photo (P1-318). Null means no image.
+  final int? imageId;
+
   const _OrganizationResource({
     this.id,
     required this.title,
@@ -497,7 +534,18 @@ class _OrganizationResource {
     required this.description,
     required this.iconKey,
     required this.orgKey,
+    this.imageId,
   });
+
+  _OrganizationResource copyWithImage(int? newImageId) => _OrganizationResource(
+    id: id,
+    title: title,
+    category: category,
+    description: description,
+    iconKey: iconKey,
+    orgKey: orgKey,
+    imageId: newImageId,
+  );
 
   IconData get icon => _iconOptions[iconKey] ?? Icons.groups_outlined;
 
@@ -509,6 +557,7 @@ class _OrganizationResource {
       description: json['description'] as String? ?? '',
       iconKey: json['iconKey'] as String? ?? 'groups',
       orgKey: json['orgKey'] as String? ?? '',
+      imageId: json['imageId'] as int?,
     );
   }
 
@@ -518,6 +567,7 @@ class _OrganizationResource {
     'description': description,
     'iconKey': iconKey,
     'orgKey': orgKey,
+    'imageId': imageId,
   };
 }
 
@@ -591,6 +641,13 @@ class _ResourceCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (resource.imageId != null) ...[
+                const SizedBox(height: 12),
+                ResourceImage(
+                  imageId: resource.imageId,
+                  semanticLabel: 'Photo for ${resource.title}',
+                ),
+              ],
               const SizedBox(height: 12),
               Text(
                 resource.description,

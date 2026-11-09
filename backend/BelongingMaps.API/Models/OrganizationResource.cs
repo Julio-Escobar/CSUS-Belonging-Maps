@@ -8,5 +8,8 @@ namespace BelongingMaps.API.Models
         public string Description { get; set; } = "";
         public string IconKey { get; set; } = "groups";
         public string OrgKey { get; set; } = "";
+
+        // Optional photo uploaded through /api/images (P1-318).
+        public int? ImageId { get; set; }
     }
 }

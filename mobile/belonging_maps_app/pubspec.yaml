@@ -44,6 +44,7 @@ dependencies:
   http: ^1.2.0
   geolocator: ^14.0.2
   shared_preferences: ^2.5.5
+  image_picker: ^1.2.4
 
 dev_dependencies:
   flutter_test:
@@ -110,6 +111,8 @@ flutter:
     - assets/somos_campus_map_art/
     # Icons drawn for the SOMOS campus center markers (one per center).
     - assets/somos_campus_map_assets/
+    # Icons drawn for the Ubuntu campus center markers (one per center).
+    - assets/ubuntu_campus_map_assets/
     - .env
     # Community map icons. Flutter only bundles files located directly in a
     # listed directory, so each icon subdirectory needs its own entry.

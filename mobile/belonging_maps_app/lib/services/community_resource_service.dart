@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import '../models/community_resource.dart';
 import 'auth_service.dart';
+import 'image_upload_service.dart';
 
 /// A request to the community resources API failed. [message] is safe to show
 /// to the user.
@@ -77,6 +79,19 @@ class CommunityResourceService {
   Future<void> delete(int id) async {
     final response = await _send(() => _client.delete(_uri(id)));
     _checkStatus(response, 'delete the resource');
+  }
+
+  /// Uploads a photo for a resource and returns its image id (P1-319).
+  /// Throws [CommunityResourceException] if it fails.
+  Future<int> uploadImage(Uint8List bytes) async {
+    try {
+      return await ImageUploadService(
+        client: _client,
+        baseUrl: _baseUrlOverride,
+      ).upload(bytes);
+    } on ImageUploadException catch (e) {
+      throw CommunityResourceException(e.message);
+    }
   }
 
   void close() => _client.close();

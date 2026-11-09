@@ -31,7 +31,11 @@ class FakeCommunityResourcesApi {
   /// When true, every request answers with a 500 error.
   bool failRequests = false;
 
+  /// Number of images uploaded through POST /api/images.
+  int uploadedImages = 0;
+
   int _nextId = 9;
+  int _nextImageId = 100;
 
   late final http.Client client = MockClient(_handle);
 
@@ -58,6 +62,13 @@ class FakeCommunityResourcesApi {
     if (failRequests) return http.Response('Server error', 500);
 
     final segments = request.url.pathSegments;
+
+    if (segments.length >= 2 && segments[1] == 'images') {
+      if (request.method != 'POST') return http.Response('', 404);
+      uploadedImages++;
+      return _json({'id': _nextImageId++}, 201);
+    }
+
     final id = segments.length > 2 ? int.tryParse(segments[2]) : null;
     final index = id == null ? -1 : resources.indexWhere((r) => r['id'] == id);
 
