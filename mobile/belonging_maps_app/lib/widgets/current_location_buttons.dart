@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/accessibility_theme.dart';
+
 class CurrentLocationButton extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -7,14 +9,17 @@ class CurrentLocationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Positioned(
       bottom: 100,
       right: 16,
       child: FloatingActionButton(
-        backgroundColor: Color(0xFF2F5F3E),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
         tooltip: 'Go to current location',
         onPressed: onPressed,
-        child: Icon(Icons.my_location),
+        child: const Icon(Icons.my_location),
       ),
     );
   }

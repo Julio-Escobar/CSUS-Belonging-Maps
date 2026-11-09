@@ -16,6 +16,22 @@ const String genderNeutralBathroomsLayerUrl =
 const String genderNeutralBathroomsBuildingsLayerUrl =
     'https://services5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/BuildingsV2/FeatureServer/0';
 
+/// Sacramento State campus vector basemap, drawn above the world basemap so
+/// campus buildings and walking paths stay legible at close zoom levels.
+const String campusBasemapUrl =
+    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
+
+/// Esri world vector basemap that supplies the surrounding city context.
+const String worldBasemapUrl =
+    'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer';
+
+/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
+/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited") applied to
+/// the world basemap. Drawn between the building footprints and the restroom
+/// markers so building names stay readable over the campus basemap tiles.
+const String campusLabelsStyleUrl =
+    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
+
 /// Bundled gender neutral restroom pictogram used for the point markers.
 const String genderNeutralBathroomIconAsset =
     'assets/map_icons/general/GenderNeutralBathroom.png';
@@ -59,19 +75,36 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
   void initState() {
     super.initState();
 
-    _map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
-      ..initialViewpoint = Viewpoint.withLatLongScale(
-        latitude: _campusLatitude,
-        longitude: _campusLongitude,
-        scale: _campusScale,
-      )
-      ..maxExtent = Envelope.fromXY(
-        xMin: _campusExtentXMin,
-        yMin: _campusExtentYMin,
-        xMax: _campusExtentXMax,
-        yMax: _campusExtentYMax,
-        spatialReference: SpatialReference.wgs84,
-      );
+    final worldBasemapLayer = ArcGISVectorTiledLayer.withUri(
+      Uri.parse(worldBasemapUrl),
+    );
+    final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
+      Uri.parse(campusBasemapUrl),
+    );
+    final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
+      Uri.parse(campusLabelsStyleUrl),
+    );
+
+    // The campus vector tiles draw on top of the global world basemap.
+    _map =
+        ArcGISMap.withBasemap(
+            Basemap.withLayers(
+              baseLayers: [worldBasemapLayer, campusBasemapLayer],
+              referenceLayers: const [],
+            ),
+          )
+          ..initialViewpoint = Viewpoint.withLatLongScale(
+            latitude: _campusLatitude,
+            longitude: _campusLongitude,
+            scale: _campusScale,
+          )
+          ..maxExtent = Envelope.fromXY(
+            xMin: _campusExtentXMin,
+            yMin: _campusExtentYMin,
+            xMax: _campusExtentXMax,
+            yMax: _campusExtentYMax,
+            spatialReference: SpatialReference.wgs84,
+          );
 
     _buildingsLayer =
         FeatureLayer.withFeatureTable(
@@ -106,6 +139,9 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
           );
 
     _map.operationalLayers.add(_buildingsLayer);
+    // The label tiles draw above the footprints but below the restroom markers
+    // so building names stay readable and the markers stay on top.
+    _map.operationalLayers.add(campusLabelsLayer);
     _map.operationalLayers.add(_restroomLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;

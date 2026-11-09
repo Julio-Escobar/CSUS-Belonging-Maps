@@ -15,6 +15,7 @@ namespace BelongingMaps.API.Data
         public DbSet<OpportunityLink> OpportunityLinks { get; set; }
         public DbSet<OrganizationResource> OrganizationResources { get; set; }
         public DbSet<CommunityResource> CommunityResources { get; set; }
+        public DbSet<StoredImage> Images { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
