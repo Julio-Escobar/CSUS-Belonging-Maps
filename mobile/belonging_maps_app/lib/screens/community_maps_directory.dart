@@ -5,6 +5,11 @@ import '../widgets/map_selection_card.dart';
 import 'somos_community_map.dart';
 import 'ummah_community_map.dart';
 import 'ubuntu_community_map.dart';
+import '../widgets/website_button.dart';
+
+const String somosCommunityWebsiteUrl = 'https://storymaps.arcgis.com/stories/7d9f80e7c8de48449458800f1a45201c';
+const String ummahCommunityWebsiteUrl = 'https://storymaps.arcgis.com/stories/0533e5adea024e10a69568c547544c07';
+const String ubuntuCommunityWebsiteUrl = 'https://storymaps.arcgis.com/stories/1f6fb8b706b342c2b3421726f5542add';
 
 class CommunityMapsDirectory extends StatelessWidget {
   const CommunityMapsDirectory({super.key});
@@ -72,42 +77,37 @@ class CommunityMapsDirectory extends StatelessWidget {
               const SizedBox(height: 36),
               Semantics(
                 header: true,
-                child: Text(
-                  'Explore Community Resource Maps',
-                  style: headingStyle,
-                ),
+                child: Text('Explore More', style: headingStyle),
               ),
-              const SizedBox(height: 6),
-              Text('Select a community to get started', style: subtitleStyle),
-              const SizedBox(height: 28),
-              MapSelectionCard(
-                label: 'SOMOS Community Resource Map',
-                subtitle: 'SOMOS Community Resources',
-                imagePath: 'assets/somoscommunityheader.png',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SomosCommunityMap()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              MapSelectionCard(
-                label: 'Ummah Community Resources Map',
-                subtitle: 'Ummah Community Resources',
-                imagePath: 'assets/ummahcommunityheader.png',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UmmahCommunityMap()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              MapSelectionCard(
-                label: 'Ubuntu Community Resources Map',
-                subtitle: 'Ubuntu Community Resources',
-                imagePath: 'assets/ubuntucommunityheader.png',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UbuntuCommunityMap()),
-                ),
+              const SizedBox(height: 32),
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: WebsiteCircleButton(
+                      label: 'SOMOS',
+                      logoPath: 'assets/somoscommunityemblem.png',
+                      url: somosCommunityWebsiteUrl,
+                      imageScale: 1.25,
+                    ),
+                  ),
+                  Expanded(
+                    child: WebsiteCircleButton(
+                      label: 'Ummah',
+                      logoPath: 'assets/ummahcommunityemblem.png',
+                      url: ummahCommunityWebsiteUrl,
+                      imageScale: 1.18,
+                    ),
+                  ),
+                  Expanded(
+                    child: WebsiteCircleButton(
+                      label: 'Ubuntu',
+                      logoPath: 'assets/ubuntucommunityemblem.png',
+                      url: ubuntuCommunityWebsiteUrl,
+                      imageScale: 1.33,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
             ],

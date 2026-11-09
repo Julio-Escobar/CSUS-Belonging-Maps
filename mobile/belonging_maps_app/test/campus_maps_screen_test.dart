@@ -68,8 +68,8 @@ void main() {
 
     expect(interactiveMapButton, findsOneWidget);
     expect(genderNeutralBathroomsButton, findsOneWidget);
-    // Three campus maps plus the duplicated SOMOS card lower on the page.
-    expect(find.byType(MapSelectionCard), findsNWidgets(4));
+    // The three campus maps appear before the Storymaps website buttons.
+    expect(find.byType(MapSelectionCard), findsNWidgets(3));
 
     final buttonRect = tester.getRect(interactiveMapButton);
     final bathroomsButtonRect = tester.getRect(genderNeutralBathroomsButton);

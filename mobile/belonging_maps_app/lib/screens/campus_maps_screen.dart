@@ -7,16 +7,21 @@ import 'gender_neutral_bathrooms_map.dart';
 import 'somos_campus_map.dart';
 import 'ummah_campus_map.dart';
 import 'ubuntu_campus_map.dart';
+import 'in_app_web_screen.dart';
 
-/// Official Sacramento State interactive campus map.
 const String interactiveCampusMapUrl =
     'https://map.csus.edu/?id=2324#!ct/103755,103756,103757,106981?s/';
+
+const String somosWebsiteUrl =
+    'https://storymaps.arcgis.com/stories/b91a49175ef142478dbc23ab9e4f3dc6';
+const String ummahWebsiteUrl =
+    'https://storymaps.arcgis.com/stories/e9236e47825c403983a35bb167adfd9d';
+const String ubuntuWebsiteUrl =
+    'https://storymaps.arcgis.com/stories/7dfddbf89e5b48e5a8a3509b26d25ed2';
 
 class CampusMapsScreen extends StatelessWidget {
   const CampusMapsScreen({super.key});
 
-  /// Opens the map site in a browser rendered inside the app (Android Custom
-  /// Tabs / iOS Safari view controller).
   Future<void> _openInteractiveCampusMap(BuildContext context) async {
     var launched = false;
     try {
@@ -207,22 +212,126 @@ class CampusMapsScreen extends StatelessWidget {
               const SizedBox(height: 36),
               Semantics(
                 header: true,
-                child: Text('Explore Our Campus', style: headingStyle),
+                child: Text('Explore Storymaps', style: headingStyle),
               ),
-              const SizedBox(height: 20),
-              MapSelectionCard(
-                label: 'SOMOS Campus Map',
-                subtitle: 'Mapping Our Campus',
-                imagePath: 'assets/somoscampusmap.png',
-                logoPath: 'assets/somos_logo_temp.png',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SomosCampusMap()),
-                ),
+              const SizedBox(height: 32),
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _CampusWebsiteButton(
+                      label: 'SOMOS',
+                      logoPath: 'assets/somoscampusemblem.png',
+                      url: somosWebsiteUrl,
+                      imageScale: 1.25,
+                    ),
+                  ),
+                  Expanded(
+                    child: _CampusWebsiteButton(
+                      label: 'Ummah',
+                      logoPath: 'assets/ummahcampusemblem.png',
+                      url: ummahWebsiteUrl,
+                      imageScale: 1.18,
+                    ),
+                  ),
+                  Expanded(
+                    child: _CampusWebsiteButton(
+                      label: 'Ubuntu',
+                      logoPath: 'assets/ubuntucampusemblem.png',
+                      url: ubuntuWebsiteUrl,
+                      imageScale: 1.33,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CampusWebsiteButton extends StatelessWidget {
+  final String label;
+  final String logoPath;
+  final String url;
+
+  final double imageScale;
+
+  const _CampusWebsiteButton({
+    required this.label,
+    required this.logoPath,
+    required this.url,
+    this.imageScale = 1.0,
+  });
+
+  void _open(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InAppWebScreen(title: label, url: url),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
+    return Semantics(
+      button: true,
+      label: 'Open $label website',
+      onTap: () => _open(context),
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
+            color: colors.cardBackground,
+            elevation: 3,
+            shape: CircleBorder(
+              side: BorderSide(color: colors.primary, width: 2),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _open(context),
+              child: SizedBox(
+                width: 76,
+                height: 76,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: ClipOval(
+                    child: Transform.scale(
+                      scale: imageScale,
+                      child: Image.asset(
+                        logoPath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Icon(
+                          Icons.public,
+                          color: colors.primary,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.primaryText,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

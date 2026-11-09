@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import '../constants/strings.dart';
+import '../services/app_version.dart';
 
 class AboutUsScreen extends StatelessWidget {
-  const AboutUsScreen({super.key});
+  /// Looks up the installed version (P1-322). Tests pass a fake.
+  final AppVersionLoader versionLoader;
+
+  const AboutUsScreen({
+    super.key,
+    this.versionLoader = loadInstalledAppVersion,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,13 +53,7 @@ class AboutUsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Version 1.0.0',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
+                  _VersionText(loader: versionLoader),
                 ],
               ),
             ),
@@ -100,6 +101,45 @@ class AboutUsScreen extends StatelessWidget {
   }
 }
  
+/// Shows the installed version once it loads. The line keeps its height
+/// while loading so the page doesn't jump, and an error just shows
+/// "Version unavailable" instead of crashing the page (P1-322).
+class _VersionText extends StatefulWidget {
+  final AppVersionLoader loader;
+
+  const _VersionText({required this.loader});
+
+  @override
+  State<_VersionText> createState() => _VersionTextState();
+}
+
+class _VersionTextState extends State<_VersionText> {
+  late final Future<AppVersion> _version = widget.loader();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<AppVersion>(
+      future: _version,
+      builder: (context, snapshot) {
+        final String text;
+        if (snapshot.hasData) {
+          text = snapshot.data!.label;
+        } else if (snapshot.hasError) {
+          text = 'Version unavailable';
+        } else {
+          // Placeholder with the same height as the real line.
+          text = 'Version';
+        }
+        return Text(
+          text,
+          key: const Key('aboutUsVersion'),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        );
+      },
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   final String title;
  
