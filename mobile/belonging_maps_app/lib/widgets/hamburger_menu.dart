@@ -6,6 +6,7 @@ import '../screens/community_resources_screen.dart';
 import '../screens/organization_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
+import '../screens/favorites_screen.dart';
 import '../screens/accessibility_settings_screen.dart';
 import '../screens/opportunities.dart';
 import '../screens/surveys_screen.dart';
@@ -209,6 +210,23 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const OpportunitiesScreen(),
+                                ),
+                              );
+                              _closeDrawer();
+                            },
+                          ),
+                          const Divider(),
+
+                          ListTile(
+                            leading: const Icon(Icons.star_outline),
+                            title: const Text('Favorites'),
+                            textColor: colors.onPrimary,
+                            iconColor: colors.menuIcon,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FavoritesScreen(),
                                 ),
                               );
                               _closeDrawer();

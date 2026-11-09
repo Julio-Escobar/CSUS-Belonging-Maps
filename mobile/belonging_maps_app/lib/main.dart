@@ -11,6 +11,7 @@ import 'services/accessibility_theme.dart';
 import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/about_us_screen.dart';
+import 'screens/favorites_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +75,7 @@ class BelongingMapsApp extends StatelessWidget {
             '/campus': (context) => const CampusMapsScreen(),
             '/community': (context) => const CommunityMapsDirectory(),
             '/opportunities': (context) => const OpportunitiesScreen(),
+            '/favorites': (context) => const FavoritesScreen(),
             '/opportunites': (context) => const OpportunitiesScreen(),
             'opportunites': (context) => const OpportunitiesScreen(),
             '/accessibility-settings': (context) =>

@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
+import '../services/favorites_store.dart';
+import '../widgets/favorite_toggle_button.dart';
 import '../widgets/search_suggestion_list.dart';
 
 const Map<String, IconData> _iconOptions = {
@@ -19,8 +21,13 @@ const Map<String, IconData> _iconOptions = {
 
 class OpportunitiesScreen extends StatefulWidget {
   final http.Client? client;
+  final String? initialOpportunityId;
 
-  const OpportunitiesScreen({super.key, this.client});
+  const OpportunitiesScreen({
+    super.key,
+    this.client,
+    this.initialOpportunityId,
+  });
 
   @override
   State<OpportunitiesScreen> createState() => _OpportunitiesScreenState();
@@ -312,6 +319,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
             .toList();
         _isLoading = false;
       });
+      _openInitialFavoriteIfRequested();
     } catch (_) {
       _finishLoadingWithError(
         'Could not load opportunities. Please try again.',
@@ -332,10 +340,38 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       _isLoading = false;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
+        if (widget.initialOpportunityId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This saved opportunity is no longer available.'),
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  void _openInitialFavoriteIfRequested() {
+    final id = widget.initialOpportunityId;
+    if (id == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final matches = _resources.where(
+        (resource) => resource.favoriteId == id,
+      );
+      if (matches.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This saved opportunity is no longer available.'),
+          ),
+        );
+        return;
+      }
+      _showResourceInformation(context, matches.first);
     });
   }
 
@@ -1203,6 +1239,16 @@ class _ScholarshipResource {
 
   IconData get icon => _iconOptions[iconKey] ?? Icons.auto_stories;
 
+  String get favoriteId => id?.toString() ??
+      '${category.trim().toLowerCase()}::${title.trim().toLowerCase()}';
+
+  FavoriteEntry get favoriteEntry => FavoriteEntry(
+    type: FavoriteType.opportunity,
+    id: favoriteId,
+    title: title,
+    data: {'id': id, ...toJson()},
+  );
+
   bool matchesKeyword(String query) {
     final keyword = query.trim().toLowerCase();
     if (keyword.isEmpty) return true;
@@ -1379,6 +1425,7 @@ class _ResourceCard extends StatelessWidget {
                 ),
               ),
             ),
+            FavoriteToggleButton(favorite: resource.favoriteEntry),
             if (isAdmin) ...[
               const SizedBox(width: 6),
               Column(

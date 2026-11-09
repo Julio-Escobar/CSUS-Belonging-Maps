@@ -41,6 +41,8 @@ class _OrganizationResourcesScreenState
 
   bool _isLoading = true;
   List<_OrganizationResource> _resources = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   late final http.Client _client;
   late final bool _ownsClient;
 
@@ -69,6 +71,7 @@ class _OrganizationResourcesScreenState
 
   @override
   void dispose() {
+    _searchController.dispose();
     if (_ownsClient) _client.close();
     super.dispose();
   }
@@ -480,6 +483,11 @@ class _OrganizationResourcesScreenState
   Widget build(BuildContext context) {
     final isAdmin = AuthService.isAdmin;
     final colors = AccessibilityColors.of(context);
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredResources = _resources.where((resource) {
+      return resource.title.toLowerCase().contains(query) ||
+          resource.description.toLowerCase().contains(query);
+    }).toList();
 
     return HamburgerMenu(
       title: 'Organization Resources',
@@ -496,20 +504,82 @@ class _OrganizationResourcesScreenState
         backgroundColor: colors.pageBackground,
         body: _isLoading
             ? Center(child: CircularProgressIndicator(color: colors.primary))
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: _resources.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final resource = _resources[index];
-                  return _ResourceCard(
-                    resource: resource,
-                    isAdmin: isAdmin,
-                    onTap: () => _showResourceInformation(resource),
-                    onEdit: () => _showResourceDialog(index: index),
-                    onDelete: () => _deleteResource(index),
-                  );
-                },
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Semantics(
+                      label: 'Search resources',
+                      textField: true,
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          label: ExcludeSemantics(
+                            child: Text(
+                              'Search resources',
+                              style: Theme.of(
+                                context,
+                              ).inputDecorationTheme.labelStyle,
+                            ),
+                          ),
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: 'Clear search',
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                ),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: filteredResources.isEmpty
+                        ? ListView(
+                            padding: const EdgeInsets.all(32),
+                            children: [
+                              if (query.isNotEmpty)
+                                Text(
+                                  'No matches',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: colors.secondaryText,
+                                  ),
+                                ),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredResources.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final resource = filteredResources[index];
+                              final resourceIndex = _resources.indexOf(
+                                resource,
+                              );
+                              return _ResourceCard(
+                                resource: resource,
+                                isAdmin: isAdmin,
+                                onTap: () =>
+                                    _showResourceInformation(resource),
+                                onEdit: () => _showResourceDialog(
+                                  index: resourceIndex,
+                                ),
+                                onDelete: () =>
+                                    _deleteResource(resourceIndex),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
       ),
     );

@@ -122,6 +122,9 @@ void main() {
         tester.widget<Text>(find.text(data.cardTitle).first).style!.color,
         colors.onPrimary,
       );
+      final favoriteIcon = tester.widget<Icon>(find.byIcon(Icons.star_border));
+      expect(favoriteIcon.color, colors.onPrimary);
+      expect(favoriteIcon.size, 28);
     });
 
     testWidgets('long campus name leaves more information reachable', (

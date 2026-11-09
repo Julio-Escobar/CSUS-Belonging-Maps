@@ -19,6 +19,7 @@ const _expectedOrder = [
   'Community Resources',
   'Organization Resources',
   'Opportunities',
+  'Favorites',
   'Forums',
   'Surveys',
   'Accessibility Settings',

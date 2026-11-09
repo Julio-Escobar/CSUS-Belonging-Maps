@@ -1,4 +1,9 @@
-const locationNameAttributeFields = ['Company_Name', 'Name', 'FACILITY_NAME'];
+const locationNameAttributeFields = [
+  'Company_Name',
+  'Name',
+  'FACILITY_NAME',
+  'RefName',
+];
 
 String cleanLocationAttribute(dynamic value) {
   final text = value?.toString().trim() ?? '';

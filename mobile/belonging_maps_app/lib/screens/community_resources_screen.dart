@@ -53,7 +53,9 @@ class CommunityResourcesScreen extends StatefulWidget {
 
 class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   late final CommunityResourceService _service;
+  final TextEditingController _searchController = TextEditingController();
   List<CommunityResource> _resources = [];
+  String _searchQuery = '';
   bool _isLoading = true;
   String? _loadError;
 
@@ -66,6 +68,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _service.close();
     super.dispose();
   }
@@ -301,37 +304,85 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       );
     }
 
-    return RefreshIndicator(
-      color: colors.primary,
-      onRefresh: _refresh,
-      child: _resources.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(32),
-              children: [
-                Text(
-                  'No community resources yet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colors.secondaryText),
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredResources = _resources.where((resource) {
+      return resource.title.toLowerCase().contains(query) ||
+          resource.description.toLowerCase().contains(query);
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Semantics(
+            label: 'Search resources',
+            textField: true,
+            child: TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                label: ExcludeSemantics(
+                  child: Text(
+                    'Search resources',
+                    style: Theme.of(context).inputDecorationTheme.labelStyle,
+                  ),
                 ),
-              ],
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: _resources.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final resource = _resources[index];
-                return _ResourceCard(
-                  resource: resource,
-                  isAdmin: isAdmin,
-                  onTap: () => _showResourceInformation(context, resource),
-                  onEdit: isAdmin ? () => _editResource(resource) : null,
-                  onDelete: isAdmin ? () => _deleteResource(resource) : null,
-                );
-              },
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: colors.primary,
+            onRefresh: _refresh,
+            child: filteredResources.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(32),
+                    children: [
+                      Text(
+                        _resources.isEmpty && query.isEmpty
+                            ? 'No community resources yet.'
+                            : 'No matches',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colors.secondaryText),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredResources.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final resource = filteredResources[index];
+                      return _ResourceCard(
+                        resource: resource,
+                        isAdmin: isAdmin,
+                        onTap: () =>
+                            _showResourceInformation(context, resource),
+                        onEdit: isAdmin ? () => _editResource(resource) : null,
+                        onDelete: isAdmin
+                            ? () => _deleteResource(resource)
+                            : null,
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 

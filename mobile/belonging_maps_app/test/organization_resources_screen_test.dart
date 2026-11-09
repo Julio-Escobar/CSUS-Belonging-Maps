@@ -147,6 +147,61 @@ void main() {
     expect(methods, ['GET', 'POST', 'PUT', 'DELETE', 'GET']);
   });
 
+  testWidgets('search filters by title and description and can be cleared', (
+    tester,
+  ) async {
+    final methods = <String>[];
+    final client = _resourceClient([
+      {
+        'id': 1,
+        'title': 'SOMOS Student Organization',
+        'category': 'SOMOS',
+        'description': 'Resources for SOMOS community members.',
+        'iconKey': 'groups',
+        'orgKey': 'somos',
+      },
+      {
+        'id': 2,
+        'title': 'Peer Support Network',
+        'category': 'Support',
+        'description': 'Mentoring and support for new students.',
+        'iconKey': 'diversity',
+        'orgKey': 'ubuntu',
+      },
+    ], methods);
+
+    await _pumpOrganizationResources(tester, client: client);
+
+    final semantics = tester.ensureSemantics();
+    final searchField = find.byType(TextField);
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('Search resources').first)
+          .label,
+      'Search resources',
+    );
+
+    await tester.enterText(searchField, 'mentoring');
+    await tester.pumpAndSettle();
+    expect(find.text('Peer Support Network'), findsOneWidget);
+    expect(find.text('SOMOS Student Organization'), findsNothing);
+
+    await tester.enterText(searchField, 'Organization');
+    await tester.pumpAndSettle();
+    expect(find.text('SOMOS Student Organization'), findsOneWidget);
+    expect(find.text('Peer Support Network'), findsNothing);
+
+    await tester.enterText(searchField, 'no resource matches this');
+    await tester.pumpAndSettle();
+    expect(find.text('No matches'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Clear search'));
+    await tester.pumpAndSettle();
+    expect(find.text('SOMOS Student Organization'), findsOneWidget);
+    expect(find.text('Peer Support Network'), findsOneWidget);
+    semantics.dispose();
+  });
+
   testWidgets('shows an error when resource requests fail', (tester) async {
     final methods = <String>[];
     final client = _resourceClient([], methods, getStatus: 500);
