@@ -428,8 +428,6 @@ class LocationInfoCard extends StatelessWidget {
   /// Builds the fixed card used for the Latine art locations. It never expands
   /// and only shows the photo, the title, the type, and the address.
   Widget _buildSummaryCard(BuildContext context, MediaQueryData mediaQuery) {
-    // This method is only called from [build], where the same active theme is
-    // still available to the child card.
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
