@@ -20,6 +20,8 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Forums'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Forums'));
     await tester.pumpAndSettle();
 
