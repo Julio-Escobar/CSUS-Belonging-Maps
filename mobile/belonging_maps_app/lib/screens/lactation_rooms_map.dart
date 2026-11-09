@@ -271,7 +271,7 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
                 MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: SafeArea(
                     child: FilledButton.icon(
                       onPressed: _isLoading ? null : _browseRooms,
