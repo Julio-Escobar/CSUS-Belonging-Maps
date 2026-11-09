@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/location_attributes.dart';
+import '../services/accessibility_theme.dart';
 import 'full_screen_image_viewer.dart';
 import 'location_card_style.dart';
 
@@ -15,6 +16,41 @@ const Color mapInfoPrimaryTextColor = Colors.white;
 const Color mapInfoSecondaryTextColor = Colors.white70;
 const Color mapInfoDividerColor = Colors.white24;
 const Color mapInfoFallbackImageColor = Colors.white12;
+
+/// Resolves the location-card colors from the active accessibility palette.
+///
+/// The normal palette deliberately resolves to the original green-and-white
+/// treatment, while color-safe and high-contrast palettes update the entire
+/// card as one readable unit.
+class _LocationCardPalette {
+  const _LocationCardPalette({
+    required this.background,
+    required this.foreground,
+    required this.secondaryForeground,
+    required this.divider,
+    required this.fallbackImage,
+    required this.surface,
+  });
+
+  final Color background;
+  final Color foreground;
+  final Color secondaryForeground;
+  final Color divider;
+  final Color fallbackImage;
+  final Color surface;
+
+  factory _LocationCardPalette.of(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+    return _LocationCardPalette(
+      background: colors.primary,
+      foreground: colors.onPrimary,
+      secondaryForeground: colors.onPrimary.withValues(alpha: 0.7),
+      divider: colors.onPrimary.withValues(alpha: 0.24),
+      fallbackImage: colors.onPrimary.withValues(alpha: 0.12),
+      surface: colors.cardBackground,
+    );
+  }
+}
 
 /// Identifies the photo drawn inside a location card, so widget tests can find
 /// it without depending on the image provider.
@@ -285,9 +321,10 @@ class LocationInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
+    final palette = _LocationCardPalette.of(context);
 
     if (summaryOnly) {
-      return _buildSummaryCard(mediaQuery);
+      return _buildSummaryCard(context, mediaQuery);
     }
 
     final double expandedHeight = mediaQuery.size.height * 0.72;
@@ -310,7 +347,7 @@ class LocationInfoCard extends StatelessWidget {
         height: showFullInfo ? expandedHeight : collapsedHeight,
         margin: const EdgeInsets.all(12),
         child: Card(
-          color: mapInfoCardColor,
+          color: palette.background,
           elevation: 10,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
@@ -341,14 +378,16 @@ class LocationInfoCard extends StatelessWidget {
 
   /// Builds the fixed card used for the Latine art locations. It never expands
   /// and only shows the photo, the title, the type, and the address.
-  Widget _buildSummaryCard(MediaQueryData mediaQuery) {
+  Widget _buildSummaryCard(BuildContext context, MediaQueryData mediaQuery) {
+    // This method is only called from [build], where the same active theme is
+    // still available to the child card.
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         margin: const EdgeInsets.all(12),
         constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.8),
         child: Card(
-          color: mapInfoCardColor,
+          color: _LocationCardPalette.of(context).background,
           elevation: 10,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
@@ -371,6 +410,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LocationCardPalette.of(context);
     final bool hasType = _hasValue(data.type);
     final bool hasAddress = _hasValue(data.address);
 
@@ -400,7 +440,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                       softWrap: true,
-                      style: LocationCardText.title(mapInfoPrimaryTextColor),
+                      style: LocationCardText.title(palette.foreground),
                     ),
                   ),
                 ),
@@ -412,7 +452,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                     minWidth: 48,
                     minHeight: 48,
                   ),
-                  icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                  icon: Icon(Icons.close, color: palette.foreground),
                 ),
               ],
             ),
@@ -422,7 +462,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
               child: Text(
                 data.type,
-                style: LocationCardText.subtitle(mapInfoPrimaryTextColor),
+                style: LocationCardText.subtitle(palette.foreground),
               ),
             ),
           if (hasAddress)
@@ -435,7 +475,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Icon(
                       Icons.location_on,
-                      color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
+                      color: palette.foreground.withValues(alpha: 0.8),
                       size: 16,
                     ),
                   ),
@@ -443,7 +483,7 @@ class _SummaryLocationInfoCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       data.address,
-                      style: LocationCardText.detail(mapInfoPrimaryTextColor),
+                      style: LocationCardText.detail(palette.foreground),
                     ),
                   ),
                 ],
@@ -485,6 +525,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LocationCardPalette.of(context);
     final bool hasCategory = category.trim().isNotEmpty;
 
     return SingleChildScrollView(
@@ -512,7 +553,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                       maxLines: hasCategory ? 3 : 4,
                       overflow: TextOverflow.ellipsis,
                       softWrap: true,
-                      style: LocationCardText.title(mapInfoPrimaryTextColor),
+                      style: LocationCardText.title(palette.foreground),
                     ),
                   ),
                 ),
@@ -524,7 +565,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                     minWidth: 48,
                     minHeight: 48,
                   ),
-                  icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                  icon: Icon(Icons.close, color: palette.foreground),
                 ),
               ],
             ),
@@ -536,7 +577,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                   category,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: LocationCardText.subtitle(mapInfoPrimaryTextColor),
+                  style: LocationCardText.subtitle(palette.foreground),
                 ),
               ),
             ],
@@ -548,7 +589,7 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                 style: LocationCardText.linkButtonStyle(),
                 child: Text(
                   'More information',
-                  style: LocationCardText.link(mapInfoPrimaryTextColor),
+                  style: LocationCardText.link(palette.foreground),
                 ),
               ),
             ),
@@ -616,6 +657,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LocationCardPalette.of(context);
     final validSocialLinks = _filteredSocialLinks();
 
     return Column(
@@ -639,7 +681,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   child: Text(
                     data.cardTitle,
                     softWrap: true,
-                    style: LocationCardText.title(mapInfoPrimaryTextColor),
+                    style: LocationCardText.title(palette.foreground),
                   ),
                 ),
               ),
@@ -648,12 +690,12 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 tooltip: 'Close location details',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                icon: const Icon(Icons.close, color: mapInfoPrimaryTextColor),
+                icon: Icon(Icons.close, color: palette.foreground),
               ),
             ],
           ),
         ),
-        const Divider(height: 1, color: mapInfoDividerColor),
+        Divider(height: 1, color: palette.divider),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -668,7 +710,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Icon(
                           Icons.location_on,
-                          color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
+                          color: palette.foreground.withValues(alpha: 0.8),
                           size: 16,
                         ),
                       ),
@@ -677,7 +719,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                         child: Text(
                           data.address,
                           style: LocationCardText.detail(
-                            mapInfoPrimaryTextColor,
+                            palette.foreground,
                           ),
                         ),
                       ),
@@ -688,14 +730,14 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 if (_hasValue(data.category)) ...[
                   Text(
                     'Category: ${data.category}',
-                    style: LocationCardText.detail(mapInfoPrimaryTextColor),
+                    style: LocationCardText.detail(palette.foreground),
                   ),
                   const SizedBox(height: 4),
                 ],
                 if (_hasValue(data.type)) ...[
                   Text(
                     'Type: ${data.type}',
-                    style: LocationCardText.detail(mapInfoPrimaryTextColor),
+                    style: LocationCardText.detail(palette.foreground),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -705,7 +747,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Open website',
-                      style: LocationCardText.link(mapInfoPrimaryTextColor),
+                      style: LocationCardText.link(palette.foreground),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -716,7 +758,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Call ${data.phone}',
-                      style: LocationCardText.link(mapInfoPrimaryTextColor),
+                      style: LocationCardText.link(palette.foreground),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -727,7 +769,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Email ${data.email}',
-                      style: LocationCardText.link(mapInfoPrimaryTextColor),
+                      style: LocationCardText.link(palette.foreground),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -735,7 +777,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 if (_hasValue(data.description)) ...[
                   Text(
                     data.description,
-                    style: LocationCardText.body(mapInfoPrimaryTextColor),
+                    style: LocationCardText.body(palette.foreground),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -744,14 +786,14 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.share,
-                        color: mapInfoPrimaryTextColor.withValues(alpha: 0.8),
+                        color: palette.foreground.withValues(alpha: 0.8),
                         size: 16,
                       ),
                       const SizedBox(width: 10),
                       Text(
                         'Follow Us',
                         style: LocationCardText.sectionHeader(
-                          mapInfoPrimaryTextColor,
+                          palette.foreground,
                         ),
                       ),
                     ],
@@ -765,8 +807,8 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                         onPressed: () => launchUrl(entry.value),
                         tooltip: 'Open ${entry.key}',
                         style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: mapInfoCardColor,
+                          backgroundColor: palette.surface,
+                          foregroundColor: palette.background,
                         ),
                         icon: Icon(getSocialIcon(entry.key)),
                       );
@@ -778,16 +820,13 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 if (canOpenMaps) ...[
                   OutlinedButton.icon(
                     onPressed: onOpenInMaps,
-                    icon: const Icon(
-                      Icons.directions,
-                      color: mapInfoPrimaryTextColor,
-                    ),
+                    icon: Icon(Icons.directions, color: palette.foreground),
                     label: Text(
                       'Open in Maps',
-                      style: LocationCardText.detail(mapInfoPrimaryTextColor),
+                      style: LocationCardText.detail(palette.foreground),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: mapInfoDividerColor),
+                      side: BorderSide(color: palette.divider),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -802,7 +841,7 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Show less',
-                      style: LocationCardText.link(mapInfoPrimaryTextColor),
+                      style: LocationCardText.link(palette.foreground),
                     ),
                   ),
                 ),
@@ -864,6 +903,7 @@ class _LocationInfoImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LocationCardPalette.of(context);
     final String? asset = _clean(assetPath);
     final String? networkUrl = _clean(url);
 
@@ -877,7 +917,7 @@ class _LocationInfoImage extends StatelessWidget {
         fit: _imageFit,
         cacheWidth: _maxDecodeWidth,
         excludeFromSemantics: true,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
+        errorBuilder: (context, error, stackTrace) => _buildFallback(palette),
       );
     } else if (networkUrl != null) {
       image = Image.network(
@@ -887,7 +927,7 @@ class _LocationInfoImage extends StatelessWidget {
         width: double.infinity,
         fit: _imageFit,
         excludeFromSemantics: true,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
+        errorBuilder: (context, error, stackTrace) => _buildFallback(palette),
       );
     } else {
       return const SizedBox.shrink();
@@ -931,15 +971,15 @@ class _LocationInfoImage extends StatelessWidget {
     );
   }
 
-  Widget _buildFallback() {
+  Widget _buildFallback(_LocationCardPalette palette) {
     return Container(
       height: height,
       width: double.infinity,
-      color: mapInfoFallbackImageColor,
+      color: palette.fallbackImage,
       alignment: Alignment.center,
-      child: const Text(
+      child: Text(
         'Image unavailable',
-        style: TextStyle(color: mapInfoSecondaryTextColor),
+        style: TextStyle(color: palette.secondaryForeground),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '../services/accessibility_theme.dart';
+
 // Color constants matching the app theme
 const Color _filterChipSelected = Color(0xFF2F5F3E);
 const Color _filterChipUnselected = Colors.white;
@@ -108,11 +110,12 @@ class _MapFilterButtonState extends State<MapFilterButton> {
 
   void _showFilterSheet(BuildContext context) {
     final tempSelected = Set<String>.from(_selectedFilters);
+    final colors = AccessibilityColors.of(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -141,10 +144,10 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                     children: [
                       Text(
                         'Filter by ${widget.label}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2F5F3E),
+                          color: colors.primaryText,
                         ),
                       ),
                       if (tempSelected.isNotEmpty)
@@ -152,24 +155,22 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                           onPressed: () {
                             setSheetState(() => tempSelected.clear());
                           },
-                          child: const Text(
+                          child: Text(
                             'Clear all',
-                            style: TextStyle(color: Color(0xFF2F5F3E)),
+                            style: TextStyle(color: colors.action),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   if (_isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF2F5F3E),
-                      ),
+                    Center(
+                      child: CircularProgressIndicator(color: colors.primary),
                     )
                   else if (_availableFilters.isEmpty)
-                    const Text(
+                    Text(
                       'No filter options available.',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colors.secondaryText),
                     )
                   else
                     Wrap(
@@ -182,8 +183,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                             filter,
                             style: TextStyle(
                               color: isSelected
-                                  ? _filterChipSelectedText
-                                  : _filterChipUnselectedText,
+                              ? colors.onPrimary : colors.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -197,11 +197,11 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                               }
                             });
                           },
-                          selectedColor: _filterChipSelected,
-                          backgroundColor: _filterChipUnselected,
-                          checkmarkColor: Colors.white,
-                          side: const BorderSide(
-                            color: Color(0xFF2F5F3E),
+                          selectedColor: colors.primary,
+                          backgroundColor: colors.cardBackground,
+                          checkmarkColor: colors.onPrimary,
+                          side: BorderSide(
+                            color: colors.outline,
                             width: 1.5,
                           ),
                           shape: RoundedRectangleBorder(
@@ -224,8 +224,8 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2F5F3E),
-                        foregroundColor: Colors.white,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -253,10 +253,11 @@ class _MapFilterButtonState extends State<MapFilterButton> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: _isActive ? const Color(0xFF2F5F3E) : Colors.white,
+        color: _isActive ? colors.primary : colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -284,8 +285,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                         Icons.filter_list,
                         size: 18,
                         color: _isActive
-                            ? Colors.white
-                            : const Color(0xFF2F5F3E),
+                            ? colors.onPrimary : colors.primary,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -294,8 +294,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                             : 'Filter',
                         style: TextStyle(
                           color: _isActive
-                              ? Colors.white
-                              : const Color(0xFF2F5F3E),
+                              ? colors.onPrimary : colors.primary,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -312,7 +311,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
               onPressed: _resetFilter,
               tooltip: 'Clear map location filters',
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: const Icon(Icons.close, size: 16, color: Colors.white),
+              icon: Icon(Icons.close, size: 16, color: colors.onPrimary),
             ),
           ],
         ],

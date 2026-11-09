@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/accessibility_theme.dart';
 import 'search_suggestion_list.dart';
 
 class MapSearchBar extends StatefulWidget {
@@ -29,6 +30,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
     return TapRegion(
       groupId: _tapRegionGroupId,
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
@@ -36,6 +38,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Material(
+            color: colors.cardBackground,
             elevation: 6,
             borderRadius: BorderRadius.circular(18),
             child: Focus(
@@ -43,11 +46,17 @@ class _MapSearchBarState extends State<MapSearchBar> {
               child: TextField(
                 controller: widget.controller,
                 onChanged: widget.onChanged,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colors.primaryText),
+                cursorColor: colors.primary,
+                decoration: InputDecoration(
                   labelText: 'Search map locations',
                   hintText: 'Search locations...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search, color: colors.primary),
                   border: InputBorder.none,
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: colors.primary, width: 2),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,

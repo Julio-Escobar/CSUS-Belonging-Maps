@@ -2,12 +2,46 @@ import 'package:belonging_maps_app/widgets/current_location_buttons.dart';
 import 'package:belonging_maps_app/widgets/map_filter_button.dart';
 import 'package:belonging_maps_app/widgets/map_layers_button.dart';
 import 'package:belonging_maps_app/widgets/map_zoom_controls.dart';
+import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/semantics_finders.dart';
 
 void main() {
+  testWidgets('map controls use the active accessibility palette', (tester) async {
+    final colors = AccessibilityColors.forSettings(
+      colorSafePalette: true,
+      highContrast: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(colorSafePalette: true, highContrast: false),
+        home: Scaffold(
+          body: Stack(
+            children: [
+              MapZoomControls(onZoomIn: () {}, onZoomOut: () {}),
+              CurrentLocationButton(onPressed: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Material && widget.color == colors.primary,
+      ),
+      findsAtLeastNWidgets(2),
+    );
+    expect(
+      tester.widget<FloatingActionButton>(find.byType(FloatingActionButton))
+          .backgroundColor,
+      colors.primary,
+    );
+  });
+
   testWidgets('map controls match their action by semantics and touch', (
     tester,
   ) async {
