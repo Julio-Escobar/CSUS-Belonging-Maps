@@ -7,6 +7,7 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import '/models/ubuntu_campus_center.dart';
 import '/models/ubuntu_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
 import '/services/ubuntu_campus_centers.dart';
@@ -35,6 +36,10 @@ const String ubuntuCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 const Color _ubuntuMarkerColor = Color(0xFF2F5F3E);
+
+/// The Ubuntu map logo shown in the location card for every location that has
+/// no bundled logo of its own.
+const String _defaultOrgLogoAsset = 'assets/ubuntu_logo_temp.png';
 
 // The campus center logos are drawn larger than the numbered markers so their
 // wordmarks stay legible, and enlarged further when selected.
@@ -772,6 +777,23 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     final attributes = _selectedAttributes;
     final resourceName = _cleanField(attributes?['NAME']);
 
+    // Centers draw their own logo beside the card title; every other location
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _ubuntuMarkerColor,
+    );
+
     return LocationInfoData(
       cardTitle: resourceName.isNotEmpty
           ? resourceName
@@ -788,8 +810,25 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: 'assets/ubuntu_logo_temp.png',
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
+      // Center logos are wide wordmarks, so they are fitted inside the card's
+      // logo box instead of being cropped to a circle. The Ubuntu map logo is
+      // square and keeps the original circular avatar.
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
+  }
+
+  /// The campus center the card is describing, or null when another kind of
+  /// Ubuntu location (a numbered campus resource) is selected.
+  UbuntuCampusCenter? _selectedCenter() {
+    final id = _cleanField(_selectedAttributes?['ID']);
+    if (id.isEmpty) return null;
+    for (final center in _centers) {
+      if (center.id == id) return center;
+    }
+    return null;
   }
 
   Widget _buildLocationInfoCard() {

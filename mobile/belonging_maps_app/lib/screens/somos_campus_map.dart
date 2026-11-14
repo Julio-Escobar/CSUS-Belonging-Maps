@@ -8,6 +8,7 @@ import '/models/somos_campus_center.dart';
 import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
@@ -36,6 +37,10 @@ const String _openStreetMapBasemapUrl =
 /// no label layers of its own, so this is what supplies the building names.
 const String somosCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
+
+/// The SOMOS map logo shown in the location card for every location that has
+/// no bundled logo of its own.
+const String _defaultOrgLogoAsset = 'assets/somos_logo_temp.png';
 
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
 // enlarged to 42 px when selected (see `_markerSymbol`).
@@ -1306,6 +1311,24 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     final resourceName = _cleanField(attributes?['NAME']);
     final imageAsset = _cleanField(attributes?['IMAGE_ASSET']);
 
+    // Centers draw their own logo beside the card title; every other location
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      overrideAsset: _selectedIsLatineArt ? latineArtIconAsset : null,
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _markerColor,
+    );
+
     return LocationInfoData(
       cardTitle: resourceName.isNotEmpty
           ? resourceName
@@ -1322,8 +1345,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: 'assets/somos_logo_temp.png',
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
+      // Center logos are wide wordmarks, so they are fitted inside the card's
+      // logo box instead of being cropped to a circle. The SOMOS map logo is
+      // square and keeps the original circular avatar.
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
+  }
+
+  /// The campus center the card is describing, or null when another kind of
+  /// SOMOS location (a numbered resource, a Latine food option, or a Latine art
+  /// location) is selected.
+  SomosCampusCenter? _selectedCenter() {
+    final id = _cleanField(_selectedAttributes?['ID']);
+    if (id.isEmpty) return null;
+    for (final center in _centers) {
+      if (center.id == id) return center;
+    }
+    return null;
   }
 
   Widget _buildLocationInfoCard() {

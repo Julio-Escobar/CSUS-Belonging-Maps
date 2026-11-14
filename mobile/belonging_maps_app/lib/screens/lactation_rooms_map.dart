@@ -13,9 +13,6 @@ const String lactationRoomsLayerUrl =
     'https://services5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/'
     'SacStateMothersRooms/FeatureServer/0';
 
-const String lactationRoomsIconAsset =
-    'assets/map_icons/general/LactationRooms.png';
-
 const double _campusLatitude = 38.56091;
 const double _campusLongitude = -121.42405;
 const double _campusScale = 8500;

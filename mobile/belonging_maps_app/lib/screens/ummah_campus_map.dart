@@ -9,6 +9,7 @@ import '/models/ummah_campus_food.dart';
 import '/models/ummah_campus_prayer.dart';
 import '/models/ummah_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
 import '/services/ummah_campus_centers.dart';
@@ -1271,8 +1272,21 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     final locationName = _cleanField(attributes?['NAME']);
 
     // Centers draw their own logo beside the card title; every other location
-    // keeps the Ummah map logo.
-    final orgLogo = _selectedOrgLogo();
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _ummahMarkerColor,
+    );
 
     return LocationInfoData(
       cardTitle: locationName.isNotEmpty
@@ -1290,11 +1304,13 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: orgLogo,
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
       // Center logos are wide wordmarks, so they are fitted inside the card's
       // logo box instead of being cropped to a circle. The Ummah map logo is
       // square and keeps the original circular avatar.
-      orgLogoFit: orgLogo == _defaultOrgLogoAsset ? null : BoxFit.contain,
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
   }
 
@@ -1308,19 +1324,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       if (center.id == id) return center;
     }
     return null;
-  }
-
-  /// The logo drawn in the location card: the selected center's own bundled
-  /// logo when it has one, otherwise the Ummah map logo. Centers that are still
-  /// on the shared placeholder marker keep the map logo, and prayer rooms and
-  /// halal food options do too because their `ICON_ASSET` values are small map
-  /// markers rather than logos.
-  String _selectedOrgLogo() {
-    final center = _selectedCenter();
-    if (center == null || center.icon.trim().isEmpty) {
-      return _defaultOrgLogoAsset;
-    }
-    return center.iconAsset;
   }
 
   Widget _buildLocationInfoCard() {

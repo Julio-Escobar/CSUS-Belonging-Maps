@@ -23,6 +23,15 @@ void main() {
     expect(find.text('Tahoe Hall'), findsOneWidget);
     expect(find.text('In Tahoe Hall 2002 and Tahoe Hall 3006'), findsOneWidget);
     expect(find.semantics.byLabel('Lactation room details'), findsOneWidget);
+    final icon = tester.widget<Image>(find.byType(Image));
+    expect(
+      icon.image,
+      isA<AssetImage>().having(
+        (provider) => provider.assetName,
+        'assetName',
+        lactationRoomsIconAsset,
+      ),
+    );
     expect(tester.takeException(), isNull);
   });
 
