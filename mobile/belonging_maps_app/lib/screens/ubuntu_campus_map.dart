@@ -7,6 +7,8 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import '/models/ubuntu_campus_center.dart';
 import '/models/ubuntu_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
 import '/services/ubuntu_campus_centers.dart';
@@ -36,20 +38,28 @@ const String ubuntuCampusLabelsStyleUrl =
 
 const Color _ubuntuMarkerColor = Color(0xFF2F5F3E);
 
+/// The Ubuntu map logo shown in the location card for every location that has
+/// no bundled logo of its own.
+const String _defaultOrgLogoAsset = 'assets/ubuntu_logo_temp.png';
+
 // The campus center logos are drawn larger than the numbered markers so their
 // wordmarks stay legible, and enlarged further when selected.
 const double _centerIconSize = 40;
 const double _selectedCenterIconSize = 56;
 
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
 
-// Padded campus bounds so the user cannot pan the campus completely away.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
+/// The category filter options for the Ubuntu campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> ubuntuCampusFilterCategories({
+  required List<UbuntuCampusResource> resources,
+  required List<UbuntuCampusCenter> centers,
+}) {
+  return <String>{
+    if (centers.isNotEmpty) ubuntuCampusCentersCategory,
+    if (resources.isNotEmpty) ubuntuCampusResourcesCategory,
+  };
+}
 
 class UbuntuCampusMap extends StatefulWidget {
   const UbuntuCampusMap({super.key});
@@ -88,12 +98,14 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         _resources,
         query: _searchQuery,
         categories: _selectedCategories,
+        browseCategory: ubuntuCampusResourcesCategory,
       );
 
   List<UbuntuCampusCenter> get _visibleCenters => filterUbuntuCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ubuntuCampusCentersCategory,
   );
 
   /// Suggestions for the current query: the numbered campus resources first,
@@ -150,17 +162,11 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // The label tiles draw above the campus tiles but below the markers so the
     // building names stay readable and the markers stay on top.
@@ -597,7 +603,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     final location = await showMapLocationBrowser(context, [
       if (visibleResources.isNotEmpty)
         MapLocationSource(
-          name: 'Campus locations',
+          name: ubuntuCampusResourcesCategory,
           loadPage: (offset) async {
             final locations = visibleResources
                 .skip(offset)
@@ -617,7 +623,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: ubuntuCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
@@ -772,6 +778,23 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     final attributes = _selectedAttributes;
     final resourceName = _cleanField(attributes?['NAME']);
 
+    // Centers draw their own logo beside the card title; every other location
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _ubuntuMarkerColor,
+    );
+
     return LocationInfoData(
       cardTitle: resourceName.isNotEmpty
           ? resourceName
@@ -788,8 +811,25 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: 'assets/ubuntu_logo_temp.png',
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
+      // Center logos are wide wordmarks, so they are fitted inside the card's
+      // logo box instead of being cropped to a circle. The Ubuntu map logo is
+      // square and keeps the original circular avatar.
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
+  }
+
+  /// The campus center the card is describing, or null when another kind of
+  /// Ubuntu location (a numbered campus resource) is selected.
+  UbuntuCampusCenter? _selectedCenter() {
+    final id = _cleanField(_selectedAttributes?['ID']);
+    if (id.isEmpty) return null;
+    for (final center in _centers) {
+      if (center.id == id) return center;
+    }
+    return null;
   }
 
   Widget _buildLocationInfoCard() {
@@ -833,7 +873,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
       child: SafeArea(
         bottom: false,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(width: 72),
             const SizedBox(width: 12),
@@ -852,10 +892,10 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...ubuntuCampusResourceCategories(_resources),
-                    ...ubuntuCampusCenterCategories(_centers),
-                  };
+                  final categories = ubuntuCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

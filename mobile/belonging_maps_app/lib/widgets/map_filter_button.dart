@@ -123,7 +123,7 @@ class _MapFilterButtonState extends State<MapFilterButton> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: _isActive ? colors.primary : colors.cardBackground,
+        color: colors.primary,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -152,13 +152,13 @@ class _MapFilterButtonState extends State<MapFilterButton> {
                       Icon(
                         Icons.filter_list,
                         size: 18,
-                        color: _isActive ? colors.onPrimary : colors.primary,
+                        color: colors.onPrimary,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         _isActive ? 'Filtered' : 'Filter',
                         style: TextStyle(
-                          color: _isActive ? colors.onPrimary : colors.primary,
+                          color: colors.onPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -309,18 +309,17 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
                     ],
                   ),
                 ),
+                Expanded(child: _buildOptions(scrollController, colors)),
                 if (_selected.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Center(
                       child: TextButton(
                         onPressed: () => setState(_selected.clear),
                         child: const Text('Clear all'),
                       ),
                     ),
                   ),
-                Expanded(child: _buildOptions(scrollController, colors)),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                   child: SizedBox(
@@ -364,6 +363,11 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
     ScrollController scrollController,
     AccessibilityColors colors,
   ) {
+    // The brand green is too dark to read on the dark sheet background, so
+    // unselected labels use the panel's text color there, matching the
+    // community map's layer panel (P1-281).
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isLoading) {
       return ListView(
         controller: scrollController,
@@ -442,7 +446,11 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
                 label: Text(
                   filter,
                   style: TextStyle(
-                    color: selected ? colors.onPrimary : colors.primary,
+                    color: selected
+                        ? colors.onPrimary
+                        : isDark
+                        ? colors.primaryText
+                        : colors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -451,7 +459,10 @@ class _MapFilterSheetState extends State<_MapFilterSheet> {
                 selectedColor: colors.primary,
                 backgroundColor: colors.cardBackground,
                 checkmarkColor: colors.onPrimary,
-                side: BorderSide(color: colors.outline, width: 1.5),
+                side: BorderSide(
+                  color: isDark ? colors.primaryText : colors.outline,
+                  width: 1.5,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),

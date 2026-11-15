@@ -221,7 +221,6 @@ class CampusMapsScreen extends StatelessWidget {
                 label: 'SOMOS Campus Map',
                 subtitle: 'SOMOS Campus',
                 imagePath: 'assets/somoscampusmap.png',
-                logoPath: 'assets/somos_logo_temp.png',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => SomosCampusMap()),
@@ -232,7 +231,6 @@ class CampusMapsScreen extends StatelessWidget {
                 label: 'Ummah Campus Map',
                 subtitle: 'Ummah Campus',
                 imagePath: 'assets/ummahcampusmap.png',
-                logoPath: 'assets/ummah_logo_temp.png',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => UmmahCampusMap()),
@@ -243,7 +241,6 @@ class CampusMapsScreen extends StatelessWidget {
                 label: 'Ubuntu Campus Map',
                 subtitle: 'Ubuntu Campus',
                 imagePath: 'assets/ubuntucampusmap.png',
-                logoPath: 'assets/ubuntu_logo_temp.png',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => UbuntuCampusMap()),

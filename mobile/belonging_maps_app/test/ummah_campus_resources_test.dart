@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/ummah_campus_resource.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ummah_campus_resources.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -266,6 +267,45 @@ void main() {
     expect(parseUmmahCategoryFilterExpression(''), isEmpty);
   });
 
+  test('the Browse locations category shows every resource', () {
+    final resources = [
+      UmmahCampusResource.fromJson(
+        _resourceJson(
+          number: 1,
+          name: 'Muslim Student Association (MSA)',
+          category: 'Student Organizations',
+        ),
+      ),
+      UmmahCampusResource.fromJson(
+        _resourceJson(
+          number: 2,
+          name: 'Basic Needs Resource Center (BNRC)',
+          category: 'Basic Needs',
+        ),
+      ),
+    ];
+
+    expect(
+      filterUmmahCampusResources(
+        resources,
+        categories: {ummahCampusResourcesCategory},
+        browseCategory: ummahCampusResourcesCategory,
+      ).map((resource) => resource.name),
+      [
+        'Muslim Student Association (MSA)',
+        'Basic Needs Resource Center (BNRC)',
+      ],
+    );
+    expect(
+      filterUmmahCampusResources(
+        resources,
+        categories: {'Campus Centers'},
+        browseCategory: ummahCampusResourcesCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('resource attributes provide the fields used by the info card', () {
     final resource = UmmahCampusResource.fromJson(_resourceJson());
     final attributes = resource.toAttributes();
@@ -277,5 +317,16 @@ void main() {
     expect(attributes['WEBSITE'], 'https://www.csus.edu/');
     expect(attributes['LATITUDE'], 38.56091);
     expect(attributes['LONGITUDE'], -121.42405);
+  });
+
+  test('browse locations uses the resource name as its title', () {
+    final resource = UmmahCampusResource.fromJson(_resourceJson());
+    final location = MapLocation.fromAttributes(
+      resource.toAttributes(),
+      category: resource.category,
+    );
+
+    expect(location.name, resource.name);
+    expect(location.category, resource.category);
   });
 }

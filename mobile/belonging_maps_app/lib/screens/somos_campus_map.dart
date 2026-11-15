@@ -8,6 +8,8 @@ import '/models/somos_campus_center.dart';
 import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
@@ -37,6 +39,10 @@ const String _openStreetMapBasemapUrl =
 const String somosCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
+/// The SOMOS map logo shown in the location card for every location that has
+/// no bundled logo of its own.
+const String _defaultOrgLogoAsset = 'assets/somos_logo_temp.png';
+
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
 // enlarged to 42 px when selected (see `_markerSymbol`).
 const double _latineArtIconSize = 30;
@@ -51,15 +57,23 @@ const double _selectedCenterIconSize = 56;
 // and enlarged to 42 px when selected (see `_markerSymbol`).
 const double _foodIconSize = 30;
 const double _selectedFoodIconSize = 42;
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
 
-// Padded campus bounds so the user cannot pan the campus completely away.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
+/// The category filter options for the SOMOS campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> somosCampusFilterCategories({
+  required List<SomosCampusResource> resources,
+  required List<SomosCampusCenter> centers,
+  required List<SomosCampusFood> food,
+  required List<MapLocation> latineArtLocations,
+}) {
+  return <String>{
+    if (latineArtLocations.isNotEmpty) latineArtCategory,
+    if (food.isNotEmpty) latineFoodCategory,
+    if (centers.isNotEmpty) somosCampusCentersCategory,
+    if (resources.isNotEmpty) somosCampusResourcesCategory,
+  };
+}
 
 class SomosCampusMap extends StatefulWidget {
   const SomosCampusMap({super.key});
@@ -118,18 +132,21 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _resources,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: somosCampusResourcesCategory,
   );
 
   List<SomosCampusCenter> get _visibleCenters => filterSomosCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: somosCampusCentersCategory,
   );
 
   List<SomosCampusFood> get _visibleFood => filterSomosCampusFood(
     _food,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: latineFoodCategory,
   );
 
   /// Suggestions for the current query: the bundled SOMOS resources and
@@ -211,17 +228,11 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // Start with a visible fallback marker while the art pin loads.
     _latineArtLayer =
@@ -1007,7 +1018,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     final location = await showMapLocationBrowser(context, [
       MapLocationSource(
-        name: 'Campus locations',
+        name: somosCampusResourcesCategory,
         loadPage: (offset) async {
           final locations = visibleResources
               .skip(offset)
@@ -1042,7 +1053,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: somosCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
@@ -1306,6 +1317,24 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     final resourceName = _cleanField(attributes?['NAME']);
     final imageAsset = _cleanField(attributes?['IMAGE_ASSET']);
 
+    // Centers draw their own logo beside the card title; every other location
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      overrideAsset: _selectedIsLatineArt ? latineArtIconAsset : null,
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _markerColor,
+    );
+
     return LocationInfoData(
       cardTitle: resourceName.isNotEmpty
           ? resourceName
@@ -1322,8 +1351,26 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: 'assets/somos_logo_temp.png',
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
+      // Center logos are wide wordmarks, so they are fitted inside the card's
+      // logo box instead of being cropped to a circle. The SOMOS map logo is
+      // square and keeps the original circular avatar.
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
+  }
+
+  /// The campus center the card is describing, or null when another kind of
+  /// SOMOS location (a numbered resource, a Latine food option, or a Latine art
+  /// location) is selected.
+  SomosCampusCenter? _selectedCenter() {
+    final id = _cleanField(_selectedAttributes?['ID']);
+    if (id.isEmpty) return null;
+    for (final center in _centers) {
+      if (center.id == id) return center;
+    }
+    return null;
   }
 
   Widget _buildLocationInfoCard() {
@@ -1369,7 +1416,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       child: SafeArea(
         bottom: false,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(width: 72),
             const SizedBox(width: 12),
@@ -1382,7 +1429,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             ),
             if (_resources.isNotEmpty ||
                 _centers.isNotEmpty ||
-                _food.isNotEmpty) ...[
+                _food.isNotEmpty ||
+                _latineArtLocations.isNotEmpty) ...[
               const SizedBox(width: 12),
               MapFilterButton(
                 key: ValueKey<int>(
@@ -1392,12 +1440,12 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...somosCampusResourceCategories(_resources),
-                    ...somosCampusCenterCategories(_centers),
-                    ...somosCampusFoodCategories(_food),
-                    latineArtCategory,
-                  };
+                  final categories = somosCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                    food: _food,
+                    latineArtLocations: _latineArtLocations,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

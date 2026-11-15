@@ -3,6 +3,10 @@ const locationNameAttributeFields = [
   'Name',
   'FACILITY_NAME',
   'RefName',
+  // The bundled campus datasets (SOMOS, Ubuntu, and Ummah) expose their names
+  // under an uppercase `NAME` key. It is checked last so the existing layers
+  // keep their current name precedence.
+  'NAME',
 ];
 
 String cleanLocationAttribute(dynamic value) {

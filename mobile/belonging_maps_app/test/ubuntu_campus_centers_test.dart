@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/ubuntu_campus_center.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ubuntu_campus_centers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -218,6 +219,38 @@ void main() {
     );
   });
 
+  test('the Browse locations category shows every center', () {
+    final centers = [
+      UbuntuCampusCenter.fromJson(
+        _centerJson(
+          id: 'pride-center',
+          name: 'The Pride Center',
+          category: 'Cultural & Identity',
+        ),
+      ),
+      UbuntuCampusCenter.fromJson(
+        _centerJson(id: 'cares', name: 'CARES', category: 'Basic Needs'),
+      ),
+    ];
+
+    expect(
+      filterUbuntuCampusCenters(
+        centers,
+        categories: {ubuntuCampusCentersCategory},
+        browseCategory: ubuntuCampusCentersCategory,
+      ).map((center) => center.id),
+      ['pride-center', 'cares'],
+    );
+    expect(
+      filterUbuntuCampusCenters(
+        centers,
+        categories: {'Campus locations'},
+        browseCategory: ubuntuCampusCentersCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('center attributes provide the fields used by the info card', () {
     final center = UbuntuCampusCenter.fromJson(_centerJson());
     final attributes = center.toAttributes();
@@ -232,6 +265,17 @@ void main() {
     expect(attributes['SUPPORT_SERVICES'], 'Advising\nScholarships');
     expect(attributes['LATITUDE'], 38.56091);
     expect(attributes['LONGITUDE'], -121.42405);
+  });
+
+  test('browse locations uses the center name as its title', () {
+    final center = UbuntuCampusCenter.fromJson(_centerJson());
+    final location = MapLocation.fromAttributes(
+      center.toAttributes(),
+      category: center.category,
+    );
+
+    expect(location.name, center.name);
+    expect(location.category, center.category);
   });
 
   test('a center icon resolves to its bundled asset path', () {

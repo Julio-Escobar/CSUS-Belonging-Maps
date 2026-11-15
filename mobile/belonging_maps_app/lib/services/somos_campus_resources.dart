@@ -8,6 +8,11 @@ import '../models/somos_campus_resource.dart';
 const String somosCampusResourcesAsset =
     'assets/data/somos_campus_resources.json';
 
+/// The Browse locations section that lists the SOMOS campus resources. The
+/// category filter offers the same section names, so selecting it shows every
+/// resource even though each one stores a more specific category.
+const String somosCampusResourcesCategory = 'Campus locations';
+
 /// Loads the SOMOS campus resource dataset from the app's bundled assets.
 ///
 /// Pass a custom [bundle] in tests. Any missing, malformed, or invalid data
@@ -60,17 +65,21 @@ List<SomosCampusResource> parseSomosCampusResources(String source) {
 /// Returns the resources matching [query] and any selected [categories].
 ///
 /// The query matches the resource name, building, room, category, and
-/// description so users can search for either an office or a service.
+/// description so users can search for either an office or a service. When
+/// [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each resource's own category.
 List<SomosCampusResource> filterSomosCampusResources(
   List<SomosCampusResource> resources, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return resources
       .where((resource) {
-        if (categories.isNotEmpty && !categories.contains(resource.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? resource.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;

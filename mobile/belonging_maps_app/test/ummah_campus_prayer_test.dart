@@ -1,4 +1,5 @@
 import 'package:belonging_maps_app/models/ummah_campus_prayer.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ummah_campus_prayer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,6 +68,17 @@ void main() {
       expect(attributes['AMENITIES'], contains('Prayer space'));
       expect(attributes['ICON_ASSET'], UmmahCampusPrayer.defaultIconAsset);
       expect(attributes['LATITUDE'], rooms.first.latitude);
+    });
+
+    test('browse locations uses the prayer room name as its title', () async {
+      final rooms = await loadUmmahCampusPrayer();
+      final location = MapLocation.fromAttributes(
+        rooms.first.toAttributes(),
+        category: rooms.first.category,
+      );
+
+      expect(location.name, rooms.first.name);
+      expect(location.category, rooms.first.category);
     });
   });
 

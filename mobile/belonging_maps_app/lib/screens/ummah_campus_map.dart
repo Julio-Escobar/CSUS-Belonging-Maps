@@ -9,6 +9,8 @@ import '/models/ummah_campus_food.dart';
 import '/models/ummah_campus_prayer.dart';
 import '/models/ummah_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
+import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
 import '/services/ummah_campus_centers.dart';
@@ -89,17 +91,23 @@ double ummahCenterMarkerBaseSize({
   return hasOwnLogo ? logoSize : size;
 }
 
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
-const double _campusScale = 8000;
+/// The category filter options for the Ummah campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> ummahCampusFilterCategories({
+  required List<UmmahCampusResource> resources,
+  required List<UmmahCampusCenter> centers,
+  required List<UmmahCampusFood> food,
+  required List<UmmahCampusPrayer> prayers,
+}) {
+  return <String>{
+    if (prayers.isNotEmpty) ummahCampusPrayerCategory,
+    if (food.isNotEmpty) ummahCampusFoodCategory,
+    if (centers.isNotEmpty) ummahCampusCentersCategory,
+    if (resources.isNotEmpty) ummahCampusResourcesCategory,
+  };
+}
 
-// Padded campus bounds so the user cannot pan the campus completely away. The
-// bounds also cover Folsom Hall on the south edge of campus, which the Ummah
-// Resource Map lists as one of the two prayer room locations.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
+const double _campusScale = 8000;
 
 class UmmahCampusMap extends StatefulWidget {
   const UmmahCampusMap({super.key});
@@ -151,24 +159,28 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     _prayers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusPrayerCategory,
   );
 
   List<UmmahCampusFood> get _visibleFood => filterUmmahCampusFood(
     _food,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusFoodCategory,
   );
 
   List<UmmahCampusCenter> get _visibleCenters => filterUmmahCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusCentersCategory,
   );
 
   List<UmmahCampusResource> get _visibleResources => filterUmmahCampusResources(
     _resources,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusResourcesCategory,
   );
 
   /// Suggestions for the current query: the prayer rooms and centers first,
@@ -239,17 +251,11 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // The label tiles draw above the campus tiles but below the Ummah markers
     // so the building names stay readable and the markers stay on top.
@@ -1129,12 +1135,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     });
   }
 
-  /// The attribute map handed to [MapLocation], which reads a `Name` key for the
-  /// title shown in the Browse locations list while the info card reads `NAME`.
-  Map<String, dynamic> _browseAttributes(Map<String, dynamic> attributes) {
-    return <String, dynamic>{...attributes, 'Name': attributes['NAME']};
-  }
-
   Future<void> _browseLocations() async {
     if (!_hasLocations) return;
 
@@ -1153,7 +1153,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (prayer) => MapLocation.fromAttributes(
-                    _browseAttributes(prayer.toAttributes()),
+                    prayer.toAttributes(),
                     category: prayer.category,
                   ),
                 )
@@ -1173,7 +1173,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (food) => MapLocation.fromAttributes(
-                    _browseAttributes(food.toAttributes()),
+                    food.toAttributes(),
                     category: food.category,
                   ),
                 )
@@ -1186,14 +1186,14 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: ummahCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
                 .take(mapLocationPageSize)
                 .map(
                   (center) => MapLocation.fromAttributes(
-                    _browseAttributes(center.toAttributes()),
+                    center.toAttributes(),
                     category: center.category,
                   ),
                 )
@@ -1206,14 +1206,14 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       if (visibleResources.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Resources',
+          name: ummahCampusResourcesCategory,
           loadPage: (offset) async {
             final locations = visibleResources
                 .skip(offset)
                 .take(mapLocationPageSize)
                 .map(
                   (resource) => MapLocation.fromAttributes(
-                    _browseAttributes(resource.toAttributes()),
+                    resource.toAttributes(),
                     category: resource.category,
                   ),
                 )
@@ -1271,8 +1271,21 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     final locationName = _cleanField(attributes?['NAME']);
 
     // Centers draw their own logo beside the card title; every other location
-    // keeps the Ummah map logo.
-    final orgLogo = _selectedOrgLogo();
+    // uses the icon drawn for its marker.
+    final center = _selectedCenter();
+    final icon = campusMapCardLogo(
+      centerIcon: center?.icon,
+      centerIconAsset: center?.iconAsset,
+      mapLogoAsset: _defaultOrgLogoAsset,
+      centerBackgroundColor: _centerBackgroundColor(center?.background),
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
+      resourceNumber: center == null
+          ? _cleanField(attributes?['NUMBER'])
+          : null,
+      markerColor: _ummahMarkerColor,
+    );
 
     return LocationInfoData(
       cardTitle: locationName.isNotEmpty
@@ -1290,11 +1303,13 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
-      orgLogo: orgLogo,
+      orgLogo: icon.asset,
+      orgLogoLabel: icon.label,
       // Center logos are wide wordmarks, so they are fitted inside the card's
       // logo box instead of being cropped to a circle. The Ummah map logo is
       // square and keeps the original circular avatar.
-      orgLogoFit: orgLogo == _defaultOrgLogoAsset ? null : BoxFit.contain,
+      orgLogoFit: icon.fit,
+      orgLogoBackgroundColor: icon.backgroundColor,
     );
   }
 
@@ -1308,19 +1323,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       if (center.id == id) return center;
     }
     return null;
-  }
-
-  /// The logo drawn in the location card: the selected center's own bundled
-  /// logo when it has one, otherwise the Ummah map logo. Centers that are still
-  /// on the shared placeholder marker keep the map logo, and prayer rooms and
-  /// halal food options do too because their `ICON_ASSET` values are small map
-  /// markers rather than logos.
-  String _selectedOrgLogo() {
-    final center = _selectedCenter();
-    if (center == null || center.icon.trim().isEmpty) {
-      return _defaultOrgLogoAsset;
-    }
-    return center.iconAsset;
   }
 
   Widget _buildLocationInfoCard() {
@@ -1362,7 +1364,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       child: SafeArea(
         bottom: false,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(width: 72),
             const SizedBox(width: 12),
@@ -1386,12 +1388,12 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...ummahCampusResourceCategories(_resources),
-                    ...ummahCampusCenterCategories(_centers),
-                    ...ummahCampusFoodCategories(_food),
-                    ...ummahCampusPrayerCategories(_prayers),
-                  };
+                  final categories = ummahCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                    food: _food,
+                    prayers: _prayers,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
 import '/services/map_location_source.dart';
 import '/widgets/lactation_room_info_card.dart';
 import '/widgets/map_location_browser.dart';
@@ -13,17 +14,7 @@ const String lactationRoomsLayerUrl =
     'https://services5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/'
     'SacStateMothersRooms/FeatureServer/0';
 
-const String lactationRoomsIconAsset =
-    'assets/map_icons/general/LactationRooms.png';
-
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8500;
-
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
 
 class LactationRoomsMap extends StatefulWidget {
   const LactationRoomsMap({super.key});
@@ -73,17 +64,11 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     _roomsLayer =
         FeatureLayer.withFeatureTable(

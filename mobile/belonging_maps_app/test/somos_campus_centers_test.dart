@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/somos_campus_center.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/somos_campus_centers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -233,6 +234,17 @@ void main() {
     expect(attributes['SUPPORT_SERVICES'], 'Advising\nScholarships');
     expect(attributes['LATITUDE'], 38.56091);
     expect(attributes['LONGITUDE'], -121.42405);
+  });
+
+  test('browse locations uses the center name as its title', () {
+    final center = SomosCampusCenter.fromJson(_centerJson());
+    final location = MapLocation.fromAttributes(
+      center.toAttributes(),
+      category: center.category,
+    );
+
+    expect(location.name, center.name);
+    expect(location.category, center.category);
   });
 
   test('a center icon resolves to its bundled asset path', () {

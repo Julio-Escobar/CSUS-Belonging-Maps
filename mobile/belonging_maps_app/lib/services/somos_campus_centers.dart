@@ -8,6 +8,10 @@ import '../models/somos_campus_center.dart';
 const String somosCampusCentersAsset =
     'assets/data/somos_campus_centers.json';
 
+/// The Browse locations section that lists the SOMOS campus centers. The
+/// category filter offers the same section names.
+const String somosCampusCentersCategory = 'Campus Centers';
+
 /// Loads the SOMOS campus center dataset from the app's bundled assets.
 ///
 /// Pass a custom [bundle] in tests. Any missing, malformed, or invalid data
@@ -62,16 +66,20 @@ List<SomosCampusCenter> parseSomosCampusCenters(String source) {
 ///
 /// The query matches the center name, building, room, category, description,
 /// and support services so users can search for either a center or a service.
+/// When [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each center's own category.
 List<SomosCampusCenter> filterSomosCampusCenters(
   List<SomosCampusCenter> centers, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return centers
       .where((center) {
-        if (categories.isNotEmpty && !categories.contains(center.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? center.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;

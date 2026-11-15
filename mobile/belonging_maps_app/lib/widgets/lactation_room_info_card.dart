@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../services/accessibility_theme.dart';
 import 'location_card_style.dart';
 
+/// The bundled lactation-room marker icon drawn on the map and in the card.
+const String lactationRoomsIconAsset =
+    'assets/map_icons/general/LactationRooms.png';
+
 class LactationRoomInfoCard extends StatelessWidget {
   const LactationRoomInfoCard({
     super.key,
@@ -46,10 +50,11 @@ class LactationRoomInfoCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.child_care,
-                          size: 32,
-                          color: colors.onPrimary,
+                        Image.asset(
+                          lactationRoomsIconAsset,
+                          width: 32,
+                          height: 32,
+                          excludeFromSemantics: true,
                         ),
                         const SizedBox(width: 12),
                         Expanded(

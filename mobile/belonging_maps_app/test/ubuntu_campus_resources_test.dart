@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/ubuntu_campus_resource.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ubuntu_campus_resources.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -212,6 +213,42 @@ void main() {
     expect(parseCategoryFilterExpression(''), isEmpty);
   });
 
+  test('the Browse locations category shows every resource', () {
+    final resources = [
+      UbuntuCampusResource.fromJson(
+        _resourceJson(
+          number: 1,
+          name: 'Peer & Academic Resource Center',
+          category: 'Academic Support',
+        ),
+      ),
+      UbuntuCampusResource.fromJson(
+        _resourceJson(
+          number: 2,
+          name: 'The ASI Food Pantry',
+          category: 'Basic Needs',
+        ),
+      ),
+    ];
+
+    expect(
+      filterUbuntuCampusResources(
+        resources,
+        categories: {ubuntuCampusResourcesCategory},
+        browseCategory: ubuntuCampusResourcesCategory,
+      ).map((resource) => resource.name),
+      ['Peer & Academic Resource Center', 'The ASI Food Pantry'],
+    );
+    expect(
+      filterUbuntuCampusResources(
+        resources,
+        categories: {'Campus Centers'},
+        browseCategory: ubuntuCampusResourcesCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('resource attributes provide the fields used by the info card', () {
     final resource = UbuntuCampusResource.fromJson(_resourceJson());
     final attributes = resource.toAttributes();
@@ -223,5 +260,16 @@ void main() {
     expect(attributes['WEBSITE'], 'https://www.csus.edu/');
     expect(attributes['LATITUDE'], 38.56091);
     expect(attributes['LONGITUDE'], -121.42405);
+  });
+
+  test('browse locations uses the resource name as its title', () {
+    final resource = UbuntuCampusResource.fromJson(_resourceJson());
+    final location = MapLocation.fromAttributes(
+      resource.toAttributes(),
+      category: resource.category,
+    );
+
+    expect(location.name, resource.name);
+    expect(location.category, resource.category);
   });
 }

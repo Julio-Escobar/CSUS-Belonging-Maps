@@ -59,6 +59,10 @@ class _LocationCardPalette {
 /// it without depending on the image provider.
 const Key locationInfoImageKey = ValueKey<String>('location-info-image');
 
+/// Identifies the box drawn around an organization logo, so widget tests can
+/// verify the background color it uses.
+const Key locationInfoLogoBoxKey = ValueKey<String>('location-info-logo-box');
+
 /// Height of the photo in the compact location card.
 const double _previewImageHeight = 150;
 
@@ -88,8 +92,16 @@ class LocationInfoData {
   /// How the organization logo is fitted inside the card's logo box. When null
   /// the logo keeps the original circular avatar and is cropped to fill it,
   /// which suits square crests. Wide wordmarks pass [BoxFit.contain] so the
-  /// whole logo stays visible inside a white rounded box.
+  /// whole logo stays visible inside a rounded logo box.
   final BoxFit? orgLogoFit;
+
+  /// The solid color drawn behind the organization logo in the card's logo
+  /// box. Null keeps the default white box. Center logos that need a colored
+  /// marker background on the map pass that color so light logos stay visible.
+  final Color? orgLogoBackgroundColor;
+
+  /// The number drawn for a numbered marker that has no icon asset.
+  final String? orgLogoLabel;
 
   const LocationInfoData({
     required this.cardTitle,
@@ -107,6 +119,8 @@ class LocationInfoData {
     this.locationLng,
     this.orgLogo,
     this.orgLogoFit,
+    this.orgLogoBackgroundColor,
+    this.orgLogoLabel,
     this.id,
   });
 
@@ -122,6 +136,10 @@ class LocationInfoData {
     title: cardTitle,
     data: toFavoriteJson(),
   );
+
+  /// Whether the card has a leading icon, either an asset or a number label.
+  bool get hasOrgLogo =>
+      cleanField(orgLogo).isNotEmpty || cleanField(orgLogoLabel).isNotEmpty;
 
   Map<String, dynamic> toFavoriteJson() => {
     'id': id,
@@ -140,6 +158,8 @@ class LocationInfoData {
     'locationLng': locationLng,
     'orgLogo': orgLogo,
     'orgLogoFit': orgLogoFit?.name,
+    'orgLogoBackgroundColor': orgLogoBackgroundColor?.toARGB32(),
+    'orgLogoLabel': orgLogoLabel,
   };
 
   factory LocationInfoData.fromFavoriteJson(Map<String, dynamic> json) {
@@ -149,6 +169,7 @@ class LocationInfoData {
     }
     final socialLinks = json['socialLinks'];
     final fitName = json['orgLogoFit'];
+    final logoBackground = json['orgLogoBackgroundColor'];
     return LocationInfoData(
       id: json['id'] as String?,
       cardTitle: title,
@@ -168,6 +189,10 @@ class LocationInfoData {
       locationLng: (json['locationLng'] as num?)?.toDouble(),
       orgLogo: json['orgLogo'] as String?,
       orgLogoFit: BoxFit.values.where((fit) => fit.name == fitName).firstOrNull,
+      orgLogoBackgroundColor: logoBackground is int
+          ? Color(logoBackground)
+          : null,
+      orgLogoLabel: json['orgLogoLabel'] as String?,
     );
   }
 
@@ -496,6 +521,8 @@ class LocationInfoCard extends StatelessWidget {
                   cardTitle: data.cardTitle,
                   orgLogo: data.orgLogo,
                   orgLogoFit: data.orgLogoFit,
+                  orgLogoBackgroundColor: data.orgLogoBackgroundColor,
+                  orgLogoLabel: data.orgLogoLabel,
                   category: data.category,
                   imageAsset: data.imageAsset,
                   onClose: onClose,
@@ -562,8 +589,13 @@ class _SummaryLocationInfoCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (data.orgLogo != null) ...[
-                  _OrgLogoAvatar(logo: data.orgLogo!, fit: data.orgLogoFit),
+                if (data.hasOrgLogo) ...[
+                  _OrgLogoAvatar(
+                    logo: data.orgLogo,
+                    label: data.orgLogoLabel,
+                    fit: data.orgLogoFit,
+                    backgroundColor: data.orgLogoBackgroundColor,
+                  ),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
@@ -691,6 +723,8 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   final String cardTitle;
   final String? orgLogo;
   final BoxFit? orgLogoFit;
+  final Color? orgLogoBackgroundColor;
+  final String? orgLogoLabel;
   final String category;
   final String? imageAsset;
   final VoidCallback onClose;
@@ -702,6 +736,8 @@ class _PreviewLocationInfoCard extends StatelessWidget {
     required this.cardTitle,
     this.orgLogo,
     this.orgLogoFit,
+    this.orgLogoBackgroundColor,
+    this.orgLogoLabel,
     required this.category,
     this.imageAsset,
     required this.onClose,
@@ -724,8 +760,14 @@ class _PreviewLocationInfoCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (orgLogo != null) ...[
-                  _OrgLogoAvatar(logo: orgLogo!, fit: orgLogoFit),
+                if ((orgLogo?.trim().isNotEmpty ?? false) ||
+                    (orgLogoLabel?.trim().isNotEmpty ?? false)) ...[
+                  _OrgLogoAvatar(
+                    logo: orgLogo,
+                    label: orgLogoLabel,
+                    fit: orgLogoFit,
+                    backgroundColor: orgLogoBackgroundColor,
+                  ),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
@@ -865,8 +907,13 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (data.orgLogo != null) ...[
-                _OrgLogoAvatar(logo: data.orgLogo!, fit: data.orgLogoFit),
+              if (data.hasOrgLogo) ...[
+                _OrgLogoAvatar(
+                  logo: data.orgLogo,
+                  label: data.orgLogoLabel,
+                  fit: data.orgLogoFit,
+                  backgroundColor: data.orgLogoBackgroundColor,
+                ),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -1251,48 +1298,92 @@ class _LocationInfoImage extends StatelessWidget {
   }
 }
 
-/// Draws the organization logo shown beside the location card title.
+/// Draws the icon shown beside the location card title.
 ///
-/// Square crests keep the original circular avatar and are cropped to fill it.
-/// Wide wordmarks (the Ummah campus center logos, for example) pass a [fit] so
-/// the whole logo is scaled down inside a white rounded box instead of being
-/// cropped to an unreadable sliver.
+/// Icons with a [fit] (the campus center logos) are scaled down inside a
+/// rounded box; icons without one keep the circular avatar. A numbered marker
+/// with no icon asset passes a [label] and is drawn as a marker-colored circle
+/// with a white border. [backgroundColor] keeps light icons visible when their
+/// marker needs a solid backdrop on the map.
 class _OrgLogoAvatar extends StatelessWidget {
-  const _OrgLogoAvatar({required this.logo, this.fit});
+  const _OrgLogoAvatar({
+    this.logo,
+    this.label,
+    this.fit,
+    this.backgroundColor,
+  });
 
   /// The logo box, sized to keep the height of the 40 px circular avatar it
   /// replaced while giving wide wordmarks some extra width.
   static const double _boxWidth = 48;
   static const double _boxHeight = 40;
 
-  /// The bundled asset path of the logo.
-  final String logo;
+  /// The bundled asset path of the icon.
+  final String? logo;
 
-  /// How the logo is fitted inside its box. Null keeps the circular, cropped
-  /// avatar used by the community, SOMOS, and Ubuntu maps.
+  /// The number drawn for a numbered marker that has no icon asset.
+  final String? label;
+
+  /// How the icon is fitted inside its box. Null keeps the circular, cropped
+  /// avatar used by markers with their own icon.
   final BoxFit? fit;
+
+  /// The solid color behind the icon. Null keeps the original white background.
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
+    final String boxLabel = label?.trim() ?? '';
+    final Color boxColor = backgroundColor ??
+        (boxLabel.isNotEmpty ? mapInfoCardColor : Colors.white);
+    if (boxLabel.isNotEmpty) {
+      return Container(
+        key: locationInfoLogoBoxKey,
+        width: _boxHeight,
+        height: _boxHeight,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: boxColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            boxLabel,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final String asset = logo?.trim() ?? '';
+    if (asset.isEmpty) return const SizedBox.shrink();
+
     final BoxFit? boxFit = fit;
     if (boxFit == null) {
       return CircleAvatar(
         radius: _boxHeight / 2,
-        backgroundColor: Colors.white,
-        backgroundImage: AssetImage(logo),
+        backgroundColor: boxColor,
+        backgroundImage: AssetImage(asset),
       );
     }
 
     return Container(
+      key: locationInfoLogoBoxKey,
       width: _boxWidth,
       height: _boxHeight,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: boxColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Image.asset(
-        logo,
+        asset,
         fit: boxFit,
         errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
       ),

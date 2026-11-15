@@ -9,7 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/semantics_finders.dart';
 
 void main() {
-  testWidgets('map controls use the active accessibility palette', (tester) async {
+  testWidgets('map controls use the active accessibility palette', (
+    tester,
+  ) async {
     final colors = AccessibilityColors.forSettings(
       colorSafePalette: true,
       highContrast: false,
@@ -36,9 +38,48 @@ void main() {
       findsAtLeastNWidgets(2),
     );
     expect(
-      tester.widget<FloatingActionButton>(find.byType(FloatingActionButton))
+      tester
+          .widget<FloatingActionButton>(find.byType(FloatingActionButton))
           .backgroundColor,
       colors.primary,
+    );
+  });
+
+  testWidgets('the campus filter matches the other map control colors', (
+    tester,
+  ) async {
+    final colors = AccessibilityColors.forSettings(
+      colorSafePalette: true,
+      highContrast: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(colorSafePalette: true, highContrast: false),
+        home: Scaffold(
+          body: MapFilterButton(
+            featureLayer: null,
+            loadFilters: () async => ['Community Center'],
+            onDefinitionExpressionChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final pillFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration! as BoxDecoration).color == colors.primary,
+    );
+    expect(pillFinder, findsOneWidget);
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.filter_list)).color,
+      colors.onPrimary,
+    );
+    expect(
+      tester.widget<Text>(find.text('Filter')).style?.color,
+      colors.onPrimary,
     );
   });
 

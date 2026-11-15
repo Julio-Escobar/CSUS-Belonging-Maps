@@ -7,6 +7,10 @@ import '../models/ummah_campus_center.dart';
 /// Bundled configured dataset for the Ummah campus centers.
 const String ummahCampusCentersAsset = 'assets/data/ummah_campus_centers.json';
 
+/// The Browse locations section that lists the Ummah campus centers. The
+/// category filter offers the same section names.
+const String ummahCampusCentersCategory = 'Campus Centers';
+
 /// Loads the Ummah campus center dataset from the app's bundled assets.
 ///
 /// Pass a custom [bundle] in tests. Any missing, malformed, or invalid data
@@ -58,16 +62,20 @@ List<UmmahCampusCenter> parseUmmahCampusCenters(String source) {
 ///
 /// The query matches the center name, building, room, category, description,
 /// and support services so users can search for either a center or a service.
+/// When [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each center's own category.
 List<UmmahCampusCenter> filterUmmahCampusCenters(
   List<UmmahCampusCenter> centers, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return centers
       .where((center) {
-        if (categories.isNotEmpty && !categories.contains(center.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? center.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;

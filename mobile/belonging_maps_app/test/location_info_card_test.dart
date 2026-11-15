@@ -4,6 +4,8 @@ import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const String _foodIconAsset = 'assets/map_icons/food/HF11px.png';
+
 /// Location card data for a Latine art location that has a bundled photo.
 LocationInfoData _artLocationData({String? imageAsset}) {
   return LocationInfoData(
@@ -22,7 +24,10 @@ LocationInfoData _artLocationData({String? imageAsset}) {
 }
 
 /// Location card data for a Ummah campus center that has its own logo.
-LocationInfoData _centerLocationData({BoxFit? orgLogoFit}) {
+LocationInfoData _centerLocationData({
+  BoxFit? orgLogoFit,
+  Color? orgLogoBackgroundColor,
+}) {
   return LocationInfoData(
     cardTitle: 'Southwest Asian and North African Center',
     address: 'AIRC, Room 1012',
@@ -38,6 +43,42 @@ LocationInfoData _centerLocationData({BoxFit? orgLogoFit}) {
         'assets/ummah_campus_map_assets/'
         'southwest_asian_and_north_african_center.png',
     orgLogoFit: orgLogoFit,
+    orgLogoBackgroundColor: orgLogoBackgroundColor,
+  );
+}
+
+/// Location card data for a numbered campus resource.
+LocationInfoData _numberedLocationData({String number = '7'}) {
+  return LocationInfoData(
+    cardTitle: 'Associated Students, Inc. (ASI)',
+    address: 'University Union',
+    category: 'Campus Life',
+    type: '',
+    website: '',
+    phone: '',
+    email: '',
+    description: 'A campus resource.',
+    imageUrl: null,
+    socialLinks: const {},
+    orgLogoLabel: number,
+    orgLogoBackgroundColor: mapInfoCardColor,
+  );
+}
+
+/// Location card data for a location that bundles its own icon asset.
+LocationInfoData _iconLocationData({String asset = _foodIconAsset}) {
+  return LocationInfoData(
+    cardTitle: 'Midtown Taqueria',
+    address: 'University Union',
+    category: 'Food',
+    type: '',
+    website: '',
+    phone: '',
+    email: '',
+    description: 'A food option.',
+    imageUrl: null,
+    socialLinks: const {},
+    orgLogo: asset,
   );
 }
 
@@ -600,6 +641,166 @@ void main() {
               (avatar.backgroundImage! as AssetImage).assetName == logoAsset,
         ),
         isEmpty,
+      );
+
+      // Without a configured background the logo box stays white.
+      final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
+      expect((box.decoration! as BoxDecoration).color, Colors.white);
+    });
+
+    testWidgets('a center logo uses its configured background', (tester) async {
+      final data = _centerLocationData(
+        orgLogoFit: BoxFit.contain,
+        orgLogoBackgroundColor: mapInfoCardColor,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
+      expect((box.decoration! as BoxDecoration).color, mapInfoCardColor);
+    });
+
+    testWidgets('the expanded card keeps the configured logo background', (
+      tester,
+    ) async {
+      final data = _centerLocationData(
+        orgLogoFit: BoxFit.contain,
+        orgLogoBackgroundColor: mapInfoCardColor,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: true,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
+      expect((box.decoration! as BoxDecoration).color, mapInfoCardColor);
+    });
+
+    test('saved cards keep the configured logo background', () {
+      final data = _centerLocationData(
+        orgLogoFit: BoxFit.contain,
+        orgLogoBackgroundColor: mapInfoCardColor,
+      );
+
+      final restored = LocationInfoData.fromFavoriteJson(data.toFavoriteJson());
+
+      expect(restored.orgLogoFit, BoxFit.contain);
+      expect(restored.orgLogoBackgroundColor, mapInfoCardColor);
+    });
+
+    testWidgets('a numbered resource shows its marker number', (tester) async {
+      final data = _numberedLocationData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('7'), findsOneWidget);
+      final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
+      final decoration = box.decoration! as BoxDecoration;
+      expect(decoration.shape, BoxShape.circle);
+      expect(decoration.color, mapInfoCardColor);
+      expect(decoration.border, isNotNull);
+    });
+
+    testWidgets('the expanded card keeps the numbered icon', (tester) async {
+      final data = _numberedLocationData(number: '12');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: true,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('12'), findsOneWidget);
+      final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
+      expect(
+        (box.decoration! as BoxDecoration).color,
+        mapInfoCardColor,
+      );
+    });
+
+    test('saved numbered locations keep their marker number', () {
+      final data = _numberedLocationData(number: '12');
+
+      final restored = LocationInfoData.fromFavoriteJson(data.toFavoriteJson());
+
+      expect(restored.orgLogoLabel, '12');
+      expect(restored.orgLogoBackgroundColor, mapInfoCardColor);
+    });
+
+    testWidgets('a location icon asset uses the circular avatar', (
+      tester,
+    ) async {
+      final data = _iconLocationData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: false,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
+      expect(
+        avatar.backgroundImage,
+        isA<AssetImage>().having(
+          (provider) => provider.assetName,
+          'assetName',
+          _foodIconAsset,
+        ),
       );
     });
 
