@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:belonging_maps_app/models/ummah_campus_center.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ummah_campus_centers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -239,6 +240,20 @@ void main() {
       );
       expect(attributes['ICON_ASSET'], UmmahCampusCenter.placeholderIconAsset);
       expect(attributes['LATITUDE'], center.latitude);
+    });
+
+    test('browse locations uses the center name as its title', () async {
+      final centers = await loadUmmahCampusCenters();
+      final center = centers.firstWhere(
+        (center) => center.id == 'multi-cultural-center',
+      );
+      final location = MapLocation.fromAttributes(
+        center.toAttributes(),
+        category: center.category,
+      );
+
+      expect(location.name, center.name);
+      expect(location.category, center.category);
     });
   });
 

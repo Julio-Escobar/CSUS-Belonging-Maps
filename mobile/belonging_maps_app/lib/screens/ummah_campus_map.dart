@@ -1130,12 +1130,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     });
   }
 
-  /// The attribute map handed to [MapLocation], which reads a `Name` key for the
-  /// title shown in the Browse locations list while the info card reads `NAME`.
-  Map<String, dynamic> _browseAttributes(Map<String, dynamic> attributes) {
-    return <String, dynamic>{...attributes, 'Name': attributes['NAME']};
-  }
-
   Future<void> _browseLocations() async {
     if (!_hasLocations) return;
 
@@ -1154,7 +1148,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (prayer) => MapLocation.fromAttributes(
-                    _browseAttributes(prayer.toAttributes()),
+                    prayer.toAttributes(),
                     category: prayer.category,
                   ),
                 )
@@ -1174,7 +1168,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (food) => MapLocation.fromAttributes(
-                    _browseAttributes(food.toAttributes()),
+                    food.toAttributes(),
                     category: food.category,
                   ),
                 )
@@ -1194,7 +1188,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (center) => MapLocation.fromAttributes(
-                    _browseAttributes(center.toAttributes()),
+                    center.toAttributes(),
                     category: center.category,
                   ),
                 )
@@ -1214,7 +1208,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 .take(mapLocationPageSize)
                 .map(
                   (resource) => MapLocation.fromAttributes(
-                    _browseAttributes(resource.toAttributes()),
+                    resource.toAttributes(),
                     category: resource.category,
                   ),
                 )

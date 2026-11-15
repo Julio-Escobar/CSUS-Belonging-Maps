@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/somos_campus_food.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/somos_campus_food.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -214,6 +215,17 @@ void main() {
     expect(attributes['ICON_ASSET'], SomosCampusFood.defaultIconAsset);
     expect(attributes['LATITUDE'], 38.5597);
     expect(attributes['LONGITUDE'], -121.4223);
+  });
+
+  test('browse locations uses the food name as its title', () {
+    final food = SomosCampusFood.fromJson(_foodJson());
+    final location = MapLocation.fromAttributes(
+      food.toAttributes(),
+      category: food.category,
+    );
+
+    expect(location.name, food.name);
+    expect(location.category, food.category);
   });
 
   test('a food icon resolves to its bundled asset path', () {

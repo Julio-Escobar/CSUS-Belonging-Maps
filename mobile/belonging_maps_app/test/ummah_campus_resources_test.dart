@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:belonging_maps_app/models/ummah_campus_resource.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ummah_campus_resources.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -277,5 +278,16 @@ void main() {
     expect(attributes['WEBSITE'], 'https://www.csus.edu/');
     expect(attributes['LATITUDE'], 38.56091);
     expect(attributes['LONGITUDE'], -121.42405);
+  });
+
+  test('browse locations uses the resource name as its title', () {
+    final resource = UmmahCampusResource.fromJson(_resourceJson());
+    final location = MapLocation.fromAttributes(
+      resource.toAttributes(),
+      category: resource.category,
+    );
+
+    expect(location.name, resource.name);
+    expect(location.category, resource.category);
   });
 }

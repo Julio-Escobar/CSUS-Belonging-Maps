@@ -1,4 +1,5 @@
 import 'package:belonging_maps_app/models/ummah_campus_food.dart';
+import 'package:belonging_maps_app/services/map_location_source.dart';
 import 'package:belonging_maps_app/services/ummah_campus_food.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -75,6 +76,17 @@ void main() {
       expect(attributes['WEBSITE'], food.first.website);
       expect(attributes['ICON_ASSET'], UmmahCampusFood.defaultIconAsset);
       expect(attributes['LONGITUDE'], food.first.longitude);
+    });
+
+    test('browse locations uses the food name as its title', () async {
+      final food = await loadUmmahCampusFood();
+      final location = MapLocation.fromAttributes(
+        food.first.toAttributes(),
+        category: food.first.category,
+      );
+
+      expect(location.name, food.first.name);
+      expect(location.category, food.first.category);
     });
   });
 
