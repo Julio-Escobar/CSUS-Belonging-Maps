@@ -1429,7 +1429,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       child: SafeArea(
         bottom: false,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(width: 72),
             const SizedBox(width: 12),

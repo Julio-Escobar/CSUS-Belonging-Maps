@@ -49,8 +49,8 @@ class _MapSearchBarState extends State<MapSearchBar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Material(
-            color: colors.cardBackground,
-            elevation: 6,
+            color: colors.primary,
+            elevation: 4,
             borderRadius: BorderRadius.circular(18),
             child: Focus(
               onFocusChange: _onFocusChange,
@@ -60,22 +60,29 @@ class _MapSearchBarState extends State<MapSearchBar> {
                   controller: widget.controller,
                   onChanged: widget.onChanged,
                   textInputAction: TextInputAction.search,
-                  style: TextStyle(color: colors.primaryText),
-                  cursorColor: colors.primary,
+                  style: TextStyle(color: colors.onPrimary),
+                  cursorColor: colors.onPrimary,
                   decoration: InputDecoration(
                     labelText: 'Search map locations',
                     hintText: 'Name, category, or address',
-                    prefixIcon: Icon(Icons.search, color: colors.primary),
+                    labelStyle: TextStyle(
+                      color: colors.onPrimary.withValues(alpha: 0.9),
+                    ),
+                    floatingLabelStyle: TextStyle(color: colors.onPrimary),
+                    hintStyle: TextStyle(
+                      color: colors.onPrimary.withValues(alpha: 0.85),
+                    ),
+                    prefixIcon: Icon(Icons.search, color: colors.onPrimary),
                     suffixIcon: value.text.isEmpty
                         ? null
                         : IconButton(
-                            icon: Icon(Icons.clear, color: colors.primary),
+                            icon: Icon(Icons.clear, color: colors.onPrimary),
                             tooltip: 'Clear search',
                             onPressed: _clear,
                           ),
                     border: InputBorder.none,
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: colors.primary, width: 2),
+                      borderSide: BorderSide(color: colors.onPrimary, width: 2),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
