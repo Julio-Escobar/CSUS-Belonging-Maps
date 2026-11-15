@@ -66,6 +66,22 @@ const double _campusExtentYMin = 38.5495;
 const double _campusExtentXMax = -121.4105;
 const double _campusExtentYMax = 38.5690;
 
+/// The category filter options for the SOMOS campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> somosCampusFilterCategories({
+  required List<SomosCampusResource> resources,
+  required List<SomosCampusCenter> centers,
+  required List<SomosCampusFood> food,
+  required List<MapLocation> latineArtLocations,
+}) {
+  return <String>{
+    if (latineArtLocations.isNotEmpty) latineArtCategory,
+    if (food.isNotEmpty) latineFoodCategory,
+    if (centers.isNotEmpty) somosCampusCentersCategory,
+    if (resources.isNotEmpty) somosCampusResourcesCategory,
+  };
+}
+
 class SomosCampusMap extends StatefulWidget {
   const SomosCampusMap({super.key});
 
@@ -123,18 +139,21 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _resources,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: somosCampusResourcesCategory,
   );
 
   List<SomosCampusCenter> get _visibleCenters => filterSomosCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: somosCampusCentersCategory,
   );
 
   List<SomosCampusFood> get _visibleFood => filterSomosCampusFood(
     _food,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: latineFoodCategory,
   );
 
   /// Suggestions for the current query: the bundled SOMOS resources and
@@ -1012,7 +1031,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     final location = await showMapLocationBrowser(context, [
       MapLocationSource(
-        name: 'Campus locations',
+        name: somosCampusResourcesCategory,
         loadPage: (offset) async {
           final locations = visibleResources
               .skip(offset)
@@ -1047,7 +1066,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: somosCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
@@ -1423,7 +1442,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             ),
             if (_resources.isNotEmpty ||
                 _centers.isNotEmpty ||
-                _food.isNotEmpty) ...[
+                _food.isNotEmpty ||
+                _latineArtLocations.isNotEmpty) ...[
               const SizedBox(width: 12),
               MapFilterButton(
                 key: ValueKey<int>(
@@ -1433,12 +1453,12 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...somosCampusResourceCategories(_resources),
-                    ...somosCampusCenterCategories(_centers),
-                    ...somosCampusFoodCategories(_food),
-                    latineArtCategory,
-                  };
+                  final categories = somosCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                    food: _food,
+                    latineArtLocations: _latineArtLocations,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

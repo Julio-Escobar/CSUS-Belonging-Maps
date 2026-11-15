@@ -267,6 +267,45 @@ void main() {
     expect(parseUmmahCategoryFilterExpression(''), isEmpty);
   });
 
+  test('the Browse locations category shows every resource', () {
+    final resources = [
+      UmmahCampusResource.fromJson(
+        _resourceJson(
+          number: 1,
+          name: 'Muslim Student Association (MSA)',
+          category: 'Student Organizations',
+        ),
+      ),
+      UmmahCampusResource.fromJson(
+        _resourceJson(
+          number: 2,
+          name: 'Basic Needs Resource Center (BNRC)',
+          category: 'Basic Needs',
+        ),
+      ),
+    ];
+
+    expect(
+      filterUmmahCampusResources(
+        resources,
+        categories: {ummahCampusResourcesCategory},
+        browseCategory: ummahCampusResourcesCategory,
+      ).map((resource) => resource.name),
+      [
+        'Muslim Student Association (MSA)',
+        'Basic Needs Resource Center (BNRC)',
+      ],
+    );
+    expect(
+      filterUmmahCampusResources(
+        resources,
+        categories: {'Campus Centers'},
+        browseCategory: ummahCampusResourcesCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('resource attributes provide the fields used by the info card', () {
     final resource = UmmahCampusResource.fromJson(_resourceJson());
     final attributes = resource.toAttributes();

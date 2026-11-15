@@ -63,17 +63,21 @@ List<UmmahCampusPrayer> parseUmmahCampusPrayer(String source) {
 /// Returns the prayer rooms matching [query] and any selected [categories].
 ///
 /// The query matches the name, building, room, floor, category, description,
-/// and amenities so users can search for a building or for wudu stations.
+/// and amenities so users can search for a building or for wudu stations. When
+/// [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each room's own category.
 List<UmmahCampusPrayer> filterUmmahCampusPrayer(
   List<UmmahCampusPrayer> rooms, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return rooms
       .where((room) {
-        if (categories.isNotEmpty && !categories.contains(room.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? room.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;

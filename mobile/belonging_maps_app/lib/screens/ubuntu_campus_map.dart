@@ -56,6 +56,18 @@ const double _campusExtentYMin = 38.5495;
 const double _campusExtentXMax = -121.4105;
 const double _campusExtentYMax = 38.5690;
 
+/// The category filter options for the Ubuntu campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> ubuntuCampusFilterCategories({
+  required List<UbuntuCampusResource> resources,
+  required List<UbuntuCampusCenter> centers,
+}) {
+  return <String>{
+    if (centers.isNotEmpty) ubuntuCampusCentersCategory,
+    if (resources.isNotEmpty) ubuntuCampusResourcesCategory,
+  };
+}
+
 class UbuntuCampusMap extends StatefulWidget {
   const UbuntuCampusMap({super.key});
 
@@ -93,12 +105,14 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         _resources,
         query: _searchQuery,
         categories: _selectedCategories,
+        browseCategory: ubuntuCampusResourcesCategory,
       );
 
   List<UbuntuCampusCenter> get _visibleCenters => filterUbuntuCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ubuntuCampusCentersCategory,
   );
 
   /// Suggestions for the current query: the numbered campus resources first,
@@ -602,7 +616,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     final location = await showMapLocationBrowser(context, [
       if (visibleResources.isNotEmpty)
         MapLocationSource(
-          name: 'Campus locations',
+          name: ubuntuCampusResourcesCategory,
           loadPage: (offset) async {
             final locations = visibleResources
                 .skip(offset)
@@ -622,7 +636,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: ubuntuCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
@@ -891,10 +905,10 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...ubuntuCampusResourceCategories(_resources),
-                    ...ubuntuCampusCenterCategories(_centers),
-                  };
+                  final categories = ubuntuCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

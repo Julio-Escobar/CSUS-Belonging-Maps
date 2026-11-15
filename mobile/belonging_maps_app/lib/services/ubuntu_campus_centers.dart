@@ -8,6 +8,11 @@ import '../models/ubuntu_campus_center.dart';
 const String ubuntuCampusCentersAsset =
     'assets/data/ubuntu_campus_centers.json';
 
+/// The Browse locations section that lists the Ubuntu campus centers. The
+/// category filter offers the same section names, so selecting it shows every
+/// center even though each one stores a more specific category.
+const String ubuntuCampusCentersCategory = 'Campus Centers';
+
 /// Loads the Ubuntu campus center dataset from the app's bundled assets.
 ///
 /// Pass a custom [bundle] in tests. Any missing, malformed, or invalid data
@@ -43,9 +48,7 @@ List<UbuntuCampusCenter> parseUbuntuCampusCenters(String source) {
 
     final center = UbuntuCampusCenter.fromJson(entry);
     if (!seenIds.add(center.id)) {
-      throw FormatException(
-        'Duplicate Ubuntu campus center id: ${center.id}.',
-      );
+      throw FormatException('Duplicate Ubuntu campus center id: ${center.id}.');
     }
     centers.add(center);
   }
@@ -62,16 +65,20 @@ List<UbuntuCampusCenter> parseUbuntuCampusCenters(String source) {
 ///
 /// The query matches the center name, building, room, category, description,
 /// and support services so users can search for either a center or a service.
+/// When [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each center's own category.
 List<UbuntuCampusCenter> filterUbuntuCampusCenters(
   List<UbuntuCampusCenter> centers, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return centers
       .where((center) {
-        if (categories.isNotEmpty && !categories.contains(center.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? center.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;

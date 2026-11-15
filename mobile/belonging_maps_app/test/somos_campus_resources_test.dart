@@ -210,6 +210,42 @@ void main() {
     expect(parseCategoryFilterExpression(''), isEmpty);
   });
 
+  test('the Browse locations category shows every resource', () {
+    final resources = [
+      SomosCampusResource.fromJson(
+        _resourceJson(
+          number: 1,
+          name: 'Peer & Academic Resource Center',
+          category: 'Academic & Accessibility',
+        ),
+      ),
+      SomosCampusResource.fromJson(
+        _resourceJson(
+          number: 2,
+          name: 'ASI Food Pantry',
+          category: 'Basic Needs',
+        ),
+      ),
+    ];
+
+    expect(
+      filterSomosCampusResources(
+        resources,
+        categories: {somosCampusResourcesCategory},
+        browseCategory: somosCampusResourcesCategory,
+      ).map((resource) => resource.name),
+      ['Peer & Academic Resource Center', 'ASI Food Pantry'],
+    );
+    expect(
+      filterSomosCampusResources(
+        resources,
+        categories: {'Campus Centers'},
+        browseCategory: somosCampusResourcesCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('resource attributes provide the fields used by the info card', () {
     final resource = SomosCampusResource.fromJson(_resourceJson());
     final attributes = resource.toAttributes();

@@ -90,6 +90,22 @@ double ummahCenterMarkerBaseSize({
   return hasOwnLogo ? logoSize : size;
 }
 
+/// The category filter options for the Ummah campus map: the same sections the
+/// Browse locations list shows for the loaded datasets.
+Set<String> ummahCampusFilterCategories({
+  required List<UmmahCampusResource> resources,
+  required List<UmmahCampusCenter> centers,
+  required List<UmmahCampusFood> food,
+  required List<UmmahCampusPrayer> prayers,
+}) {
+  return <String>{
+    if (prayers.isNotEmpty) ummahCampusPrayerCategory,
+    if (food.isNotEmpty) ummahCampusFoodCategory,
+    if (centers.isNotEmpty) ummahCampusCentersCategory,
+    if (resources.isNotEmpty) ummahCampusResourcesCategory,
+  };
+}
+
 const double _campusLatitude = 38.56091;
 const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
@@ -152,24 +168,28 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     _prayers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusPrayerCategory,
   );
 
   List<UmmahCampusFood> get _visibleFood => filterUmmahCampusFood(
     _food,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusFoodCategory,
   );
 
   List<UmmahCampusCenter> get _visibleCenters => filterUmmahCampusCenters(
     _centers,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusCentersCategory,
   );
 
   List<UmmahCampusResource> get _visibleResources => filterUmmahCampusResources(
     _resources,
     query: _searchQuery,
     categories: _selectedCategories,
+    browseCategory: ummahCampusResourcesCategory,
   );
 
   /// Suggestions for the current query: the prayer rooms and centers first,
@@ -1181,7 +1201,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       if (visibleCenters.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Centers',
+          name: ummahCampusCentersCategory,
           loadPage: (offset) async {
             final locations = visibleCenters
                 .skip(offset)
@@ -1201,7 +1221,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       if (visibleResources.isNotEmpty)
         MapLocationSource(
-          name: 'Campus Resources',
+          name: ummahCampusResourcesCategory,
           loadPage: (offset) async {
             final locations = visibleResources
                 .skip(offset)
@@ -1383,12 +1403,12 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
                 filterField: 'CATEGORY',
                 label: 'Category',
                 loadFilters: () async {
-                  final categories = <String>{
-                    ...ummahCampusResourceCategories(_resources),
-                    ...ummahCampusCenterCategories(_centers),
-                    ...ummahCampusFoodCategories(_food),
-                    ...ummahCampusPrayerCategories(_prayers),
-                  };
+                  final categories = ummahCampusFilterCategories(
+                    resources: _resources,
+                    centers: _centers,
+                    food: _food,
+                    prayers: _prayers,
+                  );
                   return categories.toList()..sort();
                 },
                 onDefinitionExpressionChanged: _onCategoryFilterChanged,

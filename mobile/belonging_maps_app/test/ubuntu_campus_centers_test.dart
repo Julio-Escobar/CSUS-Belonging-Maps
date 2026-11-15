@@ -219,6 +219,38 @@ void main() {
     );
   });
 
+  test('the Browse locations category shows every center', () {
+    final centers = [
+      UbuntuCampusCenter.fromJson(
+        _centerJson(
+          id: 'pride-center',
+          name: 'The Pride Center',
+          category: 'Cultural & Identity',
+        ),
+      ),
+      UbuntuCampusCenter.fromJson(
+        _centerJson(id: 'cares', name: 'CARES', category: 'Basic Needs'),
+      ),
+    ];
+
+    expect(
+      filterUbuntuCampusCenters(
+        centers,
+        categories: {ubuntuCampusCentersCategory},
+        browseCategory: ubuntuCampusCentersCategory,
+      ).map((center) => center.id),
+      ['pride-center', 'cares'],
+    );
+    expect(
+      filterUbuntuCampusCenters(
+        centers,
+        categories: {'Campus locations'},
+        browseCategory: ubuntuCampusCentersCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('center attributes provide the fields used by the info card', () {
     final center = UbuntuCampusCenter.fromJson(_centerJson());
     final attributes = center.toAttributes();

@@ -213,6 +213,42 @@ void main() {
     expect(parseCategoryFilterExpression(''), isEmpty);
   });
 
+  test('the Browse locations category shows every resource', () {
+    final resources = [
+      UbuntuCampusResource.fromJson(
+        _resourceJson(
+          number: 1,
+          name: 'Peer & Academic Resource Center',
+          category: 'Academic Support',
+        ),
+      ),
+      UbuntuCampusResource.fromJson(
+        _resourceJson(
+          number: 2,
+          name: 'The ASI Food Pantry',
+          category: 'Basic Needs',
+        ),
+      ),
+    ];
+
+    expect(
+      filterUbuntuCampusResources(
+        resources,
+        categories: {ubuntuCampusResourcesCategory},
+        browseCategory: ubuntuCampusResourcesCategory,
+      ).map((resource) => resource.name),
+      ['Peer & Academic Resource Center', 'The ASI Food Pantry'],
+    );
+    expect(
+      filterUbuntuCampusResources(
+        resources,
+        categories: {'Campus Centers'},
+        browseCategory: ubuntuCampusResourcesCategory,
+      ),
+      isEmpty,
+    );
+  });
+
   test('resource attributes provide the fields used by the info card', () {
     final resource = UbuntuCampusResource.fromJson(_resourceJson());
     final attributes = resource.toAttributes();

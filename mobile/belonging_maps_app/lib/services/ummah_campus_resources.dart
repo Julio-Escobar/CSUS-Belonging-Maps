@@ -8,6 +8,11 @@ import '../models/ummah_campus_resource.dart';
 const String ummahCampusResourcesAsset =
     'assets/data/ummah_campus_resources.json';
 
+/// The Browse locations section that lists the Ummah campus resources. The
+/// category filter offers the same section names, so selecting it shows every
+/// resource even though each one stores a more specific category.
+const String ummahCampusResourcesCategory = 'Campus Resources';
+
 /// Loads the Ummah campus resource dataset from the app's bundled assets.
 ///
 /// Pass a custom [bundle] in tests. Any missing, malformed, or invalid data
@@ -60,17 +65,21 @@ List<UmmahCampusResource> parseUmmahCampusResources(String source) {
 /// Returns the resources matching [query] and any selected [categories].
 ///
 /// The query matches the resource name, building, room, category, and
-/// description so users can search for either an office or a service.
+/// description so users can search for either an office or a service. When
+/// [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each resource's own category.
 List<UmmahCampusResource> filterUmmahCampusResources(
   List<UmmahCampusResource> resources, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return resources
       .where((resource) {
-        if (categories.isNotEmpty && !categories.contains(resource.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? resource.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;
@@ -89,9 +98,7 @@ List<UmmahCampusResource> filterUmmahCampusResources(
 }
 
 /// The distinct categories available in the category filter.
-Set<String> ummahCampusResourceCategories(
-  List<UmmahCampusResource> resources,
-) {
+Set<String> ummahCampusResourceCategories(List<UmmahCampusResource> resources) {
   return resources.map((resource) => resource.category).toSet();
 }
 

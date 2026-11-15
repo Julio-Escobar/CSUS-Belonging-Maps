@@ -58,16 +58,20 @@ List<UmmahCampusFood> parseUmmahCampusFood(String source) {
 ///
 /// The query matches the name, building, room, category, and description so
 /// users can search for either a restaurant or the building that houses it.
+/// When [browseCategory] is set, [categories] are matched against that Browse
+/// locations section name instead of each option's own category.
 List<UmmahCampusFood> filterUmmahCampusFood(
   List<UmmahCampusFood> food, {
   String query = '',
   Set<String> categories = const <String>{},
+  String? browseCategory,
 }) {
   final normalizedQuery = query.trim().toLowerCase();
 
   return food
       .where((location) {
-        if (categories.isNotEmpty && !categories.contains(location.category)) {
+        if (categories.isNotEmpty &&
+            !categories.contains(browseCategory ?? location.category)) {
           return false;
         }
         if (normalizedQuery.isEmpty) return true;
