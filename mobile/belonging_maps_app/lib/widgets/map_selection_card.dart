@@ -6,7 +6,6 @@ class MapSelectionCard extends StatelessWidget {
   final String label;
   final String subtitle;
   final String imagePath;
-  final String? logoPath;
   final VoidCallback onTap;
 
   const MapSelectionCard({
@@ -14,7 +13,6 @@ class MapSelectionCard extends StatelessWidget {
     required this.label,
     required this.subtitle,
     required this.imagePath,
-    this.logoPath,
     required this.onTap,
   });
 
@@ -40,25 +38,10 @@ class MapSelectionCard extends StatelessWidget {
             children: [
               SizedBox(
                 height: 120,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      excludeFromSemantics: true,
-                    ),
-                    if (logoPath != null)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: colors.cardBackground,
-                          backgroundImage: AssetImage(logoPath!),
-                        ),
-                      ),
-                  ],
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  excludeFromSemantics: true,
                 ),
               ),
               ColoredBox(
