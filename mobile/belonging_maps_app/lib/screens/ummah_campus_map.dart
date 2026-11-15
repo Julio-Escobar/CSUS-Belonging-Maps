@@ -9,6 +9,7 @@ import '/models/ummah_campus_food.dart';
 import '/models/ummah_campus_prayer.dart';
 import '/models/ummah_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
@@ -106,17 +107,7 @@ Set<String> ummahCampusFilterCategories({
   };
 }
 
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
-
-// Padded campus bounds so the user cannot pan the campus completely away. The
-// bounds also cover Folsom Hall on the south edge of campus, which the Ummah
-// Resource Map lists as one of the two prayer room locations.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
 
 class UmmahCampusMap extends StatefulWidget {
   const UmmahCampusMap({super.key});
@@ -260,17 +251,11 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // The label tiles draw above the campus tiles but below the Ummah markers
     // so the building names stay readable and the markers stay on top.

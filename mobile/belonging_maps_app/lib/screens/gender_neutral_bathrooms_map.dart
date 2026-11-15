@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
 import '/widgets/gender_neutral_bathroom_info_card.dart';
 import '/widgets/map_zoom_controls.dart';
 
@@ -40,16 +41,7 @@ const double _restroomIconSize = 28;
 const double _selectedRestroomIconScale = 1.6;
 const double _selectedRestroomIconSize =
     _restroomIconSize * _selectedRestroomIconScale;
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 10000;
-
-// Padded bounds around the restroom points and highlighted buildings. These
-// keep the user from panning the campus completely out of view.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
 
 class GenderNeutralBathroomsMap extends StatefulWidget {
   const GenderNeutralBathroomsMap({super.key});
@@ -94,17 +86,11 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     _buildingsLayer =
         FeatureLayer.withFeatureTable(

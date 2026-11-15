@@ -8,6 +8,7 @@ import '/models/somos_campus_center.dart';
 import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
@@ -56,15 +57,7 @@ const double _selectedCenterIconSize = 56;
 // and enlarged to 42 px when selected (see `_markerSymbol`).
 const double _foodIconSize = 30;
 const double _selectedFoodIconSize = 42;
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
-
-// Padded campus bounds so the user cannot pan the campus completely away.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
 
 /// The category filter options for the SOMOS campus map: the same sections the
 /// Browse locations list shows for the loaded datasets.
@@ -235,17 +228,11 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // Start with a visible fallback marker while the art pin loads.
     _latineArtLayer =

@@ -7,6 +7,7 @@ import 'package:arcgis_maps/arcgis_maps.dart';
 import '/models/ubuntu_campus_center.dart';
 import '/models/ubuntu_campus_resource.dart';
 import '/services/accessibility_theme.dart';
+import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
@@ -46,15 +47,7 @@ const String _defaultOrgLogoAsset = 'assets/ubuntu_logo_temp.png';
 const double _centerIconSize = 40;
 const double _selectedCenterIconSize = 56;
 
-const double _campusLatitude = 38.56091;
-const double _campusLongitude = -121.42405;
 const double _campusScale = 8000;
-
-// Padded campus bounds so the user cannot pan the campus completely away.
-const double _campusExtentXMin = -121.4315;
-const double _campusExtentYMin = 38.5495;
-const double _campusExtentXMax = -121.4105;
-const double _campusExtentYMax = 38.5690;
 
 /// The category filter options for the Ubuntu campus map: the same sections the
 /// Browse locations list shows for the loaded datasets.
@@ -169,17 +162,11 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
             ),
           )
           ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: _campusLatitude,
-            longitude: _campusLongitude,
+            latitude: campusMapLatitude,
+            longitude: campusMapLongitude,
             scale: _campusScale,
           )
-          ..maxExtent = Envelope.fromXY(
-            xMin: _campusExtentXMin,
-            yMin: _campusExtentYMin,
-            xMax: _campusExtentXMax,
-            yMax: _campusExtentYMax,
-            spatialReference: SpatialReference.wgs84,
-          );
+          ..maxExtent = campusMapMaxExtent();
 
     // The label tiles draw above the campus tiles but below the markers so the
     // building names stay readable and the markers stay on top.
