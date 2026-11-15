@@ -136,7 +136,7 @@ void main() {
       tester.semantics.tap(find.semantics.byLabel(label));
       await tester.pumpAndSettle();
       expect(find.byType(type), findsOneWidget);
-      await tester.pageBack();
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byType(WelcomeScreen), findsOneWidget);
     }
@@ -344,7 +344,7 @@ void main() {
         await tester.tap(find.widgetWithText(SwitchListTile, title));
         await tester.pumpAndSettle();
       }
-      await tester.pageBack();
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
 
       Future<void> checkPages() async {
@@ -369,7 +369,7 @@ void main() {
             AccessibilityColors.colorSafe.primary,
           );
           expect(AccessibilityColors.of(context).outline, Colors.black);
-          await tester.pageBack();
+          await tester.binding.handlePopRoute();
           await tester.pumpAndSettle();
         }
       }

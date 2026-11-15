@@ -115,6 +115,7 @@ class _ForumsScreenState extends State<ForumsScreen> {
  
     return HamburgerMenu(
       title: 'Forums',
+      currentDestination: MenuDestination.forums,
       actions: [
         IconButton(
           icon: const Icon(Icons.edit_outlined),
@@ -423,18 +424,15 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
-    final brand = AccessibilityColors.of(context);
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final totalReplies = post.replyCount + widget.replies.length;
  
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: brand.primary,
-        foregroundColor: brand.onPrimary,
-        title: const Text('Post', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: ListView(
+    return HamburgerMenu(
+      title: 'Post',
+      showBackButton: true,
+      body: Scaffold(
+        body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           Card(
@@ -502,6 +500,7 @@ class _ForumPostDetailScreenState extends State<_ForumPostDetailScreen> {
             label: const Text('Reply'),
           ),
         ),
+      ),
       ),
     );
   }

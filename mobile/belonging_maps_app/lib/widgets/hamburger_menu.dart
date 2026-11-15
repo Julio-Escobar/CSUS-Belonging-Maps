@@ -15,16 +15,47 @@ import '../screens/change_password_screen.dart';
 import '../services/auth_service.dart';
 import '../services/accessibility_theme.dart';
 
+/// Top-level destinations listed in the navigation drawer.
+enum MenuDestination {
+  welcome,
+  campusMaps,
+  communityMaps,
+  communityResources,
+  organizationResources,
+  opportunities,
+  favorites,
+  forums,
+  surveys,
+  accessibilitySettings,
+  login,
+  changePassword,
+  aboutUs,
+}
+
 class HamburgerMenu extends StatefulWidget {
   final Widget body;
   final String title;
   final List<Widget>? actions;
+
+  /// Replaces the menu button with a back button and hides the drawer.
+  ///
+  /// Maps and detail screens use this so people always have a way back to the
+  /// page that opened them.
+  final bool showBackButton;
+
+  /// The drawer destination for the page hosting this menu.
+  ///
+  /// When set, the drawer highlights the current page and tapping it just
+  /// closes the menu instead of pushing a duplicate.
+  final MenuDestination? currentDestination;
 
   const HamburgerMenu({
     super.key,
     required this.body,
     this.title = 'Belonging Maps',
     this.actions,
+    this.showBackButton = false,
+    this.currentDestination,
   });
 
   @override
@@ -48,6 +79,54 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
     }
   }
 
+  /// Opens a drawer destination directly above the app's root page.
+  ///
+  /// Removing the intermediate routes keeps back predictable: from any
+  /// top-level page the system back button returns to the root instead of
+  /// walking through stale copies of pages the person already left.
+  void _selectDestination(MenuDestination destination, WidgetBuilder builder) {
+    if (widget.currentDestination == destination) {
+      _closeDrawer();
+      return;
+    }
+
+    // Close the menu before leaving. The root page stays in the stack, so a
+    // drawer left open there would otherwise cover it when the person returns.
+    _closeDrawer();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: builder),
+      (route) => route.isFirst,
+    );
+  }
+
+  /// Returns to the app's root page (Welcome in the running app).
+  void _goHome() {
+    final wasRoot = ModalRoute.of(context)?.isFirst ?? false;
+    _closeDrawer();
+    if (!wasRoot) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  Widget _drawerTile({
+    required AccessibilityColors colors,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isCurrent = false,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      textColor: colors.onPrimary,
+      iconColor: isCurrent ? colors.onPrimary : colors.menuIcon,
+      selected: isCurrent,
+      selectedColor: colors.onPrimary,
+      selectedTileColor: colors.onPrimary.withValues(alpha: 0.16),
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAdmin = AuthService.isAdmin;
@@ -57,6 +136,22 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
     final drawerDuration = reduceMotion
         ? Duration.zero
         : const Duration(milliseconds: 300);
+
+    if (widget.showBackButton) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+          title: Text(
+            widget.title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          leading: BackButton(onPressed: () => Navigator.maybePop(context)),
+          actions: widget.actions,
+        ),
+        body: widget.body,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -116,173 +211,136 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           // P1-306: every map destination sits together at the
                           // top so people find the maps first.
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.school_outlined),
-                            title: const Text('Campus Maps'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CampusMapsScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.school_outlined,
+                            label: 'Campus Maps',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.campusMaps,
+                            onTap: () => _selectDestination(
+                              MenuDestination.campusMaps,
+                              (_) => const CampusMapsScreen(),
+                            ),
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.location_city_outlined),
-                            title: const Text('Community Maps'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const CommunityMapsDirectory(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.location_city_outlined,
+                            label: 'Community Maps',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.communityMaps,
+                            onTap: () => _selectDestination(
+                              MenuDestination.communityMaps,
+                              (_) => const CommunityMapsDirectory(),
+                            ),
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.waving_hand_sharp),
-                            title: const Text('Welcome'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const WelcomeScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.waving_hand_sharp,
+                            label: 'Welcome',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.welcome,
+                            onTap: _goHome,
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.library_books_outlined),
-                            title: const Text('Community Resources'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const CommunityResourcesScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.library_books_outlined,
+                            label: 'Community Resources',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.communityResources,
+                            onTap: () => _selectDestination(
+                              MenuDestination.communityResources,
+                              (_) => const CommunityResourcesScreen(),
+                            ),
                           ),
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.folder_shared_outlined),
-                            title: const Text('Organization Resources'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const OrganizationResourcesScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.folder_shared_outlined,
+                            label: 'Organization Resources',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.organizationResources,
+                            onTap: () => _selectDestination(
+                              MenuDestination.organizationResources,
+                              (_) => const OrganizationResourcesScreen(),
+                            ),
                           ),
                           const Divider(),
 
-                          ListTile(
-                            leading: const Icon(Icons.announcement_outlined),
-                            title: const Text('Opportunities'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const OpportunitiesScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.announcement_outlined,
+                            label: 'Opportunities',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.opportunities,
+                            onTap: () => _selectDestination(
+                              MenuDestination.opportunities,
+                              (_) => const OpportunitiesScreen(),
+                            ),
                           ),
                           const Divider(),
 
-                          ListTile(
-                            leading: const Icon(Icons.star_outline),
-                            title: const Text('Favorites'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const FavoritesScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.star_outline,
+                            label: 'Favorites',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.favorites,
+                            onTap: () => _selectDestination(
+                              MenuDestination.favorites,
+                              (_) => const FavoritesScreen(),
+                            ),
                           ),
                           const Divider(),
 
-                          ListTile(
-                            leading: const Icon(Icons.forum_outlined),
-                            title: const Text('Forums'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ForumsScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.forum_outlined,
+                            label: 'Forums',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.forums,
+                            onTap: () => _selectDestination(
+                              MenuDestination.forums,
+                              (_) => ForumsScreen(),
+                            ),
                           ),
                           const Divider(),
 
-                          ListTile(
-                            leading: const Icon(Icons.assignment_outlined),
-                            title: const Text('Surveys'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SurveysScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.assignment_outlined,
+                            label: 'Surveys',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.surveys,
+                            onTap: () => _selectDestination(
+                              MenuDestination.surveys,
+                              (_) => const SurveysScreen(),
+                            ),
                           ),
                           const Divider(),
 
-                          ListTile(
-                            leading: const Icon(Icons.accessibility_new),
-                            title: const Text('Accessibility Settings'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const AccessibilitySettingsScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.accessibility_new,
+                            label: 'Accessibility Settings',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.accessibilitySettings,
+                            onTap: () => _selectDestination(
+                              MenuDestination.accessibilitySettings,
+                              (_) => const AccessibilitySettingsScreen(),
+                            ),
                           ),
                           const Divider(),
 
@@ -294,21 +352,17 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 style: TextStyle(color: Colors.white70),
                               ),
                             ),
-                            ListTile(
-                              leading: const Icon(Icons.password),
-                              title: const Text('Change Password'),
-                              textColor: colors.onPrimary,
-                              iconColor: colors.menuIcon,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ChangePasswordScreen(),
-                                  ),
-                                );
-                                _closeDrawer();
-                              },
+                            _drawerTile(
+                              colors: colors,
+                              icon: Icons.password,
+                              label: 'Change Password',
+                              isCurrent:
+                                  widget.currentDestination ==
+                                  MenuDestination.changePassword,
+                              onTap: () => _selectDestination(
+                                MenuDestination.changePassword,
+                                (_) => const ChangePasswordScreen(),
+                              ),
                             ),
                             ListTile(
                               leading: const Icon(Icons.edit),
@@ -339,20 +393,17 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           const Divider(),
 
                           if (!isAdmin)
-                            ListTile(
-                              leading: const Icon(Icons.person_3_outlined),
-                              title: const Text('Administrator Login'),
-                              textColor: colors.onPrimary,
-                              iconColor: colors.menuIcon,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LoginScreen(),
-                                  ),
-                                );
-                                _closeDrawer();
-                              },
+                            _drawerTile(
+                              colors: colors,
+                              icon: Icons.person_3_outlined,
+                              label: 'Administrator Login',
+                              isCurrent:
+                                  widget.currentDestination ==
+                                  MenuDestination.login,
+                              onTap: () => _selectDestination(
+                                MenuDestination.login,
+                                (_) => const LoginScreen(),
+                              ),
                             ),
 
                           if (isAdmin)
@@ -379,20 +430,17 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             ),
 
                           const Divider(),
-                          ListTile(
-                            leading: const Icon(Icons.person_pin_outlined),
-                            title: const Text('About Us'),
-                            textColor: colors.onPrimary,
-                            iconColor: colors.menuIcon,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AboutUsScreen(),
-                                ),
-                              );
-                              _closeDrawer();
-                            },
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.person_pin_outlined,
+                            label: 'About Us',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.aboutUs,
+                            onTap: () => _selectDestination(
+                              MenuDestination.aboutUs,
+                              (_) => const AboutUsScreen(),
+                            ),
                           ),
                           const Divider(),
                         ],

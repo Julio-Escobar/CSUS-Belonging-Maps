@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/accessibility_theme.dart';
+import '../widgets/hamburger_menu.dart';
 import '../widgets/map_selection_card.dart';
 import 'somos_community_map.dart';
 import 'ummah_community_map.dart';
@@ -24,15 +25,12 @@ class CommunityMapsDirectory extends StatelessWidget {
     );
     final subtitleStyle = TextStyle(color: colors.secondaryText);
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Community Maps',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
+    return HamburgerMenu(
+      title: 'Community Maps',
+      currentDestination: MenuDestination.communityMaps,
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
@@ -113,6 +111,7 @@ class CommunityMapsDirectory extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

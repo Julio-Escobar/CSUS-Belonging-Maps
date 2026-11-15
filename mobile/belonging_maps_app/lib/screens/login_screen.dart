@@ -76,9 +76,12 @@ class _LoginScreenState extends State<LoginScreen> {
       case LoginResult.success:
         await _lockout.reset();
         if (!mounted) return;
-        Navigator.pushReplacement(
+        // Start over at Welcome so the login page and any pages opened
+        // beneath it are cleared from the back stack (P1-252).
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
         );
       case LoginResult.invalidCredentials:
         await _handleRejectedLogin();
@@ -95,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return HamburgerMenu(
       title: "Login",
+      currentDestination: MenuDestination.login,
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

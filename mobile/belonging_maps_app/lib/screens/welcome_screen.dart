@@ -26,6 +26,7 @@ class WelcomeScreen extends StatelessWidget {
     );
 
     return HamburgerMenu(
+      currentDestination: MenuDestination.welcome,
       body: Scaffold(
         backgroundColor: colors.primary,
         body: SafeArea(
