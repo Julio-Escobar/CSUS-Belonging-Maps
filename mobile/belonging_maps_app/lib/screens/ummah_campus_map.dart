@@ -13,6 +13,7 @@ import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/ummah_campus_centers.dart';
 import '/services/ummah_campus_food.dart';
 import '/services/ummah_campus_prayer.dart';
@@ -762,81 +763,78 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      // Numbered resource markers are drawn on top, so they take precedence
-      // over the other Ummah markers.
-      final resourceResult = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final resourceGraphic = resourceResult.graphics.firstOrNull;
-      final resourceAttributes = resourceGraphic?.attributes;
-      if (resourceGraphic != null &&
-          resourceAttributes != null &&
-          resourceAttributes.isNotEmpty) {
-        _selectResource(resourceGraphic, resourceAttributes);
-        return;
-      }
-
-      final prayerResult = await _mapController.identifyGraphicsOverlay(
+      final overlays = [
         _prayerOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final prayerGraphic = prayerResult.graphics.firstOrNull;
-      final prayerAttributes = prayerGraphic?.attributes;
-      if (prayerGraphic != null &&
-          prayerAttributes != null &&
-          prayerAttributes.isNotEmpty) {
-        _selectPrayer(prayerGraphic, prayerAttributes);
-        return;
-      }
-
-      final foodResult = await _mapController.identifyGraphicsOverlay(
         _foodOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final foodGraphic = foodResult.graphics.firstOrNull;
-      final foodAttributes = foodGraphic?.attributes;
-      if (foodGraphic != null &&
-          foodAttributes != null &&
-          foodAttributes.isNotEmpty) {
-        _selectFood(foodGraphic, foodAttributes);
-        return;
-      }
-
-      final centerResult = await _mapController.identifyGraphicsOverlay(
         _centersOverlay,
+        _resourcesOverlay,
+        _selectionOverlay,
+      ];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open.
+            onSelected = () {};
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _prayerOverlay)) {
+            onSelected = () => _selectPrayer(graphic, attributes);
+          } else if (identical(overlay, _foodOverlay)) {
+            onSelected = () => _selectFood(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
+        _dismissLocationCard();
         return;
       }
 
-      _dismissLocationCard();
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify an Ummah campus location: $error');
     }

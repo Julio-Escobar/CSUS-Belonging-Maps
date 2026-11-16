@@ -5,6 +5,7 @@ import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/widgets/lactation_room_info_card.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/map_zoom_controls.dart';
@@ -15,6 +16,9 @@ const String lactationRoomsLayerUrl =
     'SacStateMothersRooms/FeatureServer/0';
 
 const double _campusScale = 8500;
+
+/// Size of the enlarged marker drawn for the selected lactation room.
+const double _selectedRoomIconSize = 44;
 
 class LactationRoomsMap extends StatefulWidget {
   const LactationRoomsMap({super.key});
@@ -142,19 +146,38 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
     final result = await _mapController.identifyLayer(
       _roomsLayer,
       screenPoint: screenPoint,
-      tolerance: 20,
-      maximumResults: 1,
+      tolerance: mapIconTapTolerance(_selectedRoomIconSize),
+      maximumResults: 5,
     );
     if (!mounted) return;
 
-    final element = result.geoElements.firstOrNull;
-    if (element?.attributes == null) {
+    final candidates = <MapTapCandidate<VoidCallback>>[];
+    for (final element in result.geoElements) {
+      final attributes = element.attributes;
+      if (attributes.isEmpty) continue;
+
+      final position = mapGeometryScreenPoint(_mapController, element.geometry);
+      if (position == null) continue;
+
+      candidates.add(
+        MapTapCandidate(
+          value: () {
+            setState(() => _selectedAttributes = attributes);
+            _showSelectedRoomIcon(element.geometry);
+          },
+          screenPoint: position,
+          tolerance: mapIconTapTolerance(_selectedRoomIconSize),
+        ),
+      );
+    }
+
+    final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+    if (onSelected == null) {
       _dismissLocationCard();
       return;
     }
 
-    setState(() => _selectedAttributes = element!.attributes);
-    _showSelectedRoomIcon(element!.geometry);
+    onSelected();
   }
 
   void _showSelectedRoomIcon(Geometry? geometry) {
@@ -166,9 +189,9 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
         ? (SimpleMarkerSymbol(
             style: SimpleMarkerSymbolStyle.circle,
             color: const Color.fromARGB(255, 47, 95, 62),
-            size: 44,
+            size: _selectedRoomIconSize,
           )..outline = SimpleLineSymbol(color: Colors.white, width: 2))
-        : _roomMarkerSymbol(image, 44);
+        : _roomMarkerSymbol(image, _selectedRoomIconSize);
     _selectionOverlay.graphics.add(Graphic(geometry: geometry, symbol: symbol));
   }
 

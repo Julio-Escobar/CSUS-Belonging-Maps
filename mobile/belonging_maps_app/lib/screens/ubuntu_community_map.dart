@@ -15,6 +15,7 @@ import '/services/community_map_search.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/search_suggestion_list.dart';
 
@@ -174,76 +175,84 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   Future<void> _handleMapTap(Offset screenPoint) async {
     final results = await _mapController.identifyLayers(
       screenPoint: screenPoint,
-      tolerance: 15.0,
-      maximumResultsPerLayer: 1,
+      tolerance: mapIconTapTolerance(mapIconSize),
+      maximumResultsPerLayer: 5,
     );
 
-    Map<String, dynamic>? newAttributes;
-    String? newCategory;
-    Geometry? newGeometry;
-    LayerIconConfig? newIconConfig;
+    if (!mounted) return;
 
-    for (final result in results) {
-      if (result.geoElements.isNotEmpty) {
-        final element = result.geoElements.first;
-        newAttributes = element.attributes;
-        newGeometry = element.geometry;
+    final candidates = <MapTapCandidate<VoidCallback>>[];
 
-        for (final entry in _layerEntries) {
-          if (identical(entry.layer, result.layerContent)) {
-            newCategory = entry.label;
-            newIconConfig = _layerConfigs[entry.layer];
-            break;
-          }
-        }
-        break;
-      }
-    }
+    // The enlarged icon of the selected location is drawn above the feature
+    // icons, so a tap on it keeps the card that is already open.
+    if (_selectedAttributes != null) {
+      final selectionResult = await _mapController.identifyGraphicsOverlay(
+        _selectionOverlay,
+        screenPoint: screenPoint,
+        tolerance: mapIconTapTolerance(selectedMapIconSize),
+        maximumResults: 1,
+      );
 
-    if (newAttributes != null) {
-      final bool isReplacingExistingCard = _selectedAttributes != null;
-      final point = wgs84Point(newGeometry);
-      final iconAsset = newIconConfig == null
-          ? null
-          : iconAssetPathForType(
-              newIconConfig,
-              newAttributes[mapIconTypeField],
-            );
+      if (!mounted) return;
 
-      setState(() {
-        _selectedAttributes = newAttributes;
-        _selectedCategory = newCategory;
-        _selectedLat = point?.y;
-        _selectedLng = point?.x;
-        _selectedIconAsset = iconAsset;
-        _showFullInfo = false;
-        _showInfoCard = isReplacingExistingCard;
-      });
+      for (final graphic in selectionResult.graphics) {
+        final position = mapGeometryScreenPoint(
+          _mapController,
+          graphic.geometry,
+        );
+        if (position == null) continue;
 
-      if (!isReplacingExistingCard) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _selectedAttributes == null) return;
-
-          setState(() {
-            _showInfoCard = true;
-          });
-        });
-      }
-
-      if (newIconConfig != null) {
-        await showSelectedFeature(
-          mapController: _mapController,
-          selectionOverlay: _selectionOverlay,
-          geometry: newGeometry,
-          iconAssetPath: iconAssetPathForType(
-            newIconConfig,
-            newAttributes[mapIconTypeField],
+        candidates.add(
+          MapTapCandidate(
+            value: () {},
+            screenPoint: position,
+            tolerance: mapIconTapTolerance(selectedMapIconSize),
           ),
         );
       }
-    } else {
-      _dismissLocationCard();
     }
+
+    // Identify results follow the draw order of the operational layers
+    // (bottom-to-top), so they are reversed to keep candidates top-most first.
+    for (final result in results.reversed) {
+      final entry = _layerEntries
+          .where((entry) => identical(entry.layer, result.layerContent))
+          .firstOrNull;
+      if (entry == null) continue;
+
+      for (final element in result.geoElements) {
+        final attributes = element.attributes;
+        if (attributes.isEmpty) continue;
+
+        final position = mapGeometryScreenPoint(
+          _mapController,
+          element.geometry,
+        );
+        if (position == null) continue;
+
+        candidates.add(
+          MapTapCandidate(
+            value: () => unawaited(
+              _showLocation(
+                attributes,
+                entry.label,
+                geometry: element.geometry,
+              ),
+            ),
+            screenPoint: position,
+            tolerance: mapIconTapTolerance(mapIconSize),
+          ),
+        );
+      }
+    }
+
+    final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+    if (onSelected == null) {
+      _dismissLocationCard();
+      return;
+    }
+
+    onSelected();
   }
 
   Future<void> _zoomIn() async {

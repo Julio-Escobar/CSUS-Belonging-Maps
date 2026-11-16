@@ -14,6 +14,7 @@ import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/somos_campus_centers.dart';
 import '/services/somos_campus_food.dart';
 import '/services/somos_campus_resources.dart';
@@ -785,80 +786,106 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      final result = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      // Numbered SOMOS markers are drawn in an overlay, so they take precedence
-      // over the Latine art locations drawn underneath them.
-      final graphic = result.graphics.firstOrNull;
-      final attributes = graphic?.attributes;
-      if (graphic != null && attributes != null && attributes.isNotEmpty) {
-        _selectResource(graphic, attributes);
-        return;
-      }
-
-      // The campus centers sit just below the numbered markers and above the
-      // Latine art locations.
-      final centerResult = await _mapController.identifyGraphicsOverlay(
+      final overlays = [
         _centersOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
-        return;
-      }
-
-      // The Latine food icons sit below the numbered markers and the campus
-      // centers, and above the art locations.
-      final foodResult = await _mapController.identifyGraphicsOverlay(
         _foodOverlay,
+        _resourcesOverlay,
+        _selectionOverlay,
+      ];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      final foodGraphic = foodResult.graphics.firstOrNull;
-      final foodAttributes = foodGraphic?.attributes;
-      if (foodGraphic != null &&
-          foodAttributes != null &&
-          foodAttributes.isNotEmpty) {
-        _selectFood(foodGraphic, foodAttributes);
-        return;
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open.
+            onSelected = () {};
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _foodOverlay)) {
+            onSelected = () => _selectFood(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
       }
 
+      // Latine art pins are drawn in an operational layer below the overlays,
+      // so they are added last; nearest distance still wins.
       final artResult = await _mapController.identifyLayer(
         _latineArtLayer,
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapIconTapTolerance(_latineArtIconSize),
+        maximumResults: 5,
       );
 
       if (!mounted) return;
 
-      final artElement = artResult.geoElements.firstOrNull;
-      if (artElement == null || artElement.attributes.isEmpty) {
+      for (final element in artResult.geoElements) {
+        final attributes = element.attributes;
+        if (attributes.isEmpty) continue;
+
+        final position = mapGeometryScreenPoint(
+          _mapController,
+          element.geometry,
+        );
+        if (position == null) continue;
+
+        candidates.add(
+          MapTapCandidate(
+            value: () =>
+                unawaited(_showLatineArtOnMap(attributes, element.geometry)),
+            screenPoint: position,
+            tolerance: mapIconTapTolerance(_latineArtIconSize),
+          ),
+        );
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
         _dismissLocationCard();
         return;
       }
 
-      await _showLatineArtOnMap(artElement.attributes, artElement.geometry);
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify a SOMOS campus resource: $error');
     }

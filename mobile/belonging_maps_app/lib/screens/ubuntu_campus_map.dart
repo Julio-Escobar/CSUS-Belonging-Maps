@@ -11,6 +11,7 @@ import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/ubuntu_campus_centers.dart';
 import '/services/ubuntu_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
@@ -461,43 +462,68 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      final result = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
+      final overlays = [_centersOverlay, _resourcesOverlay, _selectionOverlay];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      // Numbered Ubuntu markers are drawn in an overlay and take precedence
-      // over the center logos drawn underneath them.
-      final graphic = result.graphics.firstOrNull;
-      final attributes = graphic?.attributes;
-      if (graphic != null && attributes != null && attributes.isNotEmpty) {
-        _selectResource(graphic, attributes);
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open.
+            onSelected = () {};
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
+        _dismissLocationCard();
         return;
       }
 
-      final centerResult = await _mapController.identifyGraphicsOverlay(
-        _centersOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
-        return;
-      }
-
-      _dismissLocationCard();
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify an Ubuntu campus resource: $error');
     }
