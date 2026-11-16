@@ -174,10 +174,14 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
-      _centersOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
 
@@ -350,7 +354,9 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   }
 
   /// Draws the featured centers with the shared placeholder pin. They live in
-  /// their own overlay so they stay separate from the numbered resource icons.
+  /// their own overlay so they stay separate from the numbered resource icons,
+  /// and it is added after the other marker overlays so the centers are the top
+  /// layer of location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 

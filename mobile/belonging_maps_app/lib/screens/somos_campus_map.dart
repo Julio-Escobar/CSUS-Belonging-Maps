@@ -254,11 +254,15 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _map.operationalLayers.add(_latineArtLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
-      _centersOverlay,
       _foodOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
     unawaited(_applyLatineArtIcon());
@@ -634,7 +638,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   /// Draws the campus centers with the shared placeholder pin. They live in
-  /// their own overlay so they stay separate from the numbered resource icons.
+  /// their own overlay so they stay separate from the numbered resource icons,
+  /// and it is added after the other marker overlays so the centers are the top
+  /// layer of location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 

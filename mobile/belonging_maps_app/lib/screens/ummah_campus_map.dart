@@ -271,12 +271,16 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
       _prayerOverlay,
       _foodOverlay,
-      _centersOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
     _loadMapData();
@@ -547,7 +551,9 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   }
 
   /// Draws the campus centers with their own icons (or the shared placeholder
-  /// while the real logos are not bundled yet).
+  /// while the real logos are not bundled yet). The centers overlay is added
+  /// after the other marker overlays so the centers are the top layer of
+  /// location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 
@@ -573,8 +579,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     }
   }
 
-  /// Draws the numbered campus resources. They are added last so they draw on
-  /// top of the other markers and stay tappable where locations overlap.
+  /// Draws the numbered campus resources. They sit above the prayer and food
+  /// markers but below the campus centers, which are the top icon layer.
   void _renderResourceMarkers() {
     _resourcesOverlay.graphics.clear();
     _selectionOverlay.graphics.clear();
