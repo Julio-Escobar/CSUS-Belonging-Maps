@@ -47,8 +47,8 @@ const String ummahCampusLabelsStyleUrl =
 
 const Color _ummahMarkerColor = Color(0xFF2F5F3E);
 
-/// The Ummah map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The Ummah community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/ummah_logo_temp.png';
 
 // The prayer room markers match the numbered resource markers, which are drawn
@@ -1294,11 +1294,10 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
@@ -1316,9 +1315,10 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       locationLng: _selectedLng,
       orgLogo: icon.asset,
       orgLogoLabel: icon.label,
-      // Center logos are wide wordmarks, so they are fitted inside the card's
-      // logo box instead of being cropped to a circle. The Ummah map logo is
-      // square and keeps the original circular avatar.
+      // Center icons are fitted inside the card's logo box instead of being
+      // cropped to a circle, so wide wordmarks and the shared placeholder
+      // location icon both stay fully visible. The Ummah map logo is square
+      // and keeps the original circular avatar.
       orgLogoFit: icon.fit,
       orgLogoBackgroundColor: icon.backgroundColor,
     );

@@ -12,8 +12,10 @@ typedef CampusMapCardLogo = ({
 ///
 /// The icon is chosen in this order:
 ///
-/// 1. A campus center's own bundled logo, fitted inside the card's rounded
-///    logo box when the center declares an icon.
+/// 1. The campus center's bundled marker icon, fitted inside the card's rounded
+///    logo box. Centers without a logo of their own resolve to the shared
+///    placeholder location icon, which is the same icon drawn for their map
+///    marker.
 /// 2. An explicit [overrideAsset], used by the SOMOS Latine art locations.
 /// 3. The selected location's [iconAsset] (prayer rooms, food options, and
 ///    other markers that bundle an icon).
@@ -23,7 +25,6 @@ typedef CampusMapCardLogo = ({
 /// [centerBackgroundColor] and [markerColor] keep light icons visible against
 /// the solid backgrounds drawn for them on the map.
 CampusMapCardLogo campusMapCardLogo({
-  required String? centerIcon,
   required String? centerIconAsset,
   required String mapLogoAsset,
   Color? centerBackgroundColor,
@@ -32,9 +33,8 @@ CampusMapCardLogo campusMapCardLogo({
   Color? markerColor,
   String? overrideAsset,
 }) {
-  final centerIconName = centerIcon?.trim() ?? '';
   final centerAsset = centerIconAsset?.trim() ?? '';
-  if (centerIconName.isNotEmpty && centerAsset.isNotEmpty) {
+  if (centerAsset.isNotEmpty) {
     return (
       asset: centerAsset,
       label: null,
@@ -44,16 +44,19 @@ CampusMapCardLogo campusMapCardLogo({
   }
 
   final override = overrideAsset?.trim() ?? '';
-  final icon = override.isNotEmpty
-      ? override
-      : (iconAsset?.trim() ?? '');
+  final icon = override.isNotEmpty ? override : (iconAsset?.trim() ?? '');
   if (icon.isNotEmpty) {
     return (asset: icon, label: null, fit: null, backgroundColor: null);
   }
 
   final number = resourceNumber?.trim() ?? '';
   if (number.isNotEmpty) {
-    return (asset: null, label: number, fit: null, backgroundColor: markerColor);
+    return (
+      asset: null,
+      label: number,
+      fit: null,
+      backgroundColor: markerColor,
+    );
   }
 
   return (asset: mapLogoAsset, label: null, fit: null, backgroundColor: null);

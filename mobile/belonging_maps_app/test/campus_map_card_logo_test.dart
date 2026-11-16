@@ -1,7 +1,9 @@
 import 'package:belonging_maps_app/models/somos_campus_center.dart';
+import 'package:belonging_maps_app/models/ummah_campus_center.dart';
 import 'package:belonging_maps_app/services/campus_map_card_logo.dart';
 import 'package:belonging_maps_app/services/somos_campus_centers.dart';
 import 'package:belonging_maps_app/services/ubuntu_campus_centers.dart';
+import 'package:belonging_maps_app/services/ummah_campus_centers.dart';
 import 'package:belonging_maps_app/widgets/location_info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const String _somosMapLogo = 'assets/somos_logo_temp.png';
 const String _ubuntuMapLogo = 'assets/ubuntu_logo_temp.png';
+const String _ummahMapLogo = 'assets/ummah_logo_temp.png';
 const String _foodIcon = 'assets/map_icons/food/HF11px.png';
 const String _publicArtIcon =
     'assets/map_icons/public-art/PublicArtAndArtists.png';
@@ -25,13 +28,25 @@ Color? _backgroundFor(String token) {
   }
 }
 
+/// Resolves the card logo for a bundled center the same way the campus maps do.
+CampusMapCardLogo _centerCardLogo({
+  required String centerIconAsset,
+  required String background,
+  required String mapLogoAsset,
+}) {
+  return campusMapCardLogo(
+    centerIconAsset: centerIconAsset,
+    mapLogoAsset: mapLogoAsset,
+    centerBackgroundColor: _backgroundFor(background),
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('campusMapCardLogo', () {
     test('a center with its own icon uses it in a fitted box', () {
       final logo = campusMapCardLogo(
-        centerIcon: 'HSI.png',
         centerIconAsset: '${somosCampusCenterIconDirectory}HSI.png',
         mapLogoAsset: _somosMapLogo,
         centerBackgroundColor: mapInfoCardColor,
@@ -44,7 +59,6 @@ void main() {
 
     test('a center logo without a configured background stays white', () {
       final logo = campusMapCardLogo(
-        centerIcon: 'HSI.png',
         centerIconAsset: '${somosCampusCenterIconDirectory}HSI.png',
         mapLogoAsset: _somosMapLogo,
       );
@@ -52,22 +66,20 @@ void main() {
       expect(logo.backgroundColor, isNull);
     });
 
-    test('a center without its own icon keeps the map logo', () {
+    test('a center without its own logo uses the shared location icon', () {
       final logo = campusMapCardLogo(
-        centerIcon: '',
         centerIconAsset: SomosCampusCenter.placeholderIconAsset,
         mapLogoAsset: _somosMapLogo,
         centerBackgroundColor: mapInfoCardColor,
       );
 
-      expect(logo.asset, _somosMapLogo);
-      expect(logo.fit, isNull);
-      expect(logo.backgroundColor, isNull);
+      expect(logo.asset, SomosCampusCenter.placeholderIconAsset);
+      expect(logo.fit, BoxFit.contain);
+      expect(logo.backgroundColor, mapInfoCardColor);
     });
 
     test('a non-center location keeps the map logo', () {
       final logo = campusMapCardLogo(
-        centerIcon: null,
         centerIconAsset: null,
         mapLogoAsset: _ubuntuMapLogo,
         centerBackgroundColor: mapInfoCardColor,
@@ -80,7 +92,6 @@ void main() {
 
     test('blank icon values keep the map logo', () {
       final logo = campusMapCardLogo(
-        centerIcon: '   ',
         centerIconAsset: '   ',
         mapLogoAsset: _ubuntuMapLogo,
         centerBackgroundColor: Colors.white,
@@ -93,7 +104,6 @@ void main() {
 
     test('a center logo wins over an override asset', () {
       final logo = campusMapCardLogo(
-        centerIcon: 'HSI.png',
         centerIconAsset: '${somosCampusCenterIconDirectory}HSI.png',
         mapLogoAsset: _somosMapLogo,
         overrideAsset: _publicArtIcon,
@@ -108,7 +118,6 @@ void main() {
 
     test('an explicit override uses the override icon', () {
       final logo = campusMapCardLogo(
-        centerIcon: null,
         centerIconAsset: null,
         mapLogoAsset: _somosMapLogo,
         overrideAsset: _publicArtIcon,
@@ -124,7 +133,6 @@ void main() {
 
     test('a location icon asset uses the circular avatar', () {
       final logo = campusMapCardLogo(
-        centerIcon: null,
         centerIconAsset: null,
         mapLogoAsset: _somosMapLogo,
         iconAsset: _foodIcon,
@@ -139,7 +147,6 @@ void main() {
 
     test('a numbered marker uses its number and marker color', () {
       final logo = campusMapCardLogo(
-        centerIcon: null,
         centerIconAsset: null,
         mapLogoAsset: _somosMapLogo,
         resourceNumber: '7',
@@ -154,29 +161,43 @@ void main() {
   });
 
   group('bundled campus centers', () {
-    test('SOMOS centers use their own logo and background', () async {
+    test('SOMOS centers use their map marker icon and background', () async {
       final source = await rootBundle.loadString(somosCampusCentersAsset);
       final centers = parseSomosCampusCenters(source);
 
       for (final center in centers) {
-        final expectedBackground = _backgroundFor(center.background);
-        final logo = campusMapCardLogo(
-          centerIcon: center.icon,
+        final logo = _centerCardLogo(
           centerIconAsset: center.iconAsset,
+          background: center.background,
           mapLogoAsset: _somosMapLogo,
-          centerBackgroundColor: expectedBackground,
         );
 
-        if (center.icon.trim().isEmpty) {
-          expect(logo.asset, _somosMapLogo, reason: center.name);
-          expect(logo.fit, isNull, reason: center.name);
-          expect(logo.backgroundColor, isNull, reason: center.name);
-        } else {
-          expect(logo.asset, center.iconAsset, reason: center.name);
-          expect(logo.fit, BoxFit.contain, reason: center.name);
-          expect(logo.backgroundColor, expectedBackground, reason: center.name);
-        }
+        expect(logo.asset, center.iconAsset, reason: center.name);
+        expect(logo.fit, BoxFit.contain, reason: center.name);
+        expect(
+          logo.backgroundColor,
+          _backgroundFor(center.background),
+          reason: center.name,
+        );
       }
+    });
+
+    test('the Career Center card uses the shared location icon', () async {
+      final source = await rootBundle.loadString(somosCampusCentersAsset);
+      final centers = parseSomosCampusCenters(source);
+      final careerCenter = centers.firstWhere(
+        (center) => center.id == 'career-center',
+      );
+
+      final logo = _centerCardLogo(
+        centerIconAsset: careerCenter.iconAsset,
+        background: careerCenter.background,
+        mapLogoAsset: _somosMapLogo,
+      );
+
+      expect(logo.asset, SomosCampusCenter.placeholderIconAsset);
+      expect(logo.asset, isNot(_somosMapLogo));
+      expect(logo.fit, BoxFit.contain);
     });
 
     test('Ubuntu centers use their own logo and background', () async {
@@ -184,17 +205,44 @@ void main() {
       final centers = parseUbuntuCampusCenters(source);
 
       for (final center in centers) {
-        final expectedBackground = _backgroundFor(center.background);
-        final logo = campusMapCardLogo(
-          centerIcon: center.icon,
+        final logo = _centerCardLogo(
           centerIconAsset: center.iconAsset,
+          background: center.background,
           mapLogoAsset: _ubuntuMapLogo,
-          centerBackgroundColor: expectedBackground,
         );
 
         expect(logo.asset, center.iconAsset, reason: center.name);
         expect(logo.fit, BoxFit.contain, reason: center.name);
-        expect(logo.backgroundColor, expectedBackground, reason: center.name);
+        expect(
+          logo.backgroundColor,
+          _backgroundFor(center.background),
+          reason: center.name,
+        );
+      }
+    });
+
+    test('Ummah centers without a logo use the shared location icon', () async {
+      final source = await rootBundle.loadString(ummahCampusCentersAsset);
+      final centers = parseUmmahCampusCenters(source);
+      final centersWithoutLogo = centers.where(
+        (center) => center.icon.trim().isEmpty,
+      );
+
+      expect(centersWithoutLogo, isNotEmpty);
+      for (final center in centersWithoutLogo) {
+        final logo = _centerCardLogo(
+          centerIconAsset: center.iconAsset,
+          background: center.background,
+          mapLogoAsset: _ummahMapLogo,
+        );
+
+        expect(
+          logo.asset,
+          UmmahCampusCenter.placeholderIconAsset,
+          reason: center.name,
+        );
+        expect(logo.asset, isNot(_ummahMapLogo), reason: center.name);
+        expect(logo.fit, BoxFit.contain, reason: center.name);
       }
     });
   });

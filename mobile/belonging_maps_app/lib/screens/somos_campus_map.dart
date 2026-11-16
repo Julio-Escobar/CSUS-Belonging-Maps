@@ -41,8 +41,8 @@ const String _openStreetMapBasemapUrl =
 const String somosCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
-/// The SOMOS map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The SOMOS community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/somos_logo_temp.png';
 
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
@@ -1353,11 +1353,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
@@ -1376,9 +1375,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       locationLng: _selectedLng,
       orgLogo: icon.asset,
       orgLogoLabel: icon.label,
-      // Center logos are wide wordmarks, so they are fitted inside the card's
-      // logo box instead of being cropped to a circle. The SOMOS map logo is
-      // square and keeps the original circular avatar.
+      // Center icons are fitted inside the card's logo box instead of being
+      // cropped to a circle, so wide wordmarks and the shared placeholder
+      // location icon both stay fully visible. The SOMOS map logo is square
+      // and keeps the original circular avatar.
       orgLogoFit: icon.fit,
       orgLogoBackgroundColor: icon.backgroundColor,
     );

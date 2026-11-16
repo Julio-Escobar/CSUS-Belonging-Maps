@@ -40,8 +40,8 @@ const String ubuntuCampusLabelsStyleUrl =
 
 const Color _ubuntuMarkerColor = Color(0xFF2F5F3E);
 
-/// The Ubuntu map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The Ubuntu community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/ubuntu_logo_temp.png';
 
 // The campus center logos are drawn larger than the numbered markers so their
@@ -818,11 +818,10 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
