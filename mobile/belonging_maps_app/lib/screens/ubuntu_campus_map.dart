@@ -10,6 +10,7 @@ import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
+import '/services/map_camera.dart';
 import '/services/map_location_source.dart';
 import '/services/map_tap_target.dart';
 import '/services/ubuntu_campus_centers.dart';
@@ -502,8 +503,10 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
 
           final VoidCallback? onSelected;
           if (isSelection) {
-            // The card for the enlarged icon is already open.
-            onSelected = () {};
+            // The card for the enlarged icon is already open; tapping it still
+            // recenters the camera on the location.
+            onSelected = () =>
+                centerMapOnLocation(_mapController, graphic.geometry);
           } else if (identical(overlay, _resourcesOverlay)) {
             onSelected = () => _selectResource(graphic, attributes);
           } else if (identical(overlay, _centersOverlay)) {
@@ -556,6 +559,8 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       );
     }
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped campus center and enlarges its marker.
@@ -583,6 +588,8 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   double? _toDouble(dynamic value) {
