@@ -1287,16 +1287,29 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
-      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
+      iconAsset: center == null
+          ? _cleanField(attributes?['ICON_ASSET'])
+          : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _ummahMarkerColor,
     );
 
-    return LocationInfoData.fromAttributes(
-      attributes,
-      fallbackTitle: 'Ummah Campus Location',
+    return LocationInfoData(
+      cardTitle: locationName.isNotEmpty
+          ? locationName
+          : 'Ummah Campus Location',
+      address: _cleanField(attributes?['ADDRESS']),
+      category: _cleanField(attributes?['CATEGORY']),
+      type: _cleanField(attributes?['TYPE']),
+      website: _cleanField(attributes?['WEBSITE']),
+      phone: _cleanField(attributes?['PHONE']),
+      email: _cleanField(attributes?['EMAIL']),
+      description: _cleanField(attributes?['DESCRIPTION']),
+      imageUrl: null,
+      imageAsset: null,
+      socialLinks: const {},
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,

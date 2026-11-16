@@ -60,6 +60,8 @@ LocationInfoData _contactLocationData() {
   );
 }
 
+const String _foodIconAsset = 'assets/map_icons/food/HF11px.png';
+
 /// Location card data for a Latine art location that has a bundled photo.
 LocationInfoData _artLocationData({String? imageAsset}) {
   return LocationInfoData(
@@ -825,7 +827,10 @@ void main() {
 
       expect(find.text('12'), findsOneWidget);
       final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
-      expect((box.decoration! as BoxDecoration).color, mapInfoCardColor);
+      expect(
+        (box.decoration! as BoxDecoration).color,
+        mapInfoCardColor,
+      );
     });
 
     test('saved numbered locations keep their marker number', () {
