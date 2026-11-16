@@ -45,5 +45,21 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Lets canLaunchUrl resolve the schemes the location cards hand to
+             the system (Android 11+ package visibility). tel: opens the dialer
+             and mailto: opens the mail app; neither needs a runtime
+             permission. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="mailto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
+        </intent>
     </queries>
 </manifest>

@@ -45,6 +45,9 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   String? _selectedCategory;
   bool _showFullInfo = false;
   bool _showInfoCard = false;
+  double? _selectedLat;
+  double? _selectedLng;
+  String? _selectedIconAsset;
 
   final TextEditingController _searchController = TextEditingController();
   CommunityMapSearchResult _searchResult = CommunityMapSearchResult.none;
@@ -199,10 +202,20 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
 
     if (newAttributes != null) {
       final bool isReplacingExistingCard = _selectedAttributes != null;
+      final point = wgs84Point(newGeometry);
+      final iconAsset = newIconConfig == null
+          ? null
+          : iconAssetPathForType(
+              newIconConfig,
+              newAttributes[mapIconTypeField],
+            );
 
       setState(() {
         _selectedAttributes = newAttributes;
         _selectedCategory = newCategory;
+        _selectedLat = point?.y;
+        _selectedLng = point?.x;
+        _selectedIconAsset = iconAsset;
         _showFullInfo = false;
         _showInfoCard = isReplacingExistingCard;
       });
@@ -260,6 +273,9 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
       setState(() {
         _selectedAttributes = null;
         _selectedCategory = null;
+        _selectedLat = null;
+        _selectedLng = null;
+        _selectedIconAsset = null;
         _showFullInfo = false;
       });
     });
@@ -278,11 +294,7 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(
-      _mapController,
-      _userOverlay,
-      context: context,
-    );
+    return showCurrentLocation(_mapController, _userOverlay, context: context);
   }
 
   Future<void> _browseLocations() async {
@@ -324,9 +336,17 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
     }
 
     final replacing = _selectedAttributes != null;
+    final point = wgs84Point(geometry);
+    final iconAsset = iconConfig == null
+        ? null
+        : iconAssetPathForType(iconConfig, attributes[mapIconTypeField]);
+
     setState(() {
       _selectedAttributes = attributes;
       _selectedCategory = category;
+      _selectedLat = point?.y;
+      _selectedLng = point?.x;
+      _selectedIconAsset = iconAsset;
       _showFullInfo = false;
       _showInfoCard = replacing;
     });
@@ -397,6 +417,9 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
     final data = LocationInfoData.fromAttributes(
       _selectedAttributes,
       fallbackCategory: _selectedCategory,
+      locationLat: _selectedLat,
+      locationLng: _selectedLng,
+      orgLogo: _selectedIconAsset,
     );
 
     return LocationInfoCard(

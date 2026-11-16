@@ -257,7 +257,9 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         if (!mounted) return;
         _centerIconImages[asset] = image;
       } catch (error) {
-        debugPrint('Failed to load the Ubuntu campus center icon $asset: $error');
+        debugPrint(
+          'Failed to load the Ubuntu campus center icon $asset: $error',
+        );
       }
     }
 
@@ -776,7 +778,6 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final resourceName = _cleanField(attributes?['NAME']);
 
     // Centers draw their own logo beside the card title; every other location
     // uses the icon drawn for its marker.
@@ -786,29 +787,16 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _ubuntuMarkerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: resourceName.isNotEmpty
-          ? resourceName
-          : 'Ubuntu Campus Resource',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: null,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'Ubuntu Campus Resource',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,

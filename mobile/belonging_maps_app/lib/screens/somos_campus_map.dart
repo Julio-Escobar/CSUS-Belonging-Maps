@@ -992,11 +992,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(
-      _mapController,
-      _userOverlay,
-      context: context,
-    );
+    return showCurrentLocation(_mapController, _userOverlay, context: context);
   }
 
   Future<void> _browseLocations() async {
@@ -1314,8 +1310,6 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final resourceName = _cleanField(attributes?['NAME']);
-    final imageAsset = _cleanField(attributes?['IMAGE_ASSET']);
 
     // Centers draw their own logo beside the card title; every other location
     // uses the icon drawn for its marker.
@@ -1326,29 +1320,16 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
       overrideAsset: _selectedIsLatineArt ? latineArtIconAsset : null,
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _markerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: resourceName.isNotEmpty
-          ? resourceName
-          : 'SOMOS Campus Resource',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: imageAsset.isEmpty ? null : imageAsset,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'SOMOS Campus Resource',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,
@@ -1378,9 +1359,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     return LocationInfoCard(
       data: data,
-      // Latine art cards are a fixed summary, so they never expand.
-      showFullInfo: _selectedIsLatineArt ? false : _showFullInfo,
-      summaryOnly: _selectedIsLatineArt,
+      showFullInfo: _showFullInfo,
       onClose: _dismissLocationCard,
       onShowMore: () {
         setState(() {

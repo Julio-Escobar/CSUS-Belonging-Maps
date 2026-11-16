@@ -112,7 +112,7 @@ void main() {
     expect(attributes['ADDRESS'], '6000 Jed Smith Dr, Sacramento, CA 95819');
     expect(attributes['CATEGORY'], latineArtCategory);
     expect(attributes['TYPE'], 'Fountain');
-    expect(attributes['DESCRIPTION'], 'RCAF');
+    expect(attributes['DESCRIPTION'], '');
     expect(attributes['LATITUDE'], 38.55960233774709);
     expect(attributes['LONGITUDE'], -121.4214664617989);
   });

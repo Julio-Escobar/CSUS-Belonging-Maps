@@ -69,7 +69,7 @@ Map<String, dynamic> latineArtLocationAttributes(
     'ADDRESS': cleanLocationAttribute(attributes['Address']),
     'CATEGORY': category.isEmpty ? latineArtCategory : category,
     'TYPE': cleanLocationAttribute(attributes['Type']),
-    'DESCRIPTION': cleanLocationAttribute(attributes['Comments']),
+    'DESCRIPTION': cleanLocationAttribute(attributes['Description']),
     'WEBSITE': cleanLocationAttribute(attributes['Website']),
     'PHONE': cleanLocationAttribute(attributes['PhoneNumber']),
     'EMAIL': cleanLocationAttribute(attributes['Email']),

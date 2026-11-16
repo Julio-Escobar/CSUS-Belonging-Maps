@@ -70,17 +70,31 @@ const double _previewImageHeight = 150;
 const double _previewImageGap = 12;
 
 /// Height of the compact location card when it has no photo.
-const double _previewCardHeight = 260;
+const double _previewCardHeight = 300;
 
 class LocationInfoData {
   final String cardTitle;
   final String address;
   final String category;
   final String type;
+
+  /// Who owns or runs a community business (for example "Muslim Owned").
+  /// Empty when the location has no ownership information.
+  final String owned;
+
   final String website;
   final String phone;
   final String email;
   final String description;
+
+  /// The services a campus center or program offers, such as advising or
+  /// scholarships. Empty when the location lists none.
+  final List<String> supportServices;
+
+  /// What a space offers, such as "Prayer space" or "Wudu stations". Empty
+  /// when the location lists none.
+  final List<String> amenities;
+
   final String? imageUrl;
   final String? imageAsset;
   final Map<String, String> socialLinks;
@@ -108,10 +122,13 @@ class LocationInfoData {
     required this.address,
     required this.category,
     required this.type,
+    this.owned = '',
     required this.website,
     required this.phone,
     required this.email,
     required this.description,
+    this.supportServices = const <String>[],
+    this.amenities = const <String>[],
     required this.imageUrl,
     this.imageAsset,
     required this.socialLinks,
@@ -147,10 +164,13 @@ class LocationInfoData {
     'address': address,
     'category': category,
     'type': type,
+    'owned': owned,
     'website': website,
     'phone': phone,
     'email': email,
     'description': description,
+    'supportServices': supportServices,
+    'amenities': amenities,
     'imageUrl': imageUrl,
     'imageAsset': imageAsset,
     'socialLinks': socialLinks,
@@ -176,10 +196,13 @@ class LocationInfoData {
       address: json['address'] as String? ?? '',
       category: json['category'] as String? ?? '',
       type: json['type'] as String? ?? '',
+      owned: json['owned'] as String? ?? '',
       website: json['website'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
       description: json['description'] as String? ?? '',
+      supportServices: _stringList(json['supportServices']),
+      amenities: _stringList(json['amenities']),
       imageUrl: json['imageUrl'] as String?,
       imageAsset: json['imageAsset'] as String?,
       socialLinks: socialLinks is Map
@@ -213,71 +236,299 @@ class LocationInfoData {
     return double.tryParse(value.toString());
   }
 
+  /// Parses a saved list of text values, dropping blanks and duplicates.
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    final result = <String>[];
+    for (final entry in value) {
+      final text = cleanField(entry);
+      if (text.isEmpty) continue;
+      if (result.any((item) => item.toLowerCase() == text.toLowerCase())) {
+        continue;
+      }
+      result.add(text);
+    }
+    return List<String>.unmodifiable(result);
+  }
+
+  /// The first non-empty value among [keys], matched without regard to case so
+  /// the uppercase campus datasets and the mixed-case ArcGIS community layers
+  /// both resolve.
+  static dynamic _attributeValue(
+    Map<String, dynamic>? attributes,
+    List<String> keys,
+  ) {
+    if (attributes == null || attributes.isEmpty) return null;
+
+    bool hasValue(dynamic value) {
+      if (value is List) return value.isNotEmpty;
+      if (value is Map) return value.isNotEmpty;
+      return cleanField(value).isNotEmpty;
+    }
+
+    for (final key in keys) {
+      final value = attributes[key];
+      if (hasValue(value)) return value;
+    }
+
+    final lowerCaseKeys = <String, String>{
+      for (final key in attributes.keys) key.toLowerCase(): key,
+    };
+    for (final key in keys) {
+      final actualKey = lowerCaseKeys[key.toLowerCase()];
+      if (actualKey == null) continue;
+      final value = attributes[actualKey];
+      if (hasValue(value)) return value;
+    }
+    return null;
+  }
+
+  static String _attributeText(
+    Map<String, dynamic>? attributes,
+    List<String> keys,
+  ) => cleanField(_attributeValue(attributes, keys));
+
+  /// Reads a bullet-separated list or newline-separated string of values.
+  static List<String> _attributeList(
+    Map<String, dynamic>? attributes,
+    List<String> keys,
+  ) {
+    final raw = _attributeValue(attributes, keys);
+    if (raw == null) return const <String>[];
+
+    final Iterable<dynamic> entries = raw is List
+        ? raw
+        : raw.toString().split(RegExp(r'\r?\n'));
+    final result = <String>[];
+    for (final entry in entries) {
+      final text = cleanField(
+        entry,
+      ).replaceFirst(RegExp(r'^[-\u2022*]\s*'), '').trim();
+      if (text.isEmpty) continue;
+      if (result.any((item) => item.toLowerCase() == text.toLowerCase())) {
+        continue;
+      }
+      result.add(text);
+    }
+    return List<String>.unmodifiable(result);
+  }
+
+  /// Builds one address line from the separate street, city, state, and ZIP
+  /// fields the community layers publish, without repeating parts already
+  /// present in the street address.
+  static String _composeAddress(
+    Map<String, dynamic>? attributes, {
+    required String primary,
+  }) {
+    final parts = <String>[];
+    void addPart(String value) {
+      final text = value.trim();
+      if (text.isEmpty) return;
+      final joined = parts.join(', ').toLowerCase();
+      if (joined.contains(text.toLowerCase())) return;
+      parts.add(text);
+    }
+
+    addPart(primary);
+    addPart(
+      _attributeText(attributes, const [
+        'ADDRESS_LINE_2',
+        'AddressLine2',
+        'AddresLine2',
+      ]),
+    );
+
+    final city = _attributeText(attributes, const ['CITY', 'City']);
+    final state = _attributeText(attributes, const ['STATE', 'State']);
+    final zip = _attributeText(attributes, const [
+      'ZIP_CODE',
+      'ZIP_Code',
+      'ZIP',
+    ]);
+    addPart(
+      [
+        [city, state].where((value) => value.isNotEmpty).join(', '),
+        zip,
+      ].where((value) => value.isNotEmpty).join(' '),
+    );
+
+    return parts.join(', ');
+  }
+
+  /// Removes an inline "Support Services:" bullet list from a description when
+  /// the same services are also published as their own field (as on some SOMOS
+  /// campus centers), so the card never prints the list twice.
+  static String _withoutInlineServices(
+    String description,
+    List<String> services,
+  ) {
+    if (description.isEmpty || services.isEmpty) return description;
+
+    final serviceNames = services
+        .map((service) => service.trim().toLowerCase())
+        .toSet();
+    final kept = <String>[];
+    var dropping = false;
+    for (final line in description.split(RegExp(r'\r?\n'))) {
+      final trimmed = line.trim();
+      final bullet = trimmed
+          .replaceFirst(RegExp(r'^[-\u2022*]\s*'), '')
+          .trim()
+          .toLowerCase();
+
+      if (dropping && trimmed.startsWith(RegExp(r'[-•*]'))) continue;
+      if (serviceNames.contains(bullet)) {
+        dropping = true;
+        continue;
+      }
+      dropping = false;
+      kept.add(line);
+    }
+
+    return kept
+        .join('\n')
+        .replaceFirst(
+          RegExp(
+            r'(\r?\n)*[^\r\n]*\b(support services|benefits and services)\b\s*:?\s*$',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+  }
+
   factory LocationInfoData.fromAttributes(
     Map<String, dynamic>? attributes, {
     String? fallbackCategory,
+    String? fallbackTitle,
+    double? locationLat,
+    double? locationLng,
+    String? orgLogo,
+    BoxFit? orgLogoFit,
+    Color? orgLogoBackgroundColor,
+    String? orgLogoLabel,
   }) {
-    final String categoryField = cleanField(attributes?['CATEGORY']);
+    final category = _attributeText(attributes, const ['CATEGORY', 'Category']);
+    final primaryAddress = _attributeText(attributes, const [
+      'ADDRESS',
+      'Address',
+      'LOCATION',
+      'Location',
+    ]);
+    final address = _composeAddress(attributes, primary: primaryAddress);
 
-    final String addressField = cleanField(attributes?['ADDRESS']);
-    final String locationField = cleanField(attributes?['LOCATION']);
+    final description = _attributeText(attributes, const [
+      'DESCRIPTION',
+      'Description',
+      'DETAILS',
+      'Details',
+    ]);
+    final supportServices = _attributeList(attributes, const [
+      'SUPPORT_SERVICES',
+      'SupportServices',
+      'supportServices',
+    ]);
+    final amenities = _attributeList(attributes, const [
+      'AMENITIES',
+      'Amenities',
+      'amenities',
+    ]);
 
-    final String descriptionField = cleanField(attributes?['DESCRIPTION']);
-    final String detailsField = cleanField(attributes?['DETAILS']);
-
-    final String websiteField = cleanField(attributes?['WEBSITE']);
-    final String urlField = cleanField(attributes?['URL']);
-
-    final String imageField = cleanField(attributes?['IMAGE_URL']);
-    final String imageAssetField = cleanField(attributes?['IMAGE_ASSET']);
+    final imageUrlField = _attributeText(attributes, const [
+      'IMAGE_URL',
+      'ImageUrl',
+    ]);
+    final imageAssetField = _attributeText(attributes, const [
+      'IMAGE_ASSET',
+      'ImageAsset',
+    ]);
+    final sharedImage = _attributeText(attributes, const [
+      'IMAGES',
+      'Images',
+      'IMAGE',
+      'Image',
+    ]);
+    var imageUrl = imageUrlField;
+    if (imageUrl.isEmpty && sharedImage.startsWith(RegExp(r'https?://'))) {
+      imageUrl = sharedImage;
+    }
 
     return LocationInfoData(
-      cardTitle: locationTitleFromAttributes(attributes),
-      id: cleanField(
-        attributes?['ID'] ??
-            attributes?['id'] ??
-            attributes?['OBJECTID'] ??
-            attributes?['ObjectId'] ??
-            attributes?['GlobalID'] ??
-            attributes?['globalid'],
+      cardTitle: locationTitleFromAttributes(
+        attributes,
+        fallback: fallbackTitle ?? 'Unnamed location',
       ),
-      address: addressField.isNotEmpty
-          ? addressField
-          : locationField.isNotEmpty
-          ? locationField
-          : '',
-      category: categoryField.isNotEmpty
-          ? categoryField
-          : cleanField(fallbackCategory),
-      type: cleanField(attributes?['TYPE']),
-      website: websiteField.isNotEmpty ? websiteField : urlField,
-      phone: cleanField(attributes?['PHONE']),
-      email: cleanField(attributes?['EMAIL']),
-      description: descriptionField.isNotEmpty
-          ? descriptionField
-          : detailsField.isNotEmpty
-          ? detailsField
-          : 'No description available.',
-      imageUrl: imageField.isNotEmpty ? imageField : null,
-      imageAsset: imageAssetField.isNotEmpty ? imageAssetField : null,
-      socialLinks: {
-        'Instagram': cleanField(attributes?['Instagram']),
-        'Facebook': cleanField(attributes?['Facebook']),
-        'Twitter_X': cleanField(attributes?['Twitter_X']),
-        'TikTok': cleanField(attributes?['TikTok']),
-        'LinkedIn': cleanField(attributes?['LinkedIn']),
+      id: _attributeText(attributes, const [
+        'ID',
+        'OBJECTID',
+        'ObjectId',
+        'GLOBALID',
+        'GlobalID',
+      ]),
+      address: address,
+      category: category.isNotEmpty ? category : cleanField(fallbackCategory),
+      type: _attributeText(attributes, const [
+        'TYPE',
+        'Type',
+        'FIELD_SIMPLIFIED',
+        'Field_Simplified',
+      ]),
+      owned: _attributeText(attributes, const ['OWNED', 'Owned', 'OWNERSHIP']),
+      website: _attributeText(attributes, const [
+        'WEBSITE',
+        'Website',
+        'URL',
+        'Url',
+      ]),
+      phone: _attributeText(attributes, const [
+        'PHONE',
+        'Phone',
+        'PHONE_NUMBER',
+        'PhoneNumber',
+        'Phone_Number',
+      ]),
+      email: _attributeText(attributes, const ['EMAIL', 'Email']),
+      description: _withoutInlineServices(description, supportServices),
+      supportServices: supportServices,
+      amenities: amenities,
+      imageUrl: imageUrl.isEmpty ? null : imageUrl,
+      imageAsset: imageAssetField.startsWith('assets/')
+          ? imageAssetField
+          : null,
+      socialLinks: <String, String>{
+        'Instagram': _attributeText(attributes, const [
+          'INSTAGRAM',
+          'Instagram',
+        ]),
+        'Facebook': _attributeText(attributes, const ['FACEBOOK', 'Facebook']),
+        'Twitter_X': _attributeText(attributes, const [
+          'TWITTER_X',
+          'Twitter_X',
+          'TwitterX',
+          'Twitter',
+        ]),
+        'TikTok': _attributeText(attributes, const ['TIKTOK', 'TikTok']),
+        'LinkedIn': _attributeText(attributes, const ['LINKEDIN', 'LinkedIn']),
       },
-      locationLat: _toDouble(
-        attributes?['LATITUDE'] ??
-            attributes?['Latitude'] ??
-            attributes?['LAT'],
-      ),
-      locationLng: _toDouble(
-        attributes?['LONGITUDE'] ??
-            attributes?['Longitude'] ??
-            attributes?['LNG'] ??
-            attributes?['LON'],
-      ),
+      locationLat:
+          locationLat ??
+          _toDouble(
+            _attributeValue(attributes, const ['LATITUDE', 'Latitude', 'LAT']),
+          ),
+      locationLng:
+          locationLng ??
+          _toDouble(
+            _attributeValue(attributes, const [
+              'LONGITUDE',
+              'Longitude',
+              'LNG',
+              'LON',
+            ]),
+          ),
+      orgLogo: orgLogo,
+      orgLogoFit: orgLogoFit,
+      orgLogoBackgroundColor: orgLogoBackgroundColor,
+      orgLogoLabel: orgLogoLabel,
     );
   }
 }
@@ -300,6 +551,28 @@ String buildLocationShareText(LocationInfoData data) {
   if (address.isNotEmpty) fields.add(address);
   if (website.isNotEmpty) fields.add(website);
   return fields.join('\n');
+}
+
+/// Builds the `tel:` URI used by the card's call button.
+///
+/// The stored numbers are written for people to read, for example
+/// "(916) 278-2655". Phone dialers and iOS `URL(string:)` reject the spaces
+/// and parentheses, so only a leading "+" and the digits are kept.
+Uri phoneLaunchUri(String phone) {
+  final trimmed = phone.trim();
+  final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+  final dialable = trimmed.startsWith('+') && digits.isNotEmpty
+      ? '+$digits'
+      : digits;
+  return Uri(scheme: 'tel', path: dialable);
+}
+
+/// Builds the `mailto:` URI used by the card's email button.
+///
+/// Building the URI from its parts lets `Uri` encode any character the stored
+/// address contains instead of relying on string interpolation.
+Uri emailLaunchUri(String email) {
+  return Uri(scheme: 'mailto', path: email.trim());
 }
 
 class LocationInfoCard extends StatelessWidget {
@@ -333,15 +606,26 @@ class LocationInfoCard extends StatelessWidget {
         trimmed.toLowerCase() != 'null';
   }
 
-  Future<void> _launchUrl(String url) async {
-    final String normalizedUrl = url.trim();
-    final Uri uri = Uri.parse(normalizedUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      debugPrint('Could not launch $normalizedUrl');
+  /// Hands [uri] to the platform.
+  ///
+  /// The card deliberately does not ask [canLaunchUrl] first: on Android 11+
+  /// and iOS that check returns false for `tel:` and `mailto:` unless the app
+  /// declares the schemes, which silently swallowed every call and email tap.
+  /// Launching directly is also what the url_launcher documentation
+  /// recommends. Platforms either return false or throw when no app can handle
+  /// the URI, so both are treated as a failed launch.
+  Future<bool> _launchUri(Uri uri) async {
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (launched) return true;
+      debugPrint('Could not launch $uri');
+    } catch (error) {
+      debugPrint('Could not launch $uri: $error');
     }
+    return false;
   }
 
   Future<void> _shareLocation(BuildContext originContext) async {
@@ -373,13 +657,15 @@ class LocationInfoCard extends StatelessWidget {
         (data.locationLat != null && data.locationLng != null);
   }
 
-  Future<void> _openInMaps() async {
+  /// Opens the location in the platform's map app and reports whether it
+  /// worked, so the card can tell the user when no map app is available.
+  Future<bool> _openInMaps() async {
     final String destination = data.address.trim();
     final bool hasAddress = _hasValue(destination);
     final bool hasCoordinates =
         data.locationLat != null && data.locationLng != null;
 
-    if (!hasAddress && !hasCoordinates) return;
+    if (!hasAddress && !hasCoordinates) return false;
 
     try {
       if (hasAddress) {
@@ -403,15 +689,8 @@ class LocationInfoCard extends StatelessWidget {
           );
         }
 
-        if (await canLaunchUrl(primaryUri)) {
-          await launchUrl(primaryUri, mode: LaunchMode.externalApplication);
-          return;
-        }
-
-        if (await canLaunchUrl(fallbackUri)) {
-          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
-          return;
-        }
+        if (await _launchUri(primaryUri)) return true;
+        if (await _launchUri(fallbackUri)) return true;
       }
 
       if (hasCoordinates) {
@@ -436,21 +715,15 @@ class LocationInfoCard extends StatelessWidget {
           );
         }
 
-        if (await canLaunchUrl(primaryUri)) {
-          await launchUrl(primaryUri, mode: LaunchMode.externalApplication);
-          return;
-        }
-
-        if (await canLaunchUrl(fallbackUri)) {
-          await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
-          return;
-        }
+        if (await _launchUri(primaryUri)) return true;
+        if (await _launchUri(fallbackUri)) return true;
       }
 
       debugPrint('Could not launch maps for ${data.cardTitle}');
     } catch (e) {
       debugPrint('Error launching maps: $e');
     }
+    return false;
   }
 
   IconData _getSocialIcon(String platform) {
@@ -513,7 +786,7 @@ class LocationInfoCard extends StatelessWidget {
                   onShowLess: onShowLess,
                   onOpenInMaps: _openInMaps,
                   onShare: _shareLocation,
-                  launchUrl: _launchUrl,
+                  launchUrl: _launchUri,
                   getSocialIcon: _getSocialIcon,
                 )
               : _PreviewLocationInfoCard(
@@ -811,6 +1084,31 @@ class _PreviewLocationInfoCard extends StatelessWidget {
                 ),
               ),
             ],
+            if (data.address.trim().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.location_on,
+                      color: palette.foreground.withValues(alpha: 0.8),
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      data.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: LocationCardText.body(palette.foreground),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
@@ -846,14 +1144,48 @@ class _PreviewLocationInfoCard extends StatelessWidget {
   }
 }
 
+/// Draws a card field as a bold label followed by its regular-weight value,
+/// e.g. "Category: Campus Centers".
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.valueStyle,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final TextStyle? valueStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: '$label: ', style: LocationCardText.fieldLabel(color)),
+          TextSpan(
+            text: value,
+            style: valueStyle ?? LocationCardText.fieldValue(color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ExpandedLocationInfoCard extends StatelessWidget {
   final LocationInfoData data;
   final bool canOpenMaps;
   final VoidCallback onClose;
   final VoidCallback onShowLess;
-  final VoidCallback onOpenInMaps;
+
+  /// Opens the location in a maps app and resolves to whether it launched,
+  /// so the card can surface a message when no map app is available.
+  final Future<bool> Function() onOpenInMaps;
   final Future<void> Function(BuildContext) onShare;
-  final Future<void> Function(String) launchUrl;
+  final Future<bool> Function(Uri) launchUrl;
   final IconData Function(String) getSocialIcon;
 
   const _ExpandedLocationInfoCard({
@@ -867,11 +1199,54 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
     required this.getSocialIcon,
   });
 
+  /// Runs [open] and tells the user why nothing happened when it fails.
+  ///
+  /// Handing a `tel:` or `mailto:` URI to the platform can fail on devices
+  /// without a dialer or a configured mail account (and always fails in the
+  /// iOS Simulator), so the tap would otherwise look broken.
+  Future<void> _openAndReport(
+    BuildContext context,
+    Future<bool> Function() open,
+    String failureMessage,
+  ) async {
+    final launched = await open();
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(failureMessage)));
+    }
+  }
+
+  /// Opens [uri] and reports failure with [failureMessage].
+  Future<void> _openLink(BuildContext context, Uri uri, String failureMessage) {
+    return _openAndReport(context, () => launchUrl(uri), failureMessage);
+  }
+
+  /// Parses [url] and opens it, reporting unparseable values as failures.
+  Future<void> _openUrl(
+    BuildContext context,
+    String url,
+    String failureMessage,
+  ) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null) {
+      return _openAndReport(context, () async => false, failureMessage);
+    }
+    return _openLink(context, uri, failureMessage);
+  }
+
   bool _hasValue(String value) {
     final trimmed = value.trim();
     return trimmed.isNotEmpty &&
         trimmed.toLowerCase() != 'n/a' &&
         trimmed.toLowerCase() != 'null';
+  }
+
+  /// The description shown in the card. The old placeholder text is hidden so
+  /// a location that only has other details never shows a filler sentence.
+  String get _description {
+    final text = data.description.trim();
+    return text.toLowerCase() == 'no description available.' ? '' : text;
   }
 
   bool _isValidSocialUrl(String value) {
@@ -948,6 +1323,8 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Location first, together with the option to open it in a
+                // maps app.
                 if (_hasValue(data.address)) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -969,36 +1346,122 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                ],
+                if (canOpenMaps) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => _openAndReport(
+                      context,
+                      onOpenInMaps,
+                      'Could not open the maps app.',
+                    ),
+                    icon: Icon(Icons.directions, color: palette.foreground),
+                    label: Text(
+                      'Open in Maps',
+                      style: LocationCardText.detail(palette.foreground),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: palette.divider),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                 ],
                 if (_hasValue(data.category)) ...[
-                  Text(
-                    'Category: ${data.category}',
-                    style: LocationCardText.detail(palette.foreground),
+                  _LabeledField(
+                    label: 'Category',
+                    value: data.category,
+                    color: palette.foreground,
                   ),
                   const SizedBox(height: 4),
                 ],
                 if (_hasValue(data.type)) ...[
-                  Text(
-                    'Type: ${data.type}',
-                    style: LocationCardText.detail(palette.foreground),
+                  _LabeledField(
+                    label: 'Type',
+                    value: data.type,
+                    color: palette.foreground,
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                if (_hasValue(data.owned)) ...[
+                  _LabeledField(
+                    label: 'Ownership',
+                    value: data.owned,
+                    color: palette.foreground,
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                if (_hasValue(data.category) ||
+                    _hasValue(data.type) ||
+                    _hasValue(data.owned))
+                  const SizedBox(height: 12),
+                if (_hasValue(_description)) ...[
+                  _LabeledField(
+                    label: 'Description',
+                    value: _description,
+                    color: palette.foreground,
+                    valueStyle: LocationCardText.body(palette.foreground),
                   ),
                   const SizedBox(height: 16),
                 ],
+                if (data.supportServices.isNotEmpty) ...[
+                  Text(
+                    'Support Services',
+                    style: LocationCardText.sectionHeader(palette.foreground),
+                  ),
+                  const SizedBox(height: 6),
+                  ...data.supportServices.map(
+                    (service) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '\u2022 $service',
+                        style: LocationCardText.body(palette.foreground),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (data.amenities.isNotEmpty) ...[
+                  Text(
+                    'Amenities',
+                    style: LocationCardText.sectionHeader(palette.foreground),
+                  ),
+                  const SizedBox(height: 6),
+                  ...data.amenities.map(
+                    (amenity) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '\u2022 $amenity',
+                        style: LocationCardText.body(palette.foreground),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (_hasValue(data.website)) ...[
                   TextButton(
-                    onPressed: () => launchUrl(data.website),
+                    onPressed: () => _openUrl(
+                      context,
+                      data.website,
+                      'Could not open the website.',
+                    ),
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Open website',
                       style: LocationCardText.link(palette.foreground),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
                 if (_hasValue(data.phone)) ...[
                   TextButton(
-                    onPressed: () => launchUrl('tel:${data.phone}'),
+                    onPressed: () => _openLink(
+                      context,
+                      phoneLaunchUri(data.phone),
+                      'Could not open the phone app.',
+                    ),
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Call ${data.phone}',
@@ -1009,27 +1472,18 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                 ],
                 if (_hasValue(data.email)) ...[
                   TextButton(
-                    onPressed: () => launchUrl('mailto:${data.email}'),
+                    onPressed: () => _openLink(
+                      context,
+                      emailLaunchUri(data.email),
+                      'Could not open the email app.',
+                    ),
                     style: LocationCardText.linkButtonStyle(),
                     child: Text(
                       'Email ${data.email}',
                       style: LocationCardText.link(palette.foreground),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
-                _LocationShareButton(
-                  title: data.cardTitle,
-                  foreground: palette.foreground,
-                  onShare: onShare,
-                ),
-                const SizedBox(height: 16),
-                if (_hasValue(data.description)) ...[
-                  Text(
-                    data.description,
-                    style: LocationCardText.body(palette.foreground),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
                 if (validSocialLinks.isNotEmpty) ...[
                   Row(
@@ -1054,7 +1508,11 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     runSpacing: 15,
                     children: validSocialLinks.entries.map((entry) {
                       return IconButton.filled(
-                        onPressed: () => launchUrl(entry.value),
+                        onPressed: () => _openUrl(
+                          context,
+                          entry.value,
+                          'Could not open ${entry.key}.',
+                        ),
                         tooltip: 'Open ${entry.key}',
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -1068,24 +1526,22 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                 ],
-                const SizedBox(height: 18),
-                if (canOpenMaps) ...[
-                  OutlinedButton.icon(
-                    onPressed: onOpenInMaps,
-                    icon: Icon(Icons.directions, color: palette.foreground),
-                    label: Text(
-                      'Open in Maps',
-                      style: LocationCardText.detail(palette.foreground),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: palette.divider),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+                if (data.hasImage) ...[
+                  _LocationInfoImage(
+                    assetPath: data.imageAsset,
+                    url: data.imageUrl,
+                    height: 240,
+                    semanticsLabel: 'Photo of ${data.cardTitle}',
+                    expandOnTap: true,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                 ],
+                _LocationShareButton(
+                  title: data.cardTitle,
+                  foreground: palette.foreground,
+                  onShare: onShare,
+                ),
+                const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
@@ -1097,15 +1553,6 @@ class _ExpandedLocationInfoCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (data.hasImage) ...[
-                  const SizedBox(height: 18),
-                  _LocationInfoImage(
-                    assetPath: data.imageAsset,
-                    url: data.imageUrl,
-                    height: 240,
-                    semanticsLabel: 'Photo of ${data.cardTitle}',
-                  ),
-                ],
               ],
             ),
           ),
@@ -1306,12 +1753,7 @@ class _LocationInfoImage extends StatelessWidget {
 /// with a white border. [backgroundColor] keeps light icons visible when their
 /// marker needs a solid backdrop on the map.
 class _OrgLogoAvatar extends StatelessWidget {
-  const _OrgLogoAvatar({
-    this.logo,
-    this.label,
-    this.fit,
-    this.backgroundColor,
-  });
+  const _OrgLogoAvatar({this.logo, this.label, this.fit, this.backgroundColor});
 
   /// The logo box, sized to keep the height of the 40 px circular avatar it
   /// replaced while giving wide wordmarks some extra width.
@@ -1334,7 +1776,8 @@ class _OrgLogoAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String boxLabel = label?.trim() ?? '';
-    final Color boxColor = backgroundColor ??
+    final Color boxColor =
+        backgroundColor ??
         (boxLabel.isNotEmpty ? mapInfoCardColor : Colors.white);
     if (boxLabel.isNotEmpty) {
       return Container(

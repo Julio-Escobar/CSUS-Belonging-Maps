@@ -52,6 +52,22 @@ class LocationCardText {
     height: 1.3,
   );
 
+  /// Bold label that begins a field line, e.g. "Category:".
+  static TextStyle fieldLabel(Color color) => TextStyle(
+    color: color,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+    height: 1.45,
+  );
+
+  /// Regular-weight text that follows a field label.
+  static TextStyle fieldValue(Color color) => TextStyle(
+    color: color,
+    fontSize: 15,
+    fontWeight: FontWeight.w400,
+    height: 1.45,
+  );
+
   /// Tappable text: website, phone, email, "More information", "Show less".
   static TextStyle link(Color color) => TextStyle(
     color: color,

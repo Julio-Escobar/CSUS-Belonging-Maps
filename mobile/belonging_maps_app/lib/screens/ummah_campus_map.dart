@@ -189,42 +189,50 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     if (_searchQuery.isEmpty || !_showSearchSuggestions) return const [];
 
     return <SearchSuggestion>[
-      ..._visiblePrayers.take(5).map(
-        (prayer) => SearchSuggestion(
-          title: prayer.name,
-          subtitle: prayer.locationLabel,
-          onSelected: () {
-            _selectPrayerSuggestion(prayer);
-          },
-        ),
-      ),
-      ..._visibleCenters.take(5).map(
-        (center) => SearchSuggestion(
-          title: center.name,
-          subtitle: center.locationLabel,
-          onSelected: () {
-            _selectCenterSuggestion(center);
-          },
-        ),
-      ),
-      ..._visibleFood.take(5).map(
-        (food) => SearchSuggestion(
-          title: food.name,
-          subtitle: food.locationLabel,
-          onSelected: () {
-            _selectFoodSuggestion(food);
-          },
-        ),
-      ),
-      ..._visibleResources.take(5).map(
-        (resource) => SearchSuggestion(
-          title: resource.name,
-          subtitle: resource.locationLabel,
-          onSelected: () {
-            _selectResourceSuggestion(resource);
-          },
-        ),
-      ),
+      ..._visiblePrayers
+          .take(5)
+          .map(
+            (prayer) => SearchSuggestion(
+              title: prayer.name,
+              subtitle: prayer.locationLabel,
+              onSelected: () {
+                _selectPrayerSuggestion(prayer);
+              },
+            ),
+          ),
+      ..._visibleCenters
+          .take(5)
+          .map(
+            (center) => SearchSuggestion(
+              title: center.name,
+              subtitle: center.locationLabel,
+              onSelected: () {
+                _selectCenterSuggestion(center);
+              },
+            ),
+          ),
+      ..._visibleFood
+          .take(5)
+          .map(
+            (food) => SearchSuggestion(
+              title: food.name,
+              subtitle: food.locationLabel,
+              onSelected: () {
+                _selectFoodSuggestion(food);
+              },
+            ),
+          ),
+      ..._visibleResources
+          .take(5)
+          .map(
+            (resource) => SearchSuggestion(
+              title: resource.name,
+              subtitle: resource.locationLabel,
+              onSelected: () {
+                _selectResourceSuggestion(resource);
+              },
+            ),
+          ),
     ].take(5).toList(growable: false);
   }
 
@@ -431,7 +439,9 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         if (!mounted) return;
         _centerIconImages[asset] = image;
       } catch (error) {
-        debugPrint('Failed to load the Ummah campus center icon $asset: $error');
+        debugPrint(
+          'Failed to load the Ummah campus center icon $asset: $error',
+        );
       }
     }
 
@@ -1268,7 +1278,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final locationName = _cleanField(attributes?['NAME']);
 
     // Centers draw their own logo beside the card title; every other location
     // uses the icon drawn for its marker.
@@ -1278,29 +1287,16 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _ummahMarkerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: locationName.isNotEmpty
-          ? locationName
-          : 'Ummah Campus Location',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: null,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'Ummah Campus Location',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,
