@@ -1278,6 +1278,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
+    final locationName = _cleanField(attributes?['NAME']);
 
     // Centers draw their own logo beside the card title; every other location
     // uses the icon drawn for its marker.

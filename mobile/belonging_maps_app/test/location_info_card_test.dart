@@ -60,8 +60,6 @@ LocationInfoData _contactLocationData() {
   );
 }
 
-const String _foodIconAsset = 'assets/map_icons/food/HF11px.png';
-
 /// Location card data for a Latine art location that has a bundled photo.
 LocationInfoData _artLocationData({String? imageAsset}) {
   return LocationInfoData(
