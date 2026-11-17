@@ -26,6 +26,11 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>mailto</string>
+		<string>tel</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Belonging Maps uses your location to show where you are on the map and center the map near you. Your location stays on your device.</string>
 	<key>UIApplicationSceneManifest</key>

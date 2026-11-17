@@ -257,7 +257,9 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         if (!mounted) return;
         _centerIconImages[asset] = image;
       } catch (error) {
-        debugPrint('Failed to load the Ubuntu campus center icon $asset: $error');
+        debugPrint(
+          'Failed to load the Ubuntu campus center icon $asset: $error',
+        );
       }
     }
 

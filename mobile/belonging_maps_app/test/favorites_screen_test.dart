@@ -80,7 +80,7 @@ void main() {
 
     expect(find.text('Location details'), findsOneWidget);
     expect(find.text('Type: Student services'), findsOneWidget);
-    expect(find.text('A place for students.'), findsOneWidget);
+    expect(find.text('Description: A place for students.'), findsOneWidget);
   });
 
   testWidgets('saved location can be removed from Favorites', (tester) async {

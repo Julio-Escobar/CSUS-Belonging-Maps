@@ -47,6 +47,9 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   String? _selectedCategory;
   bool _showFullInfo = false;
   bool _showInfoCard = false;
+  double? _selectedLat;
+  double? _selectedLng;
+  String? _selectedIconAsset;
 
   final TextEditingController _searchController = TextEditingController();
   CommunityMapSearchResult _searchResult = CommunityMapSearchResult.none;
@@ -245,9 +248,17 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
       }
     }
 
+    final point = wgs84Point(geometry);
+    final iconAsset = iconConfig == null
+        ? null
+        : iconAssetPathForType(iconConfig, attributes[mapIconTypeField]);
+
     setState(() {
       _selectedAttributes = attributes;
       _selectedCategory = category;
+      _selectedLat = point?.y;
+      _selectedLng = point?.x;
+      _selectedIconAsset = iconAsset;
       _showFullInfo = false;
       _showInfoCard = isReplacingExistingCard;
     });
@@ -308,6 +319,9 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
         setState(() {
           _selectedAttributes = null;
           _selectedCategory = null;
+          _selectedLat = null;
+          _selectedLng = null;
+          _selectedIconAsset = null;
           _showFullInfo = false;
         });
       },
@@ -339,11 +353,7 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(
-      _mapController,
-      _userOverlay,
-      context: context,
-    );
+    return showCurrentLocation(_mapController, _userOverlay, context: context);
   }
 
   Widget _buildTopMapControls() {
@@ -392,6 +402,9 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
     final data = LocationInfoData.fromAttributes(
       _selectedAttributes,
       fallbackCategory: _selectedCategory,
+      locationLat: _selectedLat,
+      locationLng: _selectedLng,
+      orgLogo: _selectedIconAsset,
     );
 
     return LocationInfoCard(

@@ -46,6 +46,20 @@ class MapLocationSource {
   const MapLocationSource({required this.name, required this.loadPage});
 }
 
+/// Projects [geometry] to WGS84 so a location card can offer "Open in Maps".
+///
+/// Returns null for non-point geometry (community layers only draw points).
+ArcGISPoint? wgs84Point(Geometry? geometry) {
+  if (geometry is! ArcGISPoint) return null;
+  if (geometry.spatialReference?.wkid == 4326) return geometry;
+
+  return GeometryEngine.project(
+        geometry,
+        outputSpatialReference: SpatialReference.wgs84,
+      )
+      as ArcGISPoint?;
+}
+
 bool mapLocationMatches(MapLocation location, String query) {
   final keyword = query.trim().toLowerCase();
   if (keyword.isEmpty) return false;

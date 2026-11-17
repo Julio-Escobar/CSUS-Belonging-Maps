@@ -992,11 +992,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(
-      _mapController,
-      _userOverlay,
-      context: context,
-    );
+    return showCurrentLocation(_mapController, _userOverlay, context: context);
   }
 
   Future<void> _browseLocations() async {
@@ -1378,9 +1374,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     return LocationInfoCard(
       data: data,
-      // Latine art cards are a fixed summary, so they never expand.
-      showFullInfo: _selectedIsLatineArt ? false : _showFullInfo,
-      summaryOnly: _selectedIsLatineArt,
+      showFullInfo: _showFullInfo,
       onClose: _dismissLocationCard,
       onShowMore: () {
         setState(() {

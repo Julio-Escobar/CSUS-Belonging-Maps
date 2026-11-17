@@ -189,42 +189,50 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     if (_searchQuery.isEmpty || !_showSearchSuggestions) return const [];
 
     return <SearchSuggestion>[
-      ..._visiblePrayers.take(5).map(
-        (prayer) => SearchSuggestion(
-          title: prayer.name,
-          subtitle: prayer.locationLabel,
-          onSelected: () {
-            _selectPrayerSuggestion(prayer);
-          },
-        ),
-      ),
-      ..._visibleCenters.take(5).map(
-        (center) => SearchSuggestion(
-          title: center.name,
-          subtitle: center.locationLabel,
-          onSelected: () {
-            _selectCenterSuggestion(center);
-          },
-        ),
-      ),
-      ..._visibleFood.take(5).map(
-        (food) => SearchSuggestion(
-          title: food.name,
-          subtitle: food.locationLabel,
-          onSelected: () {
-            _selectFoodSuggestion(food);
-          },
-        ),
-      ),
-      ..._visibleResources.take(5).map(
-        (resource) => SearchSuggestion(
-          title: resource.name,
-          subtitle: resource.locationLabel,
-          onSelected: () {
-            _selectResourceSuggestion(resource);
-          },
-        ),
-      ),
+      ..._visiblePrayers
+          .take(5)
+          .map(
+            (prayer) => SearchSuggestion(
+              title: prayer.name,
+              subtitle: prayer.locationLabel,
+              onSelected: () {
+                _selectPrayerSuggestion(prayer);
+              },
+            ),
+          ),
+      ..._visibleCenters
+          .take(5)
+          .map(
+            (center) => SearchSuggestion(
+              title: center.name,
+              subtitle: center.locationLabel,
+              onSelected: () {
+                _selectCenterSuggestion(center);
+              },
+            ),
+          ),
+      ..._visibleFood
+          .take(5)
+          .map(
+            (food) => SearchSuggestion(
+              title: food.name,
+              subtitle: food.locationLabel,
+              onSelected: () {
+                _selectFoodSuggestion(food);
+              },
+            ),
+          ),
+      ..._visibleResources
+          .take(5)
+          .map(
+            (resource) => SearchSuggestion(
+              title: resource.name,
+              subtitle: resource.locationLabel,
+              onSelected: () {
+                _selectResourceSuggestion(resource);
+              },
+            ),
+          ),
     ].take(5).toList(growable: false);
   }
 
@@ -431,7 +439,9 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         if (!mounted) return;
         _centerIconImages[asset] = image;
       } catch (error) {
-        debugPrint('Failed to load the Ummah campus center icon $asset: $error');
+        debugPrint(
+          'Failed to load the Ummah campus center icon $asset: $error',
+        );
       }
     }
 
