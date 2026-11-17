@@ -8,6 +8,7 @@ import '../services/accessibility_theme.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_store.dart';
 import '../widgets/favorite_toggle_button.dart';
+import '../widgets/hamburger_menu.dart';
 import '../widgets/search_suggestion_list.dart';
 
 const Map<String, IconData> _iconOptions = {
@@ -596,26 +597,20 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
               .toList(growable: false);
     final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Opportunities',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-        centerTitle: true,
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Add opportunity',
-              onPressed: () => _showOpportunityDialog(),
-            ),
-        ],
-      ),
-      body: _isLoading
+    return HamburgerMenu(
+      title: 'Opportunities',
+      currentDestination: MenuDestination.opportunities,
+      actions: [
+        if (isAdmin)
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Add opportunity',
+            onPressed: () => _showOpportunityDialog(),
+          ),
+      ],
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: _isLoading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : ListView(
               children: [
@@ -737,6 +732,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                   ),
               ],
             ),
+      ),
     );
   }
 }

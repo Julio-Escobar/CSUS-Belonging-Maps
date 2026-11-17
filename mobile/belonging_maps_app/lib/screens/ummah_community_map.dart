@@ -433,6 +433,7 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   Widget build(BuildContext context) {
     return HamburgerMenu(
       title: 'Ummah Community Map',
+      showBackButton: true,
       body: Scaffold(
         body: Stack(
           children: [

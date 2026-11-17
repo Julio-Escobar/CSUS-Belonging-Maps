@@ -432,6 +432,8 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
   @override
   Widget build(BuildContext context) {
     return HamburgerMenu(
+      title: 'Ubuntu Community Map',
+      showBackButton: true,
       body: Scaffold(
         body: Stack(
           children: [

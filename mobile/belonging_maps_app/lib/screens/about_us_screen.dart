@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/strings.dart';
 import '../services/app_version.dart';
+import '../widgets/hamburger_menu.dart';
 
 class AboutUsScreen extends StatelessWidget {
   /// Looks up the installed version (P1-322). Tests pass a fake.
@@ -13,15 +14,9 @@ class AboutUsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 47, 95, 62),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'About Us',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+    return HamburgerMenu(
+      title: 'About Us',
+      currentDestination: MenuDestination.aboutUs,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(

@@ -491,6 +491,7 @@ class _OrganizationResourcesScreenState
 
     return HamburgerMenu(
       title: 'Organization Resources',
+      currentDestination: MenuDestination.organizationResources,
       actions: [
         // Admin add resource button
         if (isAdmin)

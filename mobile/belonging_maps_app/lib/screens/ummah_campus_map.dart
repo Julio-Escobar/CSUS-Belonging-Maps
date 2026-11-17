@@ -1411,6 +1411,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
 
     return HamburgerMenu(
       title: 'Ummah Campus Map',
+      showBackButton: true,
       body: Scaffold(
         backgroundColor: colors.pageBackground,
         body: _loadFailed

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/accessibility_theme.dart';
+import '../widgets/hamburger_menu.dart';
 import '../widgets/map_selection_card.dart';
 import 'gender_neutral_bathrooms_map.dart';
 import 'lactation_rooms_map.dart';
@@ -74,15 +75,12 @@ class CampusMapsScreen extends StatelessWidget {
       color: colors.primary,
     );
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(
-        title: const Text(
-          'Campus Maps',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
+    return HamburgerMenu(
+      title: 'Campus Maps',
+      currentDestination: MenuDestination.campusMaps,
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
@@ -284,6 +282,7 @@ class CampusMapsScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

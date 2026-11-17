@@ -446,6 +446,8 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   @override
   Widget build(BuildContext context) {
     return HamburgerMenu(
+      title: 'SOMOS Community Map',
+      showBackButton: true,
       body: Scaffold(
         body: Stack(
           children: [

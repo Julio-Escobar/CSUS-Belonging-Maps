@@ -913,6 +913,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
 
     return HamburgerMenu(
       title: 'Ubuntu Campus Map',
+      showBackButton: true,
       body: Scaffold(
         backgroundColor: colors.pageBackground,
         body: _loadFailed

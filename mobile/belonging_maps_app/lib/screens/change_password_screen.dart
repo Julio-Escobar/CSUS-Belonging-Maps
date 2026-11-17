@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import '../widgets/hamburger_menu.dart';
 
 /// Lets a logged-in admin change their password (P1-331). Opened from the
 /// ADMIN PANEL section of the hamburger menu.
@@ -105,16 +106,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-        title: const Text(
-          'Change Password',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
+    return HamburgerMenu(
+      title: 'Change Password',
+      currentDestination: MenuDestination.changePassword,
+      body: Scaffold(
+        body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Form(
@@ -186,6 +182,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

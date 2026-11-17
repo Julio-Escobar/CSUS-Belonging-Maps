@@ -288,6 +288,7 @@ class _SurveysScreenState extends State<SurveysScreen> {
 
     return HamburgerMenu(
       title: 'Surveys',
+      currentDestination: MenuDestination.surveys,
       actions: [
         // Admin add survey button
         if (isAdmin)

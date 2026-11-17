@@ -393,6 +393,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
 
     return HamburgerMenu(
       title: 'Community Resources',
+      currentDestination: MenuDestination.communityResources,
       actions: [
         if (isAdmin)
           IconButton(

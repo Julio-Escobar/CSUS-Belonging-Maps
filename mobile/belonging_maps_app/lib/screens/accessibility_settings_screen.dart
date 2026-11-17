@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/accessibility_settings.dart';
 import '../services/accessibility_theme.dart';
+import '../widgets/hamburger_menu.dart';
 
 class AccessibilitySettingsScreen extends StatelessWidget {
   const AccessibilitySettingsScreen({super.key});
@@ -21,10 +22,12 @@ class AccessibilitySettingsScreen extends StatelessWidget {
       if (mediaQuery.disableAnimations) 'Reduced motion',
     ];
 
-    return Scaffold(
-      backgroundColor: colors.pageBackground,
-      appBar: AppBar(title: const Text('Accessibility Settings')),
-      body: ListView(
+    return HamburgerMenu(
+      title: 'Accessibility Settings',
+      currentDestination: MenuDestination.accessibilitySettings,
+      body: Scaffold(
+        backgroundColor: colors.pageBackground,
+        body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Semantics(
@@ -123,6 +126,7 @@ class AccessibilitySettingsScreen extends StatelessWidget {
             onPressed: () => controller.reset(),
           ),
         ],
+      ),
       ),
     );
   }

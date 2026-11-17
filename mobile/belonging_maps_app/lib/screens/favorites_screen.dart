@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/favorites_store.dart';
 import '../widgets/favorite_toggle_button.dart';
+import '../widgets/hamburger_menu.dart';
 import '../widgets/location_info_card.dart';
 import 'opportunities.dart';
 
@@ -85,9 +86,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Favorites')),
-      body: _isLoading
+    return HamburgerMenu(
+      title: 'Favorites',
+      currentDestination: MenuDestination.favorites,
+      body: Scaffold(
+        body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
           ? Center(
@@ -175,6 +178,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 );
               },
             ),
+        ),
     );
   }
 }
@@ -186,8 +190,9 @@ class LocationFavoriteDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Location details')),
+    return HamburgerMenu(
+      title: 'Location details',
+      showBackButton: true,
       body: LocationInfoCard(
         data: data,
         showFullInfo: true,

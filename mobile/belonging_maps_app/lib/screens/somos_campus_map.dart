@@ -1463,6 +1463,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
     return HamburgerMenu(
       title: 'SOMOS Campus Map',
+      showBackButton: true,
       body: Scaffold(
         backgroundColor: colors.pageBackground,
         body: _loadFailed
