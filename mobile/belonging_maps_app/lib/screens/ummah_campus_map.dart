@@ -12,7 +12,9 @@ import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
+import '/services/map_camera.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/ummah_campus_centers.dart';
 import '/services/ummah_campus_food.dart';
 import '/services/ummah_campus_prayer.dart';
@@ -45,8 +47,8 @@ const String ummahCampusLabelsStyleUrl =
 
 const Color _ummahMarkerColor = Color(0xFF2F5F3E);
 
-/// The Ummah map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The Ummah community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/ummah_logo_temp.png';
 
 // The prayer room markers match the numbered resource markers, which are drawn
@@ -270,12 +272,16 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
       _prayerOverlay,
       _foodOverlay,
-      _centersOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
     _loadMapData();
@@ -546,7 +552,9 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   }
 
   /// Draws the campus centers with their own icons (or the shared placeholder
-  /// while the real logos are not bundled yet).
+  /// while the real logos are not bundled yet). The centers overlay is added
+  /// after the other marker overlays so the centers are the top layer of
+  /// location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 
@@ -572,8 +580,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     }
   }
 
-  /// Draws the numbered campus resources. They are added last so they draw on
-  /// top of the other markers and stay tappable where locations overlap.
+  /// Draws the numbered campus resources. They sit above the prayer and food
+  /// markers but below the campus centers, which are the top icon layer.
   void _renderResourceMarkers() {
     _resourcesOverlay.graphics.clear();
     _selectionOverlay.graphics.clear();
@@ -762,81 +770,80 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      // Numbered resource markers are drawn on top, so they take precedence
-      // over the other Ummah markers.
-      final resourceResult = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final resourceGraphic = resourceResult.graphics.firstOrNull;
-      final resourceAttributes = resourceGraphic?.attributes;
-      if (resourceGraphic != null &&
-          resourceAttributes != null &&
-          resourceAttributes.isNotEmpty) {
-        _selectResource(resourceGraphic, resourceAttributes);
-        return;
-      }
-
-      final prayerResult = await _mapController.identifyGraphicsOverlay(
+      final overlays = [
         _prayerOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final prayerGraphic = prayerResult.graphics.firstOrNull;
-      final prayerAttributes = prayerGraphic?.attributes;
-      if (prayerGraphic != null &&
-          prayerAttributes != null &&
-          prayerAttributes.isNotEmpty) {
-        _selectPrayer(prayerGraphic, prayerAttributes);
-        return;
-      }
-
-      final foodResult = await _mapController.identifyGraphicsOverlay(
         _foodOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final foodGraphic = foodResult.graphics.firstOrNull;
-      final foodAttributes = foodGraphic?.attributes;
-      if (foodGraphic != null &&
-          foodAttributes != null &&
-          foodAttributes.isNotEmpty) {
-        _selectFood(foodGraphic, foodAttributes);
-        return;
-      }
-
-      final centerResult = await _mapController.identifyGraphicsOverlay(
         _centersOverlay,
+        _resourcesOverlay,
+        _selectionOverlay,
+      ];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open; tapping it still
+            // recenters the camera on the location.
+            onSelected = () =>
+                centerMapOnLocation(_mapController, graphic.geometry);
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _prayerOverlay)) {
+            onSelected = () => _selectPrayer(graphic, attributes);
+          } else if (identical(overlay, _foodOverlay)) {
+            onSelected = () => _selectFood(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
+        _dismissLocationCard();
         return;
       }
 
-      _dismissLocationCard();
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify an Ummah campus location: $error');
     }
@@ -863,6 +870,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       );
     }
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped prayer room and enlarges its marker.
@@ -887,6 +896,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped halal food option and enlarges its icon.
@@ -911,6 +922,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped campus center and enlarges its marker.
@@ -939,6 +952,8 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   Future<void> _showPrayerOnMap(UmmahCampusPrayer prayer) async {
@@ -1278,46 +1293,32 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final locationName = _cleanField(attributes?['NAME']);
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _ummahMarkerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: locationName.isNotEmpty
-          ? locationName
-          : 'Ummah Campus Location',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: null,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'Ummah Campus Location',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,
       orgLogoLabel: icon.label,
-      // Center logos are wide wordmarks, so they are fitted inside the card's
-      // logo box instead of being cropped to a circle. The Ummah map logo is
-      // square and keeps the original circular avatar.
+      // Center icons are fitted inside the card's logo box instead of being
+      // cropped to a circle, so wide wordmarks and the shared placeholder
+      // location icon both stay fully visible. The Ummah map logo is square
+      // and keeps the original circular avatar.
       orgLogoFit: icon.fit,
       orgLogoBackgroundColor: icon.backgroundColor,
     );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
+import '/services/map_tap_target.dart';
 import '/widgets/gender_neutral_bathroom_info_card.dart';
 import '/widgets/map_zoom_controls.dart';
 
@@ -211,21 +212,39 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
     final result = await _mapController.identifyLayer(
       _restroomLayer,
       screenPoint: screenPoint,
-      tolerance: 20.0,
-      maximumResults: 1,
+      tolerance: mapIconTapTolerance(_selectedRestroomIconSize),
+      maximumResults: 5,
     );
 
     if (!mounted) return;
 
-    final geoElement = result.geoElements.firstOrNull;
-    if (geoElement?.attributes == null) {
+    final candidates = <MapTapCandidate<VoidCallback>>[];
+    for (final element in result.geoElements) {
+      final attributes = element.attributes;
+      if (attributes.isEmpty) continue;
+
+      final position = mapGeometryScreenPoint(_mapController, element.geometry);
+      if (position == null) continue;
+
+      candidates.add(
+        MapTapCandidate(
+          value: () {
+            setState(() => _selectedAttributes = attributes);
+            _showSelectedRestroomIcon(element.geometry);
+          },
+          screenPoint: position,
+          tolerance: mapIconTapTolerance(_selectedRestroomIconSize),
+        ),
+      );
+    }
+
+    final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+    if (onSelected == null) {
       _dismissLocationCard();
       return;
     }
 
-    final element = geoElement!;
-    setState(() => _selectedAttributes = element.attributes);
-    _showSelectedRestroomIcon(element.geometry);
+    onSelected();
   }
 
   void _dismissLocationCard() {

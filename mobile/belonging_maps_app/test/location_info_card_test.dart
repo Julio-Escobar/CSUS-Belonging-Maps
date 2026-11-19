@@ -825,10 +825,7 @@ void main() {
 
       expect(find.text('12'), findsOneWidget);
       final box = tester.widget<Container>(find.byKey(locationInfoLogoBoxKey));
-      expect(
-        (box.decoration! as BoxDecoration).color,
-        mapInfoCardColor,
-      );
+      expect((box.decoration! as BoxDecoration).color, mapInfoCardColor);
     });
 
     test('saved numbered locations keep their marker number', () {

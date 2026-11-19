@@ -13,7 +13,9 @@ import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
 import '/services/latine_art_locations.dart';
 import '/services/layer_search.dart';
+import '/services/map_camera.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/somos_campus_centers.dart';
 import '/services/somos_campus_food.dart';
 import '/services/somos_campus_resources.dart';
@@ -39,8 +41,8 @@ const String _openStreetMapBasemapUrl =
 const String somosCampusLabelsStyleUrl =
     'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
-/// The SOMOS map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The SOMOS community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/somos_logo_temp.png';
 
 // The art pin matches the numbered SOMOS markers, which are drawn at 30 px and
@@ -253,11 +255,15 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     _map.operationalLayers.add(_latineArtLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
-      _centersOverlay,
       _foodOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
     unawaited(_applyLatineArtIcon());
@@ -633,7 +639,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   /// Draws the campus centers with the shared placeholder pin. They live in
-  /// their own overlay so they stay separate from the numbered resource icons.
+  /// their own overlay so they stay separate from the numbered resource icons,
+  /// and it is added after the other marker overlays so the centers are the top
+  /// layer of location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 
@@ -785,80 +793,108 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      final result = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      // Numbered SOMOS markers are drawn in an overlay, so they take precedence
-      // over the Latine art locations drawn underneath them.
-      final graphic = result.graphics.firstOrNull;
-      final attributes = graphic?.attributes;
-      if (graphic != null && attributes != null && attributes.isNotEmpty) {
-        _selectResource(graphic, attributes);
-        return;
-      }
-
-      // The campus centers sit just below the numbered markers and above the
-      // Latine art locations.
-      final centerResult = await _mapController.identifyGraphicsOverlay(
+      final overlays = [
         _centersOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
-        return;
-      }
-
-      // The Latine food icons sit below the numbered markers and the campus
-      // centers, and above the art locations.
-      final foodResult = await _mapController.identifyGraphicsOverlay(
         _foodOverlay,
+        _resourcesOverlay,
+        _selectionOverlay,
+      ];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      final foodGraphic = foodResult.graphics.firstOrNull;
-      final foodAttributes = foodGraphic?.attributes;
-      if (foodGraphic != null &&
-          foodAttributes != null &&
-          foodAttributes.isNotEmpty) {
-        _selectFood(foodGraphic, foodAttributes);
-        return;
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open; tapping it still
+            // recenters the camera on the location.
+            onSelected = () =>
+                centerMapOnLocation(_mapController, graphic.geometry);
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _foodOverlay)) {
+            onSelected = () => _selectFood(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
       }
 
+      // Latine art pins are drawn in an operational layer below the overlays,
+      // so they are added last; nearest distance still wins.
       final artResult = await _mapController.identifyLayer(
         _latineArtLayer,
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapIconTapTolerance(_latineArtIconSize),
+        maximumResults: 5,
       );
 
       if (!mounted) return;
 
-      final artElement = artResult.geoElements.firstOrNull;
-      if (artElement == null || artElement.attributes.isEmpty) {
+      for (final element in artResult.geoElements) {
+        final attributes = element.attributes;
+        if (attributes.isEmpty) continue;
+
+        final position = mapGeometryScreenPoint(
+          _mapController,
+          element.geometry,
+        );
+        if (position == null) continue;
+
+        candidates.add(
+          MapTapCandidate(
+            value: () =>
+                unawaited(_showLatineArtOnMap(attributes, element.geometry)),
+            screenPoint: position,
+            tolerance: mapIconTapTolerance(_latineArtIconSize),
+          ),
+        );
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
         _dismissLocationCard();
         return;
       }
 
-      await _showLatineArtOnMap(artElement.attributes, artElement.geometry);
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify a SOMOS campus resource: $error');
     }
@@ -886,6 +922,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       );
     }
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped campus center and enlarges its marker.
@@ -914,6 +952,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped Latine food option and enlarges its icon.
@@ -939,6 +979,8 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a Latine art location, draws the enlarged pin over
@@ -1310,48 +1352,33 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final resourceName = _cleanField(attributes?['NAME']);
-    final imageAsset = _cleanField(attributes?['IMAGE_ASSET']);
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
       overrideAsset: _selectedIsLatineArt ? latineArtIconAsset : null,
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _markerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: resourceName.isNotEmpty
-          ? resourceName
-          : 'SOMOS Campus Resource',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: imageAsset.isEmpty ? null : imageAsset,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'SOMOS Campus Resource',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,
       orgLogoLabel: icon.label,
-      // Center logos are wide wordmarks, so they are fitted inside the card's
-      // logo box instead of being cropped to a circle. The SOMOS map logo is
-      // square and keeps the original circular avatar.
+      // Center icons are fitted inside the card's logo box instead of being
+      // cropped to a circle, so wide wordmarks and the shared placeholder
+      // location icon both stay fully visible. The SOMOS map logo is square
+      // and keeps the original circular avatar.
       orgLogoFit: icon.fit,
       orgLogoBackgroundColor: icon.backgroundColor,
     );

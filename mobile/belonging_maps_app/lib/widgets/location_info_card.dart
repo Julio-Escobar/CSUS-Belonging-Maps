@@ -1753,12 +1753,7 @@ class _LocationInfoImage extends StatelessWidget {
 /// with a white border. [backgroundColor] keeps light icons visible when their
 /// marker needs a solid backdrop on the map.
 class _OrgLogoAvatar extends StatelessWidget {
-  const _OrgLogoAvatar({
-    this.logo,
-    this.label,
-    this.fit,
-    this.backgroundColor,
-  });
+  const _OrgLogoAvatar({this.logo, this.label, this.fit, this.backgroundColor});
 
   /// The logo box, sized to keep the height of the 40 px circular avatar it
   /// replaced while giving wide wordmarks some extra width.
@@ -1781,7 +1776,8 @@ class _OrgLogoAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String boxLabel = label?.trim() ?? '';
-    final Color boxColor = backgroundColor ??
+    final Color boxColor =
+        backgroundColor ??
         (boxLabel.isNotEmpty ? mapInfoCardColor : Colors.white);
     if (boxLabel.isNotEmpty) {
       return Container(

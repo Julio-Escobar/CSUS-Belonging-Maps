@@ -10,7 +10,9 @@ import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
 import '/services/campus_map_card_logo.dart';
 import '/services/current_location.dart';
+import '/services/map_camera.dart';
 import '/services/map_location_source.dart';
+import '/services/map_tap_target.dart';
 import '/services/ubuntu_campus_centers.dart';
 import '/services/ubuntu_campus_resources.dart';
 import '/widgets/current_location_buttons.dart';
@@ -38,8 +40,8 @@ const String ubuntuCampusLabelsStyleUrl =
 
 const Color _ubuntuMarkerColor = Color(0xFF2F5F3E);
 
-/// The Ubuntu map logo shown in the location card for every location that has
-/// no bundled logo of its own.
+/// The Ubuntu community logo, shown in a location card only when the location
+/// has no marker icon or number of its own.
 const String _defaultOrgLogoAsset = 'assets/ubuntu_logo_temp.png';
 
 // The campus center logos are drawn larger than the numbered markers so their
@@ -173,10 +175,14 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
+    // Overlays draw bottom-to-top: later entries render above earlier ones.
+    // The centers are added last (below only the enlarged selection icon) so
+    // they are the top layer of location icons. Tapping relies on the SDK's
+    // top-to-bottom identify results to break ties in the centers' favour.
     _mapController.graphicsOverlays.addAll([
       _userOverlay,
-      _centersOverlay,
       _resourcesOverlay,
+      _centersOverlay,
       _selectionOverlay,
     ]);
 
@@ -349,7 +355,9 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   }
 
   /// Draws the featured centers with the shared placeholder pin. They live in
-  /// their own overlay so they stay separate from the numbered resource icons.
+  /// their own overlay so they stay separate from the numbered resource icons,
+  /// and it is added after the other marker overlays so the centers are the top
+  /// layer of location icons.
   void _renderCenterMarkers() {
     _centersOverlay.graphics.clear();
 
@@ -461,43 +469,70 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     if (_isLoading || _loadFailed) return;
 
     try {
-      final result = await _mapController.identifyGraphicsOverlay(
-        _resourcesOverlay,
+      final overlays = [_centersOverlay, _resourcesOverlay, _selectionOverlay];
+
+      // A single generous search radius finds every icon near the tap; each
+      // result is then limited by the size of its own drawn symbol below.
+      final overlayResults = await _mapController.identifyGraphicsOverlays(
         screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
+        tolerance: mapOverlaysTapSearchTolerance(overlays),
+        // No cap: the nearest icon must win even in a dense cluster.
+        maximumResultsPerOverlay: null,
       );
 
       if (!mounted) return;
 
-      // Numbered Ubuntu markers are drawn in an overlay and take precedence
-      // over the center logos drawn underneath them.
-      final graphic = result.graphics.firstOrNull;
-      final attributes = graphic?.attributes;
-      if (graphic != null && attributes != null && attributes.isNotEmpty) {
-        _selectResource(graphic, attributes);
+      // Results are returned top-most first, which is also the order used to
+      // break ties between icons that share a location.
+      final candidates = <MapTapCandidate<VoidCallback>>[];
+
+      for (final result in overlayResults) {
+        final overlay = result.graphicsOverlay;
+        if (!overlays.contains(overlay)) continue;
+        final isSelection = identical(overlay, _selectionOverlay);
+
+        for (final graphic in result.graphics) {
+          final attributes = graphic.attributes;
+          if (!isSelection && attributes.isEmpty) continue;
+
+          final position = mapGeometryScreenPoint(
+            _mapController,
+            graphic.geometry,
+          );
+          if (position == null) continue;
+
+          final VoidCallback? onSelected;
+          if (isSelection) {
+            // The card for the enlarged icon is already open; tapping it still
+            // recenters the camera on the location.
+            onSelected = () =>
+                centerMapOnLocation(_mapController, graphic.geometry);
+          } else if (identical(overlay, _resourcesOverlay)) {
+            onSelected = () => _selectResource(graphic, attributes);
+          } else if (identical(overlay, _centersOverlay)) {
+            onSelected = () => _selectCenter(graphic, attributes);
+          } else {
+            onSelected = null;
+          }
+          if (onSelected == null) continue;
+
+          candidates.add(
+            MapTapCandidate(
+              value: onSelected,
+              screenPoint: position,
+              tolerance: mapSymbolTapTolerance(graphic.symbol),
+            ),
+          );
+        }
+      }
+
+      final onSelected = nearestMapTapCandidate(candidates, screenPoint);
+      if (onSelected == null) {
+        _dismissLocationCard();
         return;
       }
 
-      final centerResult = await _mapController.identifyGraphicsOverlay(
-        _centersOverlay,
-        screenPoint: screenPoint,
-        tolerance: 22.0,
-        maximumResults: 1,
-      );
-
-      if (!mounted) return;
-
-      final centerGraphic = centerResult.graphics.firstOrNull;
-      final centerAttributes = centerGraphic?.attributes;
-      if (centerGraphic != null &&
-          centerAttributes != null &&
-          centerAttributes.isNotEmpty) {
-        _selectCenter(centerGraphic, centerAttributes);
-        return;
-      }
-
-      _dismissLocationCard();
+      onSelected();
     } catch (error) {
       debugPrint('Failed to identify an Ubuntu campus resource: $error');
     }
@@ -524,6 +559,8 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       );
     }
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   /// Shows the info card for a tapped campus center and enlarges its marker.
@@ -551,6 +588,8 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
         ),
       ),
     );
+
+    centerMapOnLocation(_mapController, graphic.geometry);
   }
 
   double? _toDouble(dynamic value) {
@@ -778,39 +817,24 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
 
   LocationInfoData _buildLocationInfoData() {
     final attributes = _selectedAttributes;
-    final resourceName = _cleanField(attributes?['NAME']);
 
-    // Centers draw their own logo beside the card title; every other location
-    // uses the icon drawn for its marker.
+    // Centers show the same icon as their map marker beside the card title;
+    // every other location uses the icon drawn for its marker.
     final center = _selectedCenter();
     final icon = campusMapCardLogo(
-      centerIcon: center?.icon,
       centerIconAsset: center?.iconAsset,
       mapLogoAsset: _defaultOrgLogoAsset,
       centerBackgroundColor: _centerBackgroundColor(center?.background),
-      iconAsset: center == null
-          ? _cleanField(attributes?['ICON_ASSET'])
-          : null,
+      iconAsset: center == null ? _cleanField(attributes?['ICON_ASSET']) : null,
       resourceNumber: center == null
           ? _cleanField(attributes?['NUMBER'])
           : null,
       markerColor: _ubuntuMarkerColor,
     );
 
-    return LocationInfoData(
-      cardTitle: resourceName.isNotEmpty
-          ? resourceName
-          : 'Ubuntu Campus Resource',
-      address: _cleanField(attributes?['ADDRESS']),
-      category: _cleanField(attributes?['CATEGORY']),
-      type: _cleanField(attributes?['TYPE']),
-      website: _cleanField(attributes?['WEBSITE']),
-      phone: _cleanField(attributes?['PHONE']),
-      email: _cleanField(attributes?['EMAIL']),
-      description: _cleanField(attributes?['DESCRIPTION']),
-      imageUrl: null,
-      imageAsset: null,
-      socialLinks: const {},
+    return LocationInfoData.fromAttributes(
+      attributes,
+      fallbackTitle: 'Ubuntu Campus Resource',
       locationLat: _selectedLat,
       locationLng: _selectedLng,
       orgLogo: icon.asset,
