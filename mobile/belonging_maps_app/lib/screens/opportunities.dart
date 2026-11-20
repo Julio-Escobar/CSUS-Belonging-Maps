@@ -598,7 +598,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
     return HamburgerMenu(
-      title: 'Opportunities',
+      title: 'Announcements',
       currentDestination: MenuDestination.opportunities,
       actions: [
         if (isAdmin)

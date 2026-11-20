@@ -40,6 +40,11 @@ class AppStrings {
       'in this work and helping us amplify the voices and stories '
       'that make our communities stronger.';
 
+  /// The Handshake job board for Sacramento State students. The navigation
+  /// drawer opens this page outside the app instead of duplicating it.
+  static const String jobOpportunitiesUrl =
+      'https://app.joinhandshake.com/stu/schools/960';
+
   static const String somosSacStateSurveyUrl =
       'https://survey123.arcgis.com/share/56d94520eea24deaa5a1e57b3ab43e08';
   static const String somosSacCommunitySurveyUrl =

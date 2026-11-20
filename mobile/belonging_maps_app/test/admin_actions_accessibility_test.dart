@@ -151,7 +151,7 @@ void main() {
     expect(find.byTooltip(RegExp(r'^Delete ')), findsNothing);
   });
 
-  testWidgets('unfinished map-editing menu entries have no action', (
+  testWidgets('admin menu no longer offers map location editing', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -163,12 +163,9 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final title in ['Edit Maps', 'Add Location', 'Delete Entries']) {
-      final tile = tester.widget<ListTile>(
-        find.ancestor(of: find.text(title), matching: find.byType(ListTile)),
-      );
-      expect(tile.enabled, isFalse);
-      expect(tile.onTap, isNull);
+      expect(find.text(title), findsNothing);
     }
+    expect(find.text('Change Password'), findsOneWidget);
     expect(find.text('Logout'), findsOneWidget);
     semantics.dispose();
   });

@@ -392,7 +392,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
     final colors = AccessibilityColors.of(context);
 
     return HamburgerMenu(
-      title: 'Community Resources',
+      title: 'Scholarships',
       currentDestination: MenuDestination.communityResources,
       actions: [
         if (isAdmin)
