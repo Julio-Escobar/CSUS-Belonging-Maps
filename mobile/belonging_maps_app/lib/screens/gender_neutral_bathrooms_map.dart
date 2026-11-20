@@ -5,9 +5,11 @@ import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
 import '/services/current_location.dart';
+import '/services/map_location_source.dart';
 import '/services/map_tap_target.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/gender_neutral_bathroom_info_card.dart';
+import '/widgets/map_location_browser.dart';
 import '/widgets/map_zoom_controls.dart';
 
 /// Point locations of gender neutral bathrooms across the Sacramento State
@@ -45,6 +47,29 @@ const double _selectedRestroomIconScale = 1.6;
 const double _selectedRestroomIconSize =
     _restroomIconSize * _selectedRestroomIconScale;
 const double _campusScale = 10000;
+
+/// Title shown for a restroom in the browse locations list.
+///
+/// The restroom layer has no name field, so the building name doubles as the
+/// location name the way [locationTitleFromAttributes] does on other maps.
+String genderNeutralBathroomListingName(Map<String, dynamic> attributes) {
+  final buildingName = cleanLocationAttribute(attributes['BuildingName']);
+  return buildingName.isEmpty ? 'Gender Neutral Bathroom' : buildingName;
+}
+
+/// Subtitle shown under [genderNeutralBathroomListingName] in the browse list.
+///
+/// Restrooms in the same building are only distinguished by floor and location
+/// details, so both are shown when the layer records them.
+String genderNeutralBathroomListingCategory(Map<String, dynamic> attributes) {
+  final floor = cleanLocationAttribute(attributes['Floor']);
+  final details = cleanLocationAttribute(attributes['LocationDetails']);
+  final parts = [
+    if (floor.isNotEmpty) 'Floor $floor',
+    if (details.isNotEmpty) details,
+  ];
+  return parts.isEmpty ? 'Gender neutral bathroom' : parts.join(' • ');
+}
 
 class GenderNeutralBathroomsMap extends StatefulWidget {
   const GenderNeutralBathroomsMap({super.key});
@@ -181,6 +206,48 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
     _selectionOverlay.graphics.add(Graphic(geometry: geometry, symbol: symbol));
   }
 
+  /// Selects a restroom chosen from the browse locations sheet: shows its
+  /// details card and zooms the map in on the marker.
+  void _selectRestroom(MapLocation location) {
+    setState(() => _selectedAttributes = location.attributes);
+    _showSelectedRestroomIcon(location.geometry);
+    final geometry = location.geometry;
+    if (geometry is ArcGISPoint) {
+      _mapController.setViewpointCenter(geometry, scale: 5000);
+    }
+  }
+
+  /// Opens the browse locations sheet for the restroom layer.
+  Future<void> _browseBathrooms() async {
+    final featureSource = arcGisLocationSource(
+      name: 'Gender Neutral Bathrooms',
+      layer: _restroomLayer,
+    );
+    final source = MapLocationSource(
+      name: 'Gender Neutral Bathrooms',
+      loadPage: (offset) async {
+        final page = await featureSource.loadPage(offset);
+        return MapLocationPage(
+          page.locations
+              .map(
+                (location) => MapLocation(
+                  name: genderNeutralBathroomListingName(location.attributes),
+                  category: genderNeutralBathroomListingCategory(
+                    location.attributes,
+                  ),
+                  attributes: location.attributes,
+                  geometry: location.geometry,
+                ),
+              )
+              .toList(growable: false),
+          hasMore: page.hasMore,
+        );
+      },
+    );
+    final location = await showMapLocationBrowser(context, [source]);
+    if (mounted && location != null) _selectRestroom(location);
+  }
+
   /// Loads the map and both feature layers. A failure puts the screen into an
   /// error state where the user can retry or return to the directory.
   Future<void> _loadMapData({bool retry = false}) async {
@@ -301,6 +368,17 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
                 ),
                 MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
                 CurrentLocationButton(onPressed: _getCurrentLocation),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: SafeArea(
+                    child: FilledButton.icon(
+                      onPressed: _isLoading ? null : _browseBathrooms,
+                      icon: const Icon(Icons.list),
+                      label: const Text('Browse bathrooms'),
+                    ),
+                  ),
+                ),
                 if (_isLoading)
                   Positioned.fill(
                     child: ColoredBox(
