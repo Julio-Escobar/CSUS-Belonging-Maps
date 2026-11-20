@@ -632,7 +632,7 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay);
+    return showCurrentLocation(context, _mapController, _userOverlay);
   }
 
   Future<void> _browseLocations() async {

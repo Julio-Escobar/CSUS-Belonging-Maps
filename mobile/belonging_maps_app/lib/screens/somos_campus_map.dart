@@ -1034,7 +1034,7 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay, context: context);
+    return showCurrentLocation(context, _mapController, _userOverlay);
   }
 
   Future<void> _browseLocations() async {

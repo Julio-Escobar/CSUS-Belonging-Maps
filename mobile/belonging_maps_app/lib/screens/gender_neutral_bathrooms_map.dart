@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
+import '/services/current_location.dart';
 import '/services/map_tap_target.dart';
+import '/widgets/current_location_buttons.dart';
 import '/widgets/gender_neutral_bathroom_info_card.dart';
 import '/widgets/map_zoom_controls.dart';
 
@@ -59,6 +61,7 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
   late final FeatureLayer _restroomLayer;
 
   Map<String, dynamic>? _selectedAttributes;
+  final GraphicsOverlay _userOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   ArcGISImage? _restroomIconImage;
   bool _isLoading = true;
@@ -132,7 +135,7 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
     _map.operationalLayers.add(_restroomLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
-    _mapController.graphicsOverlays.add(_selectionOverlay);
+    _mapController.graphicsOverlays.addAll([_userOverlay, _selectionOverlay]);
     _applyRestroomIcon();
     _loadMapData();
   }
@@ -265,6 +268,10 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
     await _mapController.setViewpointScale(currentScale * 2);
   }
 
+  Future<void> _getCurrentLocation() {
+    return showCurrentLocation(context, _mapController, _userOverlay);
+  }
+
   String get _selectedBuildingName =>
       cleanLocationAttribute(_selectedAttributes?['BuildingName']);
 
@@ -293,6 +300,7 @@ class _GenderNeutralBathroomsMapState extends State<GenderNeutralBathroomsMap> {
                   onTap: _handleMapTap,
                 ),
                 MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
+                CurrentLocationButton(onPressed: _getCurrentLocation),
                 if (_isLoading)
                   Positioned.fill(
                     child: ColoredBox(
