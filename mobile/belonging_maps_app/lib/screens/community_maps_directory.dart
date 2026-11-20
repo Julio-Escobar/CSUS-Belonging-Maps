@@ -75,7 +75,7 @@ class CommunityMapsDirectory extends StatelessWidget {
               const SizedBox(height: 36),
               Semantics(
                 header: true,
-                child: Text('Explore More', style: headingStyle),
+                child: Text('Explore Storymaps', style: headingStyle),
               ),
               const SizedBox(height: 32),
               const Row(
