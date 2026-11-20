@@ -2,7 +2,7 @@ class AppStrings {
   AppStrings._(); // prevents instantiation
 
   static const String welcomeDescription =
-      'Find your place at Sac State. Belonging Maps helps students, '
+      'Find your place at Sacramento State. Belonging Maps helps students, '
       'faculty, and staff discover campus spaces, organizations, and '
       'local community resources that foster connection and support.';
 
@@ -15,7 +15,7 @@ class AppStrings {
       'support, and a sense of community. Each community map '
       'includes two complementary features: the Campus Belonging '
       'Map, which highlights campus spaces, organizations, and '
-      'services designed to help people thrive at Sac State; '
+      'services designed to help people thrive at Sacramento State; '
       'and the Regional Community Belonging Map, which '
       'introduces users to local businesses, cultural centers, '
       'and community organizations that reflect the vibrancy of '
