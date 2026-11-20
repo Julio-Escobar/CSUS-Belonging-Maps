@@ -59,6 +59,12 @@ class _LocationCardPalette {
 /// it without depending on the image provider.
 const Key locationInfoImageKey = ValueKey<String>('location-info-image');
 
+/// Identifies the placeholder drawn while a network photo downloads, so widget
+/// tests can find it without waiting on a real HTTP request.
+const Key locationInfoImageLoadingKey = ValueKey<String>(
+  'location-info-image-loading',
+);
+
 /// Identifies the box drawn around an organization logo, so widget tests can
 /// verify the background color it uses.
 const Key locationInfoLogoBoxKey = ValueKey<String>('location-info-logo-box');
@@ -1687,6 +1693,14 @@ class _LocationInfoImage extends StatelessWidget {
         width: double.infinity,
         fit: _imageFit,
         excludeFromSemantics: true,
+        // The community art photos are multi-megabyte JPEGs. frameBuilder runs
+        // on the first build, before any bytes arrive, so the placeholder is
+        // visible the moment the card opens instead of going blank while the
+        // HTTP connection is established.
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (frame != null) return child;
+          return _buildLoading(palette);
+        },
         errorBuilder: (context, error, stackTrace) => _buildFallback(palette),
       );
     } else {
@@ -1727,6 +1741,21 @@ class _LocationInfoImage extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: openFullScreen,
         child: photo,
+      ),
+    );
+  }
+
+  Widget _buildLoading(_LocationCardPalette palette) {
+    return Container(
+      key: locationInfoImageLoadingKey,
+      height: height,
+      width: double.infinity,
+      color: palette.fallbackImage,
+      alignment: Alignment.center,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: palette.foreground,
+        semanticsLabel: 'Loading photo',
       ),
     );
   }

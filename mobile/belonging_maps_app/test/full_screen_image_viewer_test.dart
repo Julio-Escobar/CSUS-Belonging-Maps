@@ -46,6 +46,45 @@ void main() {
     expect(image.fit, BoxFit.contain);
   });
 
+  testWidgets('a network photo shows progress from its first frame', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: FullScreenImageViewer(
+          url: 'https://example.com/art.jpg',
+          semanticsLabel: 'Photo of art',
+        ),
+      ),
+    );
+
+    // The spinner is drawn before the photo has produced a frame or reported
+    // any download progress.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.image, isA<NetworkImage>());
+    final frameBuilder = image.frameBuilder;
+    expect(frameBuilder, isNotNull);
+
+    Widget buildPhoto(int? frame) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) =>
+                frameBuilder!(context, const SizedBox.shrink(), frame, false),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildPhoto(null));
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pumpWidget(buildPhoto(0));
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
   testWidgets('the close button returns to the previous screen', (
     tester,
   ) async {
