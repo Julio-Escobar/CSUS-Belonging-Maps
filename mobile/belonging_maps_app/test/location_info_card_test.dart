@@ -77,6 +77,23 @@ LocationInfoData _artLocationData({String? imageAsset}) {
   );
 }
 
+/// Location card data for a community art location whose photo is served from
+/// the network, as the SOMOS community map's public art layer does.
+LocationInfoData _networkArtLocationData() {
+  return LocationInfoData(
+    cardTitle: 'UFW Fountain',
+    address: '6000 J Street, Sacramento, CA',
+    category: 'Public Art and Artists',
+    type: 'Sculpture',
+    website: '',
+    phone: '',
+    email: '',
+    description: '',
+    imageUrl: 'https://example.com/ufw-fountain.jpg',
+    socialLinks: const {},
+  );
+}
+
 /// Location card data for a Ummah campus center that has its own logo.
 LocationInfoData _centerLocationData({
   BoxFit? orgLogoFit,
@@ -656,6 +673,60 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(fullScreenImageViewerKey), findsNothing);
+    });
+
+    testWidgets('a network photo shows progress from its first frame', (
+      tester,
+    ) async {
+      final data = _networkArtLocationData();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LocationInfoCard(
+              data: data,
+              showFullInfo: true,
+              onClose: () {},
+              onShowMore: () {},
+              onShowLess: () {},
+            ),
+          ),
+        ),
+      );
+
+      // The placeholder is part of the card's very first frame, before the
+      // photo has produced a frame or reported any download progress.
+      expect(find.byKey(locationInfoImageLoadingKey), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      final image = tester.widget<Image>(find.byKey(locationInfoImageKey));
+      expect(image.image, isA<NetworkImage>());
+      final frameBuilder = image.frameBuilder;
+      expect(frameBuilder, isNotNull);
+
+      Widget buildPhoto(int? frame) {
+        return MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => frameBuilder!(
+                context,
+                const SizedBox(key: locationInfoImageKey),
+                frame,
+                false,
+              ),
+            ),
+          ),
+        );
+      }
+
+      // While no decoded frame exists the placeholder stays visible.
+      await tester.pumpWidget(buildPhoto(null));
+      expect(find.byKey(locationInfoImageLoadingKey), findsOneWidget);
+
+      // Once the first frame is ready the photo replaces the placeholder.
+      await tester.pumpWidget(buildPhoto(0));
+      expect(find.byKey(locationInfoImageLoadingKey), findsNothing);
+      expect(find.byKey(locationInfoImageKey), findsOneWidget);
     });
 
     testWidgets('a wide organization logo is fitted inside the card', (

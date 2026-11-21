@@ -1,3 +1,4 @@
+import 'package:belonging_maps_app/constants/strings.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
@@ -8,24 +9,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
-// P1-334: map destinations are grouped at the top of the menu and still
-// route to the same screens, in the same visual and screen-reader order.
+// The drawer keeps the main pages first and settings/account actions last.
 
 const _expectedOrder = [
+  'Welcome',
   'Campus Maps',
   'Community Maps',
-  'Welcome',
-  'Community Resources',
-  'Organization Resources',
-  'Opportunities',
   'Favorites',
-  'Forums',
-  'Surveys',
+  'Announcements',
+  'Scholarships',
+  'Job Opportunities',
+  'Feedback',
   'Accessibility Settings',
-  'Administrator Login',
   'About Us',
+  'Administrator Login',
 ];
+
+class _RecordingUrlLauncher extends UrlLauncherPlatform {
+  final List<String> launchedUrls = [];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrls.add(url);
+    return true;
+  }
+}
 
 Future<void> _pumpMenu(WidgetTester tester, {double textScale = 1}) async {
   final preferences = await SharedPreferences.getInstance();
@@ -71,14 +85,13 @@ void main() {
     AuthService.isAdmin = false;
   });
 
-  testWidgets('maps are grouped together at the top of the menu', (
+  testWidgets('drawer lists destinations in the requested order', (
     tester,
   ) async {
     await _pumpMenu(tester);
 
-    final order = _visualOrder(tester);
-    expect(order, _expectedOrder);
-    expect(order.take(2), ['Campus Maps', 'Community Maps']);
+    expect(_visualOrder(tester), _expectedOrder);
+    expect(_visualOrder(tester).take(2), ['Welcome', 'Campus Maps']);
   });
 
   testWidgets('screen-reader order matches the visual order at 200% text', (
@@ -123,6 +136,26 @@ void main() {
     expect(find.byType(CommunityMapsDirectory), findsOneWidget);
   });
 
+  testWidgets('Job Opportunities opens the Handshake job board', (
+    tester,
+  ) async {
+    final launcher = _RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+    await _pumpMenu(tester);
+
+    await tester.ensureVisible(find.text('Job Opportunities'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Job Opportunities'));
+    await tester.pumpAndSettle();
+
+    expect(launcher.launchedUrls, [AppStrings.jobOpportunitiesUrl]);
+  });
+
+  testWidgets('Forums is no longer listed in the drawer', (tester) async {
+    await _pumpMenu(tester);
+    expect(find.text('Forums'), findsNothing);
+  });
+
   testWidgets('admins see Change Password in the admin panel (P1-331)', (
     tester,
   ) async {
@@ -131,7 +164,7 @@ void main() {
     await _pumpMenu(tester);
 
     expect(find.text('Change Password'), findsOneWidget);
-    expect(_visualOrder(tester).take(2), ['Campus Maps', 'Community Maps']);
+    expect(_visualOrder(tester).take(2), ['Welcome', 'Campus Maps']);
   });
 
   testWidgets('non-admins do not see Change Password', (tester) async {

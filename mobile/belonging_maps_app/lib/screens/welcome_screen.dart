@@ -12,9 +12,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AccessibilityColors.of(context);
-    final logoAsset = colors.primary == AccessibilityColors.colorSafe.primary
-        ? 'assets/blue_logo.png'
-        : 'assets/logo.png';
+    const logoAsset = 'assets/belonging_maps_logo.png';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final buttonStyle = ElevatedButton.styleFrom(
       backgroundColor: colors.cardBackground,

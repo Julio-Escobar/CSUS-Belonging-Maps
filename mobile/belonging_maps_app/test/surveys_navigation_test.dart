@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('opens Surveys from the hamburger menu', (tester) async {
+  testWidgets('opens Feedback from the hamburger menu', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final controller = AccessibilitySettingsController(preferences);
@@ -24,11 +24,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Surveys'));
+    await tester.ensureVisible(find.text('Feedback'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Surveys'));
+    await tester.tap(find.text('Feedback'));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Surveys'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Feedback'), findsOneWidget);
   });
 }

@@ -1,7 +1,6 @@
 import 'package:belonging_maps_app/models/forum_post.dart';
 import 'package:belonging_maps_app/screens/forums_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
-import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,27 +8,6 @@ import 'helpers/semantics_finders.dart';
 
 void main() {
   tearDown(() => AuthService.isAdmin = false);
-
-  testWidgets('opens Forums from the hamburger menu', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(splashFactory: NoSplash.splashFactory),
-        home: HamburgerMenu(body: const SizedBox.expand()),
-      ),
-    );
-
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Forums'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Forums'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Where can I find affordable textbooks this semester?'),
-      findsOneWidget,
-    );
-  });
 
   testWidgets('shows sample posts and supports scrolling on iPhone size', (
     tester,

@@ -13,6 +13,12 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
   final Color menuIcon;
   final Color outline;
 
+  /// Whether this palette comes from the color-safe option.
+  ///
+  /// Colors cannot identify the option reliably: the color-safe primary is a
+  /// different value in light, dark, and high-contrast themes.
+  final bool colorSafePalette;
+
   const AccessibilityColors({
     required this.pageBackground,
     required this.cardBackground,
@@ -24,6 +30,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     required this.destructive,
     required this.menuIcon,
     required this.outline,
+    required this.colorSafePalette,
   });
 
   static const normal = AccessibilityColors(
@@ -37,6 +44,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     destructive: Color(0xFF8B1E2D),
     menuIcon: Colors.white,
     outline: Color(0xFF2F5F3E),
+    colorSafePalette: false,
   );
 
   static const colorSafe = AccessibilityColors(
@@ -50,6 +58,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     destructive: Color(0xFF8B1E2D),
     menuIcon: Colors.white,
     outline: Color(0xFF003B4A),
+    colorSafePalette: true,
   );
 
   static const highContrast = AccessibilityColors(
@@ -63,6 +72,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     destructive: Color(0xFF7A0012),
     menuIcon: Colors.white,
     outline: Colors.black,
+    colorSafePalette: false,
   );
 
   // Dark palettes (P1-281) used when the device is in dark mode. App bars and
@@ -78,6 +88,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     destructive: Color(0xFFCC4757),
     menuIcon: Colors.white,
     outline: Color(0xFF8FD3A6),
+    colorSafePalette: false,
   );
 
   static const colorSafeDark = AccessibilityColors(
@@ -91,6 +102,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     destructive: Color(0xFFCC4757),
     menuIcon: Colors.white,
     outline: Color(0xFF7FD4E8),
+    colorSafePalette: true,
   );
 
   static AccessibilityColors forSettings({
@@ -150,6 +162,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
     Color? destructive,
     Color? menuIcon,
     Color? outline,
+    bool? colorSafePalette,
   }) {
     return AccessibilityColors(
       pageBackground: pageBackground ?? this.pageBackground,
@@ -162,6 +175,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
       destructive: destructive ?? this.destructive,
       menuIcon: menuIcon ?? this.menuIcon,
       outline: outline ?? this.outline,
+      colorSafePalette: colorSafePalette ?? this.colorSafePalette,
     );
   }
 
@@ -180,6 +194,7 @@ class AccessibilityColors extends ThemeExtension<AccessibilityColors> {
       destructive: Color.lerp(destructive, other.destructive, t)!,
       menuIcon: Color.lerp(menuIcon, other.menuIcon, t)!,
       outline: Color.lerp(outline, other.outline, t)!,
+      colorSafePalette: t < 0.5 ? colorSafePalette : other.colorSafePalette,
     );
   }
 }

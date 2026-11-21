@@ -400,7 +400,7 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay, context: context);
+    return showCurrentLocation(context, _mapController, _userOverlay);
   }
 
   Widget _buildTopMapControls() {

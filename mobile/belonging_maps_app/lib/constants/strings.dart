@@ -2,7 +2,7 @@ class AppStrings {
   AppStrings._(); // prevents instantiation
 
   static const String welcomeDescription =
-      'Find your place at Sac State. Belonging Maps helps students, '
+      'Find your place at Sacramento State. Belonging Maps helps students, '
       'faculty, and staff discover campus spaces, organizations, and '
       'local community resources that foster connection and support.';
 
@@ -15,7 +15,7 @@ class AppStrings {
       'support, and a sense of community. Each community map '
       'includes two complementary features: the Campus Belonging '
       'Map, which highlights campus spaces, organizations, and '
-      'services designed to help people thrive at Sac State; '
+      'services designed to help people thrive at Sacramento State; '
       'and the Regional Community Belonging Map, which '
       'introduces users to local businesses, cultural centers, '
       'and community organizations that reflect the vibrancy of '
@@ -39,6 +39,11 @@ class AppStrings {
       'with shared vision and purpose. Thank you for believing '
       'in this work and helping us amplify the voices and stories '
       'that make our communities stronger.';
+
+  /// The Handshake job board for Sacramento State students. The navigation
+  /// drawer opens this page outside the app instead of duplicating it.
+  static const String jobOpportunitiesUrl =
+      'https://app.joinhandshake.com/stu/schools/960';
 
   static const String somosSacStateSurveyUrl =
       'https://survey123.arcgis.com/share/56d94520eea24deaa5a1e57b3ab43e08';

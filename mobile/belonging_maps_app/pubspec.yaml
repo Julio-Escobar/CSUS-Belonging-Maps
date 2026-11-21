@@ -69,6 +69,12 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is for the logo of the app on homescreens of devices.
+# Both PNGs are built from assets/belonging_maps_logo.png by
+# tool/make_app_icons.ps1, which crops the logo and centres it on a square
+# canvas: an opaque green icon for iOS and a transparent, safe-zone-sized
+# foreground for Android's adaptive icon.
+# This is a mobile-only app, so the web/windows/macos icon generators are left
+# unconfigured on purpose.
 flutter_launcher_icons:
   android: true
   ios: true
@@ -83,13 +89,16 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
 # The following section is for the splash screen of the app on homescreens of devices.
+# Same green and logo as the launcher icon. Android 12+ draws the splash icon
+# inside a circle, so it reuses the transparent adaptive foreground instead of
+# the square green icon.
 flutter_native_splash:
   color: "#2F5F3E"
-  image: "assets/larger_logo.png"
+  image: "assets/icon/app_icon.png"
 
   android_12:
     color: "#2F5F3E"
-    image: "assets/larger_logo.png"
+    image: "assets/icon/app_icon_foreground.png"
 
   ios: true
   android: true
