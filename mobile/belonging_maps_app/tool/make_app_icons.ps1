@@ -6,7 +6,7 @@
     `flutter_launcher_icons` only resizes the images it is given, so the icon
     sources must already be square and already carry their own padding.
     This tool produces the two sources that `pubspec.yaml` points at, from
-    `assets/belonging_maps_no_text.png`:
+    `assets/belonging_maps_logo.png`:
 
       assets/icon/app_icon.png
           Opaque #2F5F3E canvas. Used for the iOS icons and for the splash
@@ -96,7 +96,7 @@ $AndroidSafeZoneFraction = 66.0 / 108.0
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $SourcePath) {
-    $SourcePath = Join-Path $projectRoot 'assets\belonging_maps_no_text.png'
+    $SourcePath = Join-Path $projectRoot 'assets\belonging_maps_logo.png'
 }
 $iconOutputPath = Join-Path $projectRoot 'assets\icon\app_icon.png'
 $foregroundOutputPath = Join-Path $projectRoot 'assets\icon\app_icon_foreground.png'

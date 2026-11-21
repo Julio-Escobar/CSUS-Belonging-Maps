@@ -69,7 +69,7 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is for the logo of the app on homescreens of devices.
-# Both PNGs are built from assets/belonging_maps_no_text.png by
+# Both PNGs are built from assets/belonging_maps_logo.png by
 # tool/make_app_icons.ps1, which crops the logo and centres it on a square
 # canvas: an opaque green icon for iOS and a transparent, safe-zone-sized
 # foreground for Android's adaptive icon.

@@ -3,8 +3,7 @@ import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _defaultArtwork = 'assets/belonging_maps_no_text.png';
-const _goldArtwork = 'assets/belonging_maps_no_text_gold.png';
+const _artwork = 'assets/belonging_maps_logo.png';
 
 Future<String> _welcomeLogoAsset(
   WidgetTester tester, {
@@ -33,49 +32,26 @@ Future<String> _welcomeLogoAsset(
 }
 
 void main() {
-  testWidgets('shows the text-free belonging maps artwork', (tester) async {
-    expect(await _welcomeLogoAsset(tester, colorSafe: false), _defaultArtwork);
+  testWidgets('shows the belonging maps logo', (tester) async {
+    expect(await _welcomeLogoAsset(tester, colorSafe: false), _artwork);
   });
 
-  testWidgets('the color safe palette swaps in the gold artwork', (
-    tester,
-  ) async {
-    expect(await _welcomeLogoAsset(tester, colorSafe: true), _goldArtwork);
-  });
-
-  for (final dark in [false, true]) {
-    for (final highContrast in [false, true]) {
-      testWidgets(
-        'shows the gold artwork with color safe in dark=$dark '
-        'highContrast=$highContrast',
-        (tester) async {
+  for (final colorSafe in [false, true]) {
+    for (final dark in [false, true]) {
+      for (final highContrast in [false, true]) {
+        testWidgets('shows the belonging maps logo with colorSafe=$colorSafe '
+            'dark=$dark highContrast=$highContrast', (tester) async {
           expect(
             await _welcomeLogoAsset(
               tester,
-              colorSafe: true,
+              colorSafe: colorSafe,
               dark: dark,
               highContrast: highContrast,
             ),
-            _goldArtwork,
+            _artwork,
           );
-        },
-      );
-
-      testWidgets(
-        'keeps the default artwork without color safe in dark=$dark '
-        'highContrast=$highContrast',
-        (tester) async {
-          expect(
-            await _welcomeLogoAsset(
-              tester,
-              colorSafe: false,
-              dark: dark,
-              highContrast: highContrast,
-            ),
-            _defaultArtwork,
-          );
-        },
-      );
+        });
+      }
     }
   }
 
