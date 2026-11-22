@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/strings.dart';
 import '../services/app_version.dart';
 import '../widgets/hamburger_menu.dart';
+import '../services/accessibility_theme.dart';
 
 class AboutUsScreen extends StatelessWidget {
   /// Looks up the installed version (P1-322). Tests pass a fake.
@@ -14,6 +15,8 @@ class AboutUsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return HamburgerMenu(
       title: 'About Us',
       currentDestination: MenuDestination.aboutUs,
@@ -30,21 +33,22 @@ class AboutUsScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 47, 95, 62),
+                      color: colors.primary,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_on,
-                      color: Colors.white,
+                      color: colors.onPrimary,
                       size: 44,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Belonging Maps',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
+                      color: colors.primaryText,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -52,39 +56,41 @@ class AboutUsScreen extends StatelessWidget {
                 ],
               ),
             ),
- 
+
             const SizedBox(height: 32),
-            const Divider(),
+            Divider(color: colors.outline.withValues(alpha: 0.4)),
             const SizedBox(height: 24),
- 
+
             // About section
             const _SectionHeader(title: 'About'),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               AppStrings.aboutDescription,
-  style: TextStyle(fontSize: 15, height: 1.6),
-            
-        ),
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                color: colors.primaryText,
+              ),
+            ),
             const SizedBox(height: 32),
 
             // Acknowledgements section
             const _SectionHeader(title: 'Acknowledgements'),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               AppStrings.acknowledgementIntro,
-              style: TextStyle(fontSize: 15, height: 1.6),
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                color: colors.primaryText,
+              ),
             ),
-            
 
             // Footer
             Center(
               child: Text(
-
                 '© 2025 CSUS Belonging Maps. All rights reserved.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 12, color: colors.secondaryText),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -95,7 +101,7 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 }
- 
+
 /// Shows the installed version once it loads. The line keeps its height
 /// while loading so the page doesn't jump, and an error just shows
 /// "Version unavailable" instead of crashing the page (P1-322).
@@ -113,6 +119,8 @@ class _VersionTextState extends State<_VersionText> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return FutureBuilder<AppVersion>(
       future: _version,
       builder: (context, snapshot) {
@@ -128,7 +136,7 @@ class _VersionTextState extends State<_VersionText> {
         return Text(
           text,
           key: const Key('aboutUsVersion'),
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: colors.secondaryText),
         );
       },
     );
@@ -137,20 +145,22 @@ class _VersionTextState extends State<_VersionText> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
- 
+
   const _SectionHeader({required this.title});
- 
+
   @override
   Widget build(BuildContext context) {
+    final colors = AccessibilityColors.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 47, 95, 62),
+            color: colors.primary,
           ),
         ),
         const SizedBox(height: 6),
