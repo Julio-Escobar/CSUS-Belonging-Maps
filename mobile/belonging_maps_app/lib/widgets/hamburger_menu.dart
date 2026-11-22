@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../constants/strings.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/campus_maps_screen.dart';
 import '../screens/community_maps_directory.dart';
 import '../screens/community_resources_screen.dart';
-import '../screens/organization_resources_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/favorites_screen.dart';
 import '../screens/accessibility_settings_screen.dart';
 import '../screens/opportunities.dart';
 import '../screens/surveys_screen.dart';
-import '../screens/forums_screen.dart';
 import '../screens/change_password_screen.dart';
 import '../services/auth_service.dart';
 import '../services/accessibility_theme.dart';
@@ -105,6 +105,30 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
     _closeDrawer();
     if (!wasRoot) {
       Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  /// Opens the Handshake job board outside the app.
+  ///
+  /// Job opportunities live on Handshake, so the drawer hands people off to
+  /// the system browser instead of keeping a duplicate page in the app.
+  Future<void> _openJobOpportunities() async {
+    _closeDrawer();
+
+    var launched = false;
+    try {
+      launched = await launchUrl(
+        Uri.parse(AppStrings.jobOpportunitiesUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open Job Opportunities')),
+      );
     }
   }
 
@@ -208,8 +232,19 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          // P1-306: every map destination sits together at the
-                          // top so people find the maps first.
+                          // Destinations follow the product's navigation
+                          // order: main pages first, then settings and account
+                          // actions at the bottom.
+                          const Divider(),
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.waving_hand_sharp,
+                            label: 'Welcome',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.welcome,
+                            onTap: _goHome,
+                          ),
                           const Divider(),
                           _drawerTile(
                             colors: colors,
@@ -239,57 +274,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           const Divider(),
                           _drawerTile(
                             colors: colors,
-                            icon: Icons.waving_hand_sharp,
-                            label: 'Welcome',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.welcome,
-                            onTap: _goHome,
-                          ),
-                          const Divider(),
-                          _drawerTile(
-                            colors: colors,
-                            icon: Icons.library_books_outlined,
-                            label: 'Community Resources',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.communityResources,
-                            onTap: () => _selectDestination(
-                              MenuDestination.communityResources,
-                              (_) => const CommunityResourcesScreen(),
-                            ),
-                          ),
-                          const Divider(),
-                          _drawerTile(
-                            colors: colors,
-                            icon: Icons.folder_shared_outlined,
-                            label: 'Organization Resources',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.organizationResources,
-                            onTap: () => _selectDestination(
-                              MenuDestination.organizationResources,
-                              (_) => const OrganizationResourcesScreen(),
-                            ),
-                          ),
-                          const Divider(),
-
-                          _drawerTile(
-                            colors: colors,
-                            icon: Icons.announcement_outlined,
-                            label: 'Opportunities',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.opportunities,
-                            onTap: () => _selectDestination(
-                              MenuDestination.opportunities,
-                              (_) => const OpportunitiesScreen(),
-                            ),
-                          ),
-                          const Divider(),
-
-                          _drawerTile(
-                            colors: colors,
                             icon: Icons.star_outline,
                             label: 'Favorites',
                             isCurrent:
@@ -304,22 +288,44 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
 
                           _drawerTile(
                             colors: colors,
-                            icon: Icons.forum_outlined,
-                            label: 'Forums',
+                            icon: Icons.announcement_outlined,
+                            label: 'Announcements',
                             isCurrent:
                                 widget.currentDestination ==
-                                MenuDestination.forums,
+                                MenuDestination.opportunities,
                             onTap: () => _selectDestination(
-                              MenuDestination.forums,
-                              (_) => ForumsScreen(),
+                              MenuDestination.opportunities,
+                              (_) => const OpportunitiesScreen(),
                             ),
                           ),
                           const Divider(),
 
                           _drawerTile(
                             colors: colors,
-                            icon: Icons.assignment_outlined,
-                            label: 'Surveys',
+                            icon: Icons.workspace_premium_outlined,
+                            label: 'Scholarships',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.communityResources,
+                            onTap: () => _selectDestination(
+                              MenuDestination.communityResources,
+                              (_) => const CommunityResourcesScreen(),
+                            ),
+                          ),
+                          const Divider(),
+
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.work_outline,
+                            label: 'Job Opportunities',
+                            onTap: _openJobOpportunities,
+                          ),
+                          const Divider(),
+
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.feedback_outlined,
+                            label: 'Feedback',
                             isCurrent:
                                 widget.currentDestination ==
                                 MenuDestination.surveys,
@@ -344,8 +350,21 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           ),
                           const Divider(),
 
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.person_pin_outlined,
+                            label: 'About Us',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.aboutUs,
+                            onTap: () => _selectDestination(
+                              MenuDestination.aboutUs,
+                              (_) => const AboutUsScreen(),
+                            ),
+                          ),
+                          const Divider(),
+
                           if (isAdmin) ...[
-                            const Divider(),
                             const ListTile(
                               title: Text(
                                 "ADMIN PANEL",
@@ -364,33 +383,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 (_) => const ChangePasswordScreen(),
                               ),
                             ),
-                            ListTile(
-                              leading: const Icon(Icons.edit),
-                              title: const Text("Edit Maps"),
-                              subtitle: const Text('Not available yet'),
-                              textColor: colors.onPrimary,
-                              iconColor: colors.menuIcon,
-                              enabled: false,
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.add),
-                              title: const Text("Add Location"),
-                              subtitle: const Text('Not available yet'),
-                              textColor: colors.onPrimary,
-                              iconColor: colors.menuIcon,
-                              enabled: false,
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.delete),
-                              title: const Text("Delete Entries"),
-                              subtitle: const Text('Not available yet'),
-                              textColor: colors.onPrimary,
-                              iconColor: colors.menuIcon,
-                              enabled: false,
-                            ),
                           ],
-
-                          const Divider(),
 
                           if (!isAdmin)
                             _drawerTile(
@@ -428,20 +421,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                                 );
                               },
                             ),
-
-                          const Divider(),
-                          _drawerTile(
-                            colors: colors,
-                            icon: Icons.person_pin_outlined,
-                            label: 'About Us',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.aboutUs,
-                            onTap: () => _selectDestination(
-                              MenuDestination.aboutUs,
-                              (_) => const AboutUsScreen(),
-                            ),
-                          ),
                           const Divider(),
                         ],
                       ),

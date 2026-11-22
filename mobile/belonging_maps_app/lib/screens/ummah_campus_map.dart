@@ -1136,7 +1136,7 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay);
+    return showCurrentLocation(context, _mapController, _userOverlay);
   }
 
   void _dismissLocationCard() {

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
+import '/services/current_location.dart';
 import '/services/map_location_source.dart';
 import '/services/map_tap_target.dart';
+import '/widgets/current_location_buttons.dart';
 import '/widgets/lactation_room_info_card.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/map_zoom_controls.dart';
@@ -31,6 +33,7 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
   late final ArcGISMap _map;
   late final ArcGISMapViewController _mapController;
   late final FeatureLayer _roomsLayer;
+  final GraphicsOverlay _userOverlay = GraphicsOverlay();
   final GraphicsOverlay _selectionOverlay = GraphicsOverlay();
   ArcGISImage? _roomIconImage;
   Map<String, dynamic>? _selectedAttributes;
@@ -90,7 +93,7 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
       ..add(campusLabelsLayer)
       ..add(_roomsLayer);
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
-    _mapController.graphicsOverlays.add(_selectionOverlay);
+    _mapController.graphicsOverlays.addAll([_userOverlay, _selectionOverlay]);
     _applyRoomIcon();
     _loadMapData();
   }
@@ -252,6 +255,10 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
     await _mapController.setViewpointScale(currentScale * 2);
   }
 
+  Future<void> _getCurrentLocation() {
+    return showCurrentLocation(context, _mapController, _userOverlay);
+  }
+
   String get _selectedBuildingName =>
       cleanLocationAttribute(_selectedAttributes?['RefName']);
 
@@ -277,6 +284,7 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
                   onTap: _handleMapTap,
                 ),
                 MapZoomControls(onZoomIn: _zoomIn, onZoomOut: _zoomOut),
+                CurrentLocationButton(onPressed: _getCurrentLocation),
                 Positioned(
                   top: 12,
                   right: 12,

@@ -111,14 +111,20 @@ void showLocationAccessMessage(BuildContext context, LocationAccess access) {
     ..showSnackBar(SnackBar(content: Text(message), action: action));
 }
 
+/// Shows the person's location on [mapController], drawing the blue dot in
+/// [userOverlay] and recentring the map.
+///
+/// Every map screen's location button calls this with its own [context], so the
+/// permission prompts, the "Settings" snackbars, and the recentre behaviour are
+/// the same on every map.
 Future<void> showCurrentLocation(
+  BuildContext context,
   ArcGISMapViewController mapController,
-  GraphicsOverlay userOverlay, {
-  BuildContext? context,
-}) async {
+  GraphicsOverlay userOverlay,
+) async {
   final access = await resolveLocationAccess();
   if (access != LocationAccess.granted) {
-    if (context != null && context.mounted) {
+    if (context.mounted) {
       showLocationAccessMessage(context, access);
     }
     return;
@@ -128,7 +134,7 @@ Future<void> showCurrentLocation(
   try {
     position = await Geolocator.getCurrentPosition();
   } catch (_) {
-    if (context != null && context.mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
           content: Text("Couldn't find your location. Try again in a moment."),
@@ -146,7 +152,7 @@ Future<void> showCurrentLocation(
 
   final outerCircle = SimpleMarkerSymbol(
     style: SimpleMarkerSymbolStyle.circle,
-    color: Colors.blue.withOpacity(0.2),
+    color: Colors.blue.withValues(alpha: 0.2),
     size: 28,
   );
 

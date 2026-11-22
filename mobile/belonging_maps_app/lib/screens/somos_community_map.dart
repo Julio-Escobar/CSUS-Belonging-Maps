@@ -210,7 +210,7 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
   }
 
   Future<void> _getCurrentLocation() {
-    return showCurrentLocation(_mapController, _userOverlay, context: context);
+    return showCurrentLocation(context, _mapController, _userOverlay);
   }
 
   Future<void> _handleMapTap(Offset screenPoint) async {

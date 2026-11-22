@@ -123,6 +123,18 @@ class FullScreenImageViewer extends StatelessWidget {
         height: double.infinity,
         fit: BoxFit.contain,
         excludeFromSemantics: true,
+        // The community art photos are multi-megabyte JPEGs. frameBuilder runs
+        // on the first build, before any bytes arrive, so the spinner covers
+        // the black backdrop from the first frame.
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (frame != null) return child;
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              semanticsLabel: 'Loading photo',
+            ),
+          );
+        },
         errorBuilder: (context, error, stackTrace) => _buildFallback(),
       );
     }

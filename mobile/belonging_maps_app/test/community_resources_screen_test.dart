@@ -22,9 +22,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('opens Community Resources from the hamburger menu', (
-    tester,
-  ) async {
+  testWidgets('opens Scholarships from the hamburger menu', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: HamburgerMenu(body: const Scaffold(body: SizedBox.expand())),
@@ -35,7 +33,7 @@ void main() {
     tester.semantics.tap(semanticTapByTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
 
-    tester.semantics.tap(semanticTapByLabel('Community Resources'));
+    tester.semantics.tap(semanticTapByLabel('Scholarships'));
     await tester.pumpAndSettle();
 
     expect(find.text('Food Pantry'), findsOneWidget);
