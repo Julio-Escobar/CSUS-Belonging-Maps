@@ -325,7 +325,7 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           _drawerTile(
                             colors: colors,
                             icon: Icons.feedback_outlined,
-                            label: 'Feedback',
+                            label: 'Contact Us',
                             isCurrent:
                                 widget.currentDestination ==
                                 MenuDestination.surveys,

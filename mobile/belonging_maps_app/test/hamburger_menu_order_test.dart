@@ -22,7 +22,7 @@ const _expectedOrder = [
   'Scholarships',
   'Job Opportunities',
   'Favorites',
-  'Feedback',
+  'Contact Us',
   'Accessibility Settings',
   'About Us',
   'Administrator Login',

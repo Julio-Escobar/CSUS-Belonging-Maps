@@ -287,7 +287,7 @@ class _SurveysScreenState extends State<SurveysScreen> {
     final isAdmin = AuthService.isAdmin;
 
     return HamburgerMenu(
-      title: 'Feedback',
+      title: 'Contact Us',
       currentDestination: MenuDestination.surveys,
       actions: [
         // Admin add survey button
