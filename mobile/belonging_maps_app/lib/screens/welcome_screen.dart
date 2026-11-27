@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/strings.dart';
 import '../services/accessibility_theme.dart';
 import '../widgets/hamburger_menu.dart';
+import 'about_us_screen.dart';
 import 'campus_maps_screen.dart';
 import 'community_maps_directory.dart';
 
@@ -82,6 +83,23 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       child: const Text(
                         'Community Maps',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: 220,
+                    child: ElevatedButton(
+                      style: buttonStyle,
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AboutUsScreen(),
+                        ),
+                      ),
+                      child: const Text(
+                        'About Us',
                         textAlign: TextAlign.center,
                       ),
                     ),
