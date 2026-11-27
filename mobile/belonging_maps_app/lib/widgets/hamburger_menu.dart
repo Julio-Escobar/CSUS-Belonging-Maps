@@ -274,20 +274,6 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                           const Divider(),
                           _drawerTile(
                             colors: colors,
-                            icon: Icons.star_outline,
-                            label: 'Favorites',
-                            isCurrent:
-                                widget.currentDestination ==
-                                MenuDestination.favorites,
-                            onTap: () => _selectDestination(
-                              MenuDestination.favorites,
-                              (_) => const FavoritesScreen(),
-                            ),
-                          ),
-                          const Divider(),
-
-                          _drawerTile(
-                            colors: colors,
                             icon: Icons.announcement_outlined,
                             label: 'Announcements',
                             isCurrent:
@@ -319,6 +305,20 @@ class _HamburgerMenuState extends State<HamburgerMenu> {
                             icon: Icons.work_outline,
                             label: 'Job Opportunities',
                             onTap: _openJobOpportunities,
+                          ),
+                          const Divider(),
+
+                          _drawerTile(
+                            colors: colors,
+                            icon: Icons.star_outline,
+                            label: 'Favorites',
+                            isCurrent:
+                                widget.currentDestination ==
+                                MenuDestination.favorites,
+                            onTap: () => _selectDestination(
+                              MenuDestination.favorites,
+                              (_) => const FavoritesScreen(),
+                            ),
                           ),
                           const Divider(),
 
