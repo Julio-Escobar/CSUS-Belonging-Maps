@@ -293,7 +293,7 @@ class _SurveysScreenState extends State<SurveysScreen> {
         // Admin add survey button
         if (isAdmin)
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.post_add_rounded),
             tooltip: 'Add survey',
             onPressed: () => _showSurveyDialog(),
           ),
@@ -312,8 +312,12 @@ class _SurveysScreenState extends State<SurveysScreen> {
                     survey: survey,
                     isAdmin: isAdmin,
                     onOpen: () => _openSurvey(survey),
-                    onEdit: () => _showSurveyDialog(index: index),
-                    onDelete: () => _deleteSurvey(index),
+                    onEdit: isAdmin && survey.id != null
+                        ? () => _showSurveyDialog(index: index)
+                        : null,
+                    onDelete: isAdmin && survey.id != null
+                        ? () => _deleteSurvey(index)
+                        : null,
                   );
                 },
               ),
@@ -355,15 +359,15 @@ class _SurveyCard extends StatelessWidget {
   final Survey survey;
   final bool isAdmin;
   final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const _SurveyCard({
     required this.survey,
     required this.isAdmin,
     required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -402,25 +406,32 @@ class _SurveyCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            if (isAdmin && survey.id != null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.build, color: colors.action),
-                    tooltip: 'Edit ${survey.title}',
-                    onPressed: onEdit,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.remove_circle_outline,
-                      color: colors.destructive,
-                    ),
-                    tooltip: 'Delete ${survey.title}',
-                    onPressed: onDelete,
-                  ),
-                ],
+            if (isAdmin) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    if (onEdit != null)
+                      IconButton(
+                        tooltip: 'Edit ${survey.title}',
+                        onPressed: onEdit,
+                        icon: Icon(Icons.edit_outlined, color: colors.action),
+                      ),
+                    if (onDelete != null)
+                      IconButton(
+                        tooltip: 'Delete ${survey.title}',
+                        onPressed: onDelete,
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: colors.destructive,
+                        ),
+                      ),
+                  ],
+                ),
               ),
+            ],
           ],
         ),
       ),

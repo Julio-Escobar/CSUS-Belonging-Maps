@@ -207,6 +207,62 @@ void main() {
     expect(find.byTooltip('Delete Feedback Survey'), findsNothing);
   });
 
+  testWidgets('admin sees edit and delete actions on every survey', (
+    tester,
+  ) async {
+    AuthService.isAdmin = true;
+    await _pumpSurveys(tester);
+
+    for (final title in ['Feedback Survey', 'What is Missing Survey']) {
+      expect(find.byTooltip('Edit $title'), findsOneWidget);
+      expect(find.byTooltip('Delete $title'), findsOneWidget);
+    }
+    // Same icons the Announcements and Scholarships cards use.
+    expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
+    expect(find.byIcon(Icons.delete_outline), findsNWidgets(2));
+  });
+
+  testWidgets('edit action opens the editor for the selected survey', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    AuthService.isAdmin = true;
+    await _pumpSurveys(tester);
+
+    tester.semantics.tap(semanticTapByTooltip('Edit What is Missing Survey'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Survey'), findsOneWidget);
+    final fields = tester
+        .widgetList<TextFormField>(find.byType(TextFormField))
+        .toList();
+    expect(fields[0].controller?.text, 'What is Missing Survey');
+    expect(fields[2].controller?.text, 'https://example.com/missing');
+    semantics.dispose();
+  });
+
+  testWidgets('delete removes only the chosen survey', (tester) async {
+    final semantics = tester.ensureSemantics();
+    AuthService.isAdmin = true;
+    await _pumpSurveys(tester);
+
+    tester.semantics.tap(semanticTapByTooltip('Delete What is Missing Survey'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Survey'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.widgetWithText(ElevatedButton, 'What is Missing Survey'),
+      findsNothing,
+    );
+    expect(
+      find.widgetWithText(ElevatedButton, 'Feedback Survey'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
   testWidgets('admin can edit a survey', (tester) async {
     final semantics = tester.ensureSemantics();
     AuthService.isAdmin = true;

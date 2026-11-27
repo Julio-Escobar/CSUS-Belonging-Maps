@@ -56,6 +56,29 @@ namespace BelongingMaps.API.Data
                 new CommunityResource { Id = 8, Title = "Childcare Services", Category = "Family", IconKey = "family",
                     Description = "Affordable childcare options available for student parents." }
             );
+
+            // Starting surveys, moved from the hardcoded list in
+            // surveys_screen.dart so admins can edit and delete them.
+            modelBuilder.Entity<Survey>().HasData(
+                new Survey { Id = 1, Title = "SOMOS Sac State", Description = "",
+                    Link = "https://survey123.arcgis.com/share/56d94520eea24deaa5a1e57b3ab43e08" },
+                new Survey { Id = 2, Title = "SOMOS Sac Community", Description = "",
+                    Link = "https://survey123.arcgis.com/share/ffa13b155b684041ab4b4335d4ccf029" },
+                new Survey { Id = 3, Title = "UMMAH Sac State", Description = "",
+                    Link = "https://survey123.arcgis.com/share/9859d4081f2742449fcf4331ea9122f9" },
+                new Survey { Id = 4, Title = "UMMAH Sac Community", Description = "",
+                    Link = "https://survey123.arcgis.com/share/2d1fe1696b794a239cbdecdae736f289" },
+                new Survey { Id = 5, Title = "Ubuntu Sac State", Description = "",
+                    Link = "https://storymaps.arcgis.com/stories/0533e5adea024e10a69568c547544c07" },
+                new Survey { Id = 6, Title = "Ubuntu Sac Community", Description = "",
+                    Link = "https://survey123.arcgis.com/share/e4a218f5291f4fa9a31078cf8f067d84" },
+                new Survey { Id = 7, Title = "SOMOS Something Missing?", Description = "",
+                    Link = "https://survey123.arcgis.com/share/0b9123ed6c9f4cf6a0e1f3e076ffd5ae" },
+                new Survey { Id = 8, Title = "UMMAH Something Missing?", Description = "",
+                    Link = "https://survey123.arcgis.com/share/8688bd88b2e64da6bf369f4972161f2f" },
+                new Survey { Id = 9, Title = "UBUNTU Something Missing?", Description = "",
+                    Link = "https://survey123.arcgis.com/share/b97c6c9ce15c4fa194d8aa4392d0e6c7" }
+            );
         }
     }
 }
