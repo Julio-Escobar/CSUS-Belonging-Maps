@@ -25,6 +25,38 @@ class AboutUsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Storymaps tip
+            Container(
+              key: const Key('aboutUsStorymapsTip'),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: colors.outline.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.auto_stories_outlined, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      AppStrings.aboutStorymapsTip,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: colors.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // App logo / hero area
             Center(
               child: Column(
@@ -86,7 +118,22 @@ class AboutUsScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 32),
+
             // Footer
+            Center(
+              child: Text(
+                AppStrings.aboutStudentCredit,
+                key: const Key('aboutUsStudentCredit'),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: colors.primaryText,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 8),
             Center(
               child: Text(
                 '© 2025 CSUS Belonging Maps. All rights reserved.',

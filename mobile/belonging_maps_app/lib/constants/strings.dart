@@ -6,6 +6,16 @@ class AppStrings {
       'faculty, and staff discover campus spaces, organizations, and '
       'local community resources that foster connection and support.';
 
+  /// Shown at the top of About Us so new users start with the storymaps.
+  static const String aboutStorymapsTip =
+      'New here? We recommend checking out the storymaps first. You can '
+      'find them under "Explore Storymaps" at the bottom of the Campus Maps '
+      'and Community Maps pages.';
+
+  /// Credit line at the bottom of About Us.
+  static const String aboutStudentCredit =
+      'This app was made by Sacramento State students.';
+
   static const String aboutDescription =
       'The Belonging Maps is a collaborative project between '
       'Sacramento State\'s Inclusive Excellence and the '
