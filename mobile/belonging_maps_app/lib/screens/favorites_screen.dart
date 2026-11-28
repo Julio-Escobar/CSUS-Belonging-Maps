@@ -5,7 +5,7 @@ import '../services/favorites_store.dart';
 import '../widgets/favorite_toggle_button.dart';
 import '../widgets/hamburger_menu.dart';
 import '../widgets/location_info_card.dart';
-import 'opportunities.dart';
+import 'scholarships_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   final http.Client? opportunitiesClient;
@@ -57,7 +57,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     if (favorite.type == FavoriteType.opportunity) {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => OpportunitiesScreen(
+          builder: (_) => ScholarshipsScreen(
             client: widget.opportunitiesClient,
             initialOpportunityId: favorite.id,
           ),
@@ -117,7 +117,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   container: true,
                   liveRegion: true,
                   label:
-                      'No favorites yet. Save a location or opportunity using its star button.',
+                      'No favorites yet. Save a location or scholarship using its star button.',
                   child: ExcludeSemantics(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -130,7 +130,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Save a location or opportunity with its star button, '
+                          'Save a location or scholarship with its star button, '
                           'and it will appear here.',
                           textAlign: TextAlign.center,
                         ),
@@ -148,7 +148,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 final favorite = _favorites[index];
                 final typeLabel = favorite.type == FavoriteType.location
                     ? 'Location'
-                    : 'Opportunity';
+                    : 'Scholarship';
                 return Card(
                   child: ListTile(
                     leading: Icon(

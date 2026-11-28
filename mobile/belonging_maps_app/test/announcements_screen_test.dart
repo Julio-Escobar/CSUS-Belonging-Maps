@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:belonging_maps_app/screens/community_resources_screen.dart';
+import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
 import 'package:belonging_maps_app/widgets/resource_image_field.dart';
@@ -17,12 +17,12 @@ void main() {
 
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: CommunityResourcesScreen()),
+      const MaterialApp(home: AnnouncementsScreen()),
     );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('opens Scholarships from the hamburger menu', (tester) async {
+  testWidgets('opens Announcements from the hamburger menu', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: HamburgerMenu(body: const Scaffold(body: SizedBox.expand())),
@@ -33,18 +33,34 @@ void main() {
     tester.semantics.tap(semanticTapByTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
 
-    tester.semantics.tap(semanticTapByLabel('Scholarships'));
+    tester.semantics.tap(semanticTapByLabel('Announcements'));
     await tester.pumpAndSettle();
 
     expect(find.text('Food Pantry'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Announcements'), findsOneWidget);
     semantics.dispose();
+  });
+
+  testWidgets('Announcements is the highlighted drawer destination', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    ListTile tileFor(String label) =>
+        tester.widget<ListTile>(find.widgetWithText(ListTile, label));
+
+    expect(tileFor('Announcements').selected, isTrue);
+    expect(tileFor('Scholarships').selected, isFalse);
   });
 
   testWidgets('shows a loading spinner, then resources from the API', (
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: CommunityResourcesScreen()),
+      const MaterialApp(home: AnnouncementsScreen()),
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
@@ -113,14 +129,18 @@ void main() {
     api.failRequests = true;
     await pumpScreen(tester);
 
-    expect(find.text("Couldn't load community resources"), findsOneWidget);
+    expect(find.text("Couldn't load announcements"), findsOneWidget);
+    expect(
+      find.text("Couldn't load announcements (server error 500)."),
+      findsOneWidget,
+    );
     expect(find.text('Food Pantry'), findsNothing);
 
     api.failRequests = false;
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
 
-    expect(find.text("Couldn't load community resources"), findsNothing);
+    expect(find.text("Couldn't load announcements"), findsNothing);
     expect(find.text('Food Pantry'), findsOneWidget);
   });
 

@@ -1,7 +1,7 @@
 import 'package:belonging_maps_app/models/forum_post.dart';
-import 'package:belonging_maps_app/screens/community_resources_screen.dart';
+import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:belonging_maps_app/screens/forums_screen.dart';
-import 'package:belonging_maps_app/screens/opportunities.dart';
+import 'package:belonging_maps_app/screens/scholarships_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/screens/surveys_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
@@ -23,10 +23,10 @@ void main() {
 
   final screens = <_AdminScreenCase>[
     _AdminScreenCase(
-      name: 'Opportunities',
-      build: () => OpportunitiesScreen(client: fakeApiClient()),
-      action: () => find.byTooltip('Add opportunity'),
-      dialogTitle: 'Add Opportunity',
+      name: 'Scholarships',
+      build: () => ScholarshipsScreen(client: fakeApiClient()),
+      action: () => find.byTooltip('Add scholarship'),
+      dialogTitle: 'Add Scholarship',
       addLink: true,
     ),
     _AdminScreenCase(
@@ -36,8 +36,8 @@ void main() {
       dialogTitle: 'Add Survey',
     ),
     _AdminScreenCase(
-      name: 'Community Resources',
-      build: () => const CommunityResourcesScreen(),
+      name: 'Announcements',
+      build: () => const AnnouncementsScreen(),
       action: () => find.byTooltip('Add resource'),
       dialogTitle: 'Add Resource',
     ),
@@ -121,10 +121,10 @@ void main() {
 
   final editScreens = <_EditScreenCase>[
     _EditScreenCase(
-      name: 'Opportunities',
-      build: () => OpportunitiesScreen(client: fakeApiClient()),
+      name: 'Scholarships',
+      build: () => ScholarshipsScreen(client: fakeApiClient()),
       action: () => find.byTooltip('Edit SOMOS Scholarships'),
-      dialogTitle: 'Edit Opportunity',
+      dialogTitle: 'Edit Scholarship',
     ),
     _EditScreenCase(
       name: 'Surveys',
@@ -133,8 +133,8 @@ void main() {
       dialogTitle: 'Edit Survey',
     ),
     _EditScreenCase(
-      name: 'Community Resources',
-      build: () => const CommunityResourcesScreen(),
+      name: 'Announcements',
+      build: () => const AnnouncementsScreen(),
       action: () => find.byTooltip('Edit Food Pantry'),
       dialogTitle: 'Edit Resource',
     ),
@@ -172,14 +172,14 @@ void main() {
 
   final detailsScreens = <_DetailsScreenCase>[
     _DetailsScreenCase(
-      name: 'Opportunities',
-      build: () => OpportunitiesScreen(client: fakeApiClient()),
+      name: 'Scholarships',
+      build: () => ScholarshipsScreen(client: fakeApiClient()),
       semanticLabel: RegExp('^SOMOS Scholarships\\.'),
       details: 'Tap a scholarship to visit its website',
     ),
     _DetailsScreenCase(
-      name: 'Community Resources',
-      build: () => const CommunityResourcesScreen(),
+      name: 'Announcements',
+      build: () => const AnnouncementsScreen(),
       semanticLabel: RegExp('^View information for Food Pantry'),
       details: 'Resource information',
     ),
@@ -239,7 +239,7 @@ void main() {
   ) async {
     final deleteScreens = <_DeleteScreenCase>[
       _DeleteScreenCase(
-        build: () => OpportunitiesScreen(client: fakeApiClient()),
+        build: () => ScholarshipsScreen(client: fakeApiClient()),
         action: () => find.byTooltip('Delete SOMOS Scholarships'),
       ),
       _DeleteScreenCase(
@@ -247,7 +247,7 @@ void main() {
         action: () => find.byTooltip('Delete Feedback Survey'),
       ),
       _DeleteScreenCase(
-        build: () => const CommunityResourcesScreen(),
+        build: () => const AnnouncementsScreen(),
         action: () => find.byTooltip('Delete Food Pantry'),
       ),
       _DeleteScreenCase(

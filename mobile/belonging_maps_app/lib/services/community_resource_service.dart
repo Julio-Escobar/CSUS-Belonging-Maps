@@ -39,7 +39,7 @@ class CommunityResourceService {
 
   Future<List<CommunityResource>> fetchAll() async {
     final response = await _send(() => _client.get(_uri()));
-    _checkStatus(response, 'load community resources');
+    _checkStatus(response, 'load announcements');
     final decoded = _decode(response.body);
     if (decoded is! List) {
       throw const CommunityResourceException(

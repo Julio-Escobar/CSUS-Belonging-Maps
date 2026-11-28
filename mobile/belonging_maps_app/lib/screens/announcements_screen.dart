@@ -36,10 +36,10 @@ IconData _iconForKey(String iconKey) {
   };
 }
 
-/// Lists community resources from the backend so every device sees the same
-/// list. Admins can add, edit and delete them (P1-225).
-class CommunityResourcesScreen extends StatefulWidget {
-  const CommunityResourcesScreen({super.key});
+/// The Announcements page. Lists community resources from the backend so every
+/// device sees the same list. Admins can add, edit and delete them (P1-225).
+class AnnouncementsScreen extends StatefulWidget {
+  const AnnouncementsScreen({super.key});
 
   /// Creates the API service the screen uses. Tests swap this for a fake.
   @visibleForTesting
@@ -47,11 +47,10 @@ class CommunityResourcesScreen extends StatefulWidget {
       CommunityResourceService.new;
 
   @override
-  State<CommunityResourcesScreen> createState() =>
-      _CommunityResourcesScreenState();
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }
 
-class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   late final CommunityResourceService _service;
   final TextEditingController _searchController = TextEditingController();
   List<CommunityResource> _resources = [];
@@ -62,7 +61,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   @override
   void initState() {
     super.initState();
-    _service = CommunityResourcesScreen.serviceFactory();
+    _service = AnnouncementsScreen.serviceFactory();
     _loadResources();
   }
 
@@ -255,7 +254,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       return Center(
         child: CircularProgressIndicator(
           color: colors.primary,
-          semanticsLabel: 'Loading community resources',
+          semanticsLabel: 'Loading announcements',
         ),
       );
     }
@@ -274,7 +273,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Couldn't load community resources",
+                "Couldn't load announcements",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.primaryText,
@@ -354,7 +353,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                     children: [
                       Text(
                         _resources.isEmpty && query.isEmpty
-                            ? 'No community resources yet.'
+                            ? 'No announcements yet.'
                             : 'No matches',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.secondaryText),
@@ -392,8 +391,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
     final colors = AccessibilityColors.of(context);
 
     return HamburgerMenu(
-      title: 'Scholarships',
-      currentDestination: MenuDestination.communityResources,
+      title: 'Announcements',
+      currentDestination: MenuDestination.announcements,
       actions: [
         if (isAdmin)
           IconButton(

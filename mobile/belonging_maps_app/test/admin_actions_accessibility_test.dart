@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:belonging_maps_app/screens/community_resources_screen.dart';
+import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:belonging_maps_app/screens/login_screen.dart';
 import 'package:belonging_maps_app/screens/organization_resources_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
@@ -25,12 +25,12 @@ void main() {
   tearDown(() => AuthService.isAdmin = false);
 
   testWidgets(
-    'community resource view, edit, and delete are separate actions',
+    'announcement view, edit, and delete are separate actions',
     (tester) async {
       final semantics = tester.ensureSemantics();
       AuthService.isAdmin = true;
       await tester.pumpWidget(
-        const MaterialApp(home: CommunityResourcesScreen()),
+        const MaterialApp(home: AnnouncementsScreen()),
       );
       await tester.pumpAndSettle();
 
@@ -56,7 +56,7 @@ void main() {
     AuthService.isAdmin = true;
 
     await tester.pumpWidget(
-      const MaterialApp(home: CommunityResourcesScreen()),
+      const MaterialApp(home: AnnouncementsScreen()),
     );
     await tester.pumpAndSettle();
     tester.semantics.tap(semanticTapByTooltip('Edit Food Pantry'));
@@ -133,7 +133,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: CommunityResourcesScreen()),
+      const MaterialApp(home: AnnouncementsScreen()),
     );
     await tester.pumpAndSettle();
     expect(find.byTooltip(RegExp(r'^Edit ')), findsNothing);
