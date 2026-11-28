@@ -20,21 +20,21 @@ const Map<String, IconData> _iconOptions = {
   'star': Icons.star_outline,
 };
 
-class OpportunitiesScreen extends StatefulWidget {
+class ScholarshipsScreen extends StatefulWidget {
   final http.Client? client;
   final String? initialOpportunityId;
 
-  const OpportunitiesScreen({
+  const ScholarshipsScreen({
     super.key,
     this.client,
     this.initialOpportunityId,
   });
 
   @override
-  State<OpportunitiesScreen> createState() => _OpportunitiesScreenState();
+  State<ScholarshipsScreen> createState() => _ScholarshipsScreenState();
 }
 
-class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
+class _ScholarshipsScreenState extends State<ScholarshipsScreen> {
   static const Duration _requestTimeout = Duration(seconds: 10);
 
   bool _isLoading = true;
@@ -323,7 +323,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       _openInitialFavoriteIfRequested();
     } catch (_) {
       _finishLoadingWithError(
-        'Could not load opportunities. Please try again.',
+        'Could not load scholarships. Please try again.',
       );
     }
   }
@@ -348,7 +348,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
         if (widget.initialOpportunityId != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('This saved opportunity is no longer available.'),
+              content: Text('This saved scholarship is no longer available.'),
             ),
           );
         }
@@ -367,7 +367,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       if (matches.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('This saved opportunity is no longer available.'),
+            content: Text('This saved scholarship is no longer available.'),
           ),
         );
         return;
@@ -482,15 +482,15 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isEditing ? 'Opportunity updated' : 'Opportunity added',
+            isEditing ? 'Scholarship updated' : 'Scholarship added',
           ),
         ),
       );
     } catch (_) {
       _showRequestError(
         isEditing
-            ? 'Could not update the opportunity. Please try again.'
-            : 'Could not add the opportunity. Please try again.',
+            ? 'Could not update the scholarship. Please try again.'
+            : 'Could not add the scholarship. Please try again.',
       );
     }
   }
@@ -500,9 +500,9 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Opportunity'),
+        title: const Text('Delete Scholarship'),
         content: const Text(
-          'Are you sure you want to delete this opportunity?',
+          'Are you sure you want to delete this scholarship?',
         ),
         actions: [
           TextButton(
@@ -526,7 +526,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final id = _resources[index].id;
     final uri = id == null ? null : _apiUri('/api/opportunities/$id');
     if (uri == null) {
-      _showRequestError('Could not delete the opportunity. Please try again.');
+      _showRequestError('Could not delete the scholarship. Please try again.');
       return;
     }
 
@@ -540,9 +540,9 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       setState(() => _resources.removeAt(index));
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Opportunity deleted')));
+      ).showSnackBar(const SnackBar(content: Text('Scholarship deleted')));
     } catch (_) {
-      _showRequestError('Could not delete the opportunity. Please try again.');
+      _showRequestError('Could not delete the scholarship. Please try again.');
     }
   }
 
@@ -578,8 +578,8 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
       ),
     );
     final resultLabel = visibleIndexes.length == 1
-        ? '1 opportunity found'
-        : '${visibleIndexes.length} opportunities found';
+        ? '1 scholarship found'
+        : '${visibleIndexes.length} scholarships found';
     final suggestions = _searchQuery.trim().isEmpty
         ? const <SearchSuggestion>[]
         : visibleIndexes
@@ -598,13 +598,13 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
     final hasActiveFilters = selected != null || _searchQuery.trim().isNotEmpty;
 
     return HamburgerMenu(
-      title: 'Announcements',
-      currentDestination: MenuDestination.opportunities,
+      title: 'Scholarships',
+      currentDestination: MenuDestination.scholarships,
       actions: [
         if (isAdmin)
           IconButton(
             icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Add opportunity',
+            tooltip: 'Add scholarship',
             onPressed: () => _showOpportunityDialog(),
           ),
       ],
@@ -625,14 +625,14 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                             setState(() => _searchQuery = value),
                         textInputAction: TextInputAction.search,
                         decoration: InputDecoration(
-                          labelText: 'Search opportunities',
+                          labelText: 'Search scholarships',
                           hintText: 'Search programs or organizations',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchQuery.trim().isEmpty
                               ? null
                               : IconButton(
                                   icon: const Icon(Icons.clear),
-                                  tooltip: 'Clear opportunity search',
+                                  tooltip: 'Clear scholarship search',
                                   onPressed: _clearSearch,
                                 ),
                           border: const OutlineInputBorder(),
@@ -664,7 +664,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                 if (isAdmin)
                   SwitchListTile.adaptive(
                     contentPadding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                    title: const Text('Include expired opportunities'),
+                    title: const Text('Include expired scholarships'),
                     value: _includeExpired,
                     onChanged: (value) =>
                         setState(() => _includeExpired = value),
@@ -686,7 +686,7 @@ class _OpportunitiesScreenState extends State<OpportunitiesScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'No opportunities found.',
+                          'No scholarships found.',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
@@ -967,7 +967,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
     final colors = AccessibilityColors.of(context);
 
     return AlertDialog(
-      title: Text(isEditing ? 'Edit Opportunity' : 'Add Opportunity'),
+      title: Text(isEditing ? 'Edit Scholarship' : 'Add Scholarship'),
       content: Form(
         key: formKey,
         child: SizedBox(
@@ -1031,7 +1031,7 @@ class _OpportunityEditorDialogState extends State<_OpportunityEditorDialog> {
                   runSpacing: 4,
                   children: [
                     const Text(
-                      'Opportunity Links',
+                      'Scholarship Links',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     TextButton.icon(
@@ -1283,8 +1283,9 @@ class _ScholarshipResource {
   ) {
     final deadline = nextVisibleDeadline(today, includeExpired);
     final otherDeadline = other.nextVisibleDeadline(today, includeExpired);
-    if (deadline == null && otherDeadline == null)
+    if (deadline == null && otherDeadline == null) {
       return title.compareTo(other.title);
+    }
     if (deadline == null) return 1;
     if (otherDeadline == null) return -1;
     return deadline.compareTo(otherDeadline);
@@ -1349,7 +1350,7 @@ class _ResourceCard extends StatelessWidget {
               child: Semantics(
                 button: true,
                 label: '${resource.title}. ${resource.description}',
-                hint: 'Double tap to view opportunity details and links.',
+                hint: 'Double tap to view scholarship details and links.',
                 onTap: onTap,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
@@ -1409,7 +1410,7 @@ class _ResourceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Tooltip(
-                          message: 'View opportunity details',
+                          message: 'View scholarship details',
                           child: Icon(
                             Icons.chevron_right,
                             color: colors.secondaryText,

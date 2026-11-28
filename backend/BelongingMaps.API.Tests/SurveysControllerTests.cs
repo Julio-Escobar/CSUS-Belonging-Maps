@@ -94,6 +94,33 @@ public class SurveysControllerTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task GetSurveys_IncludesTheSeededContactUsLinks()
+    {
+        var surveys = await _client.GetFromJsonAsync<List<Survey>>("/api/surveys");
+
+        Assert.NotNull(surveys);
+        var seededTitles = new[]
+        {
+            "SOMOS Sac State",
+            "SOMOS Sac Community",
+            "UMMAH Sac State",
+            "UMMAH Sac Community",
+            "Ubuntu Sac State",
+            "Ubuntu Sac Community",
+            "SOMOS Something Missing?",
+            "UMMAH Something Missing?",
+            "UBUNTU Something Missing?",
+        };
+
+        foreach (var title in seededTitles)
+        {
+            var seeded = Assert.Single(surveys!, s => s.Title == title);
+            Assert.True(seeded.Id > 0);
+            Assert.StartsWith("https://", seeded.Link);
+        }
+    }
+
+    [Fact]
     public async Task DeleteSurvey_UnknownId_Returns404()
     {
         var response = await _client.DeleteAsync("/api/surveys/99999");

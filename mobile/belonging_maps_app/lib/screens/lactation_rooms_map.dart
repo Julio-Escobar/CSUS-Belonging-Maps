@@ -1,6 +1,7 @@
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter/material.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
@@ -44,38 +45,22 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
   void initState() {
     super.initState();
 
-    final worldBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(
-        'https://basemaps.arcgis.com/arcgis/rest/services/'
-        'World_Basemap_v2/VectorTileServer',
-      ),
-    );
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(
-        'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/'
-        'services/CampusBasemapv3/VectorTileServer',
-      ),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(
-        'https://www.arcgis.com/sharing/rest/content/items/'
-        'a8416e7b45034be7b748071e10dde506/resources/styles/root.json',
-      ),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
-    _map =
-        ArcGISMap.withBasemap(
-            Basemap.withLayers(
-              baseLayers: [worldBasemapLayer, campusBasemapLayer],
-              referenceLayers: const [],
-            ),
-          )
-          ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: campusMapLatitude,
-            longitude: campusMapLongitude,
-            scale: _campusScale,
-          )
-          ..maxExtent = campusMapMaxExtent();
+    // The OpenStreetMap streets basemap style supplies the surrounding city
+    // context; the campus vector tiles draw above it.
+    _map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
+      ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: campusMapLatitude,
+        longitude: campusMapLongitude,
+        scale: _campusScale,
+      )
+      ..maxExtent = campusMapMaxExtent();
 
     _roomsLayer =
         FeatureLayer.withFeatureTable(
@@ -89,7 +74,10 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
             )..outline = SimpleLineSymbol(color: Colors.white, width: 2),
           );
 
+    // The campus tiles draw above the basemap and the label tiles above them,
+    // with the room markers on top so the building names stay readable.
     _map.operationalLayers
+      ..add(campusBasemapLayer)
       ..add(campusLabelsLayer)
       ..add(_roomsLayer);
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;

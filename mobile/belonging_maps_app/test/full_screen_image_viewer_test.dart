@@ -46,6 +46,18 @@ void main() {
     expect(image.fit, BoxFit.contain);
   });
 
+  testWidgets('the photo can be pinched to zoom', (tester) async {
+    await _openViewer(tester);
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    expect(viewer.minScale, 1);
+    expect(viewer.maxScale, 4);
+    expect(viewer.scaleEnabled, isTrue);
+    expect(viewer.panEnabled, isTrue);
+  });
+
   testWidgets('a network photo shows progress from its first frame', (
     tester,
   ) async {

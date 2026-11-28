@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/somos_campus_center.dart';
 import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
@@ -27,19 +28,6 @@ import '/widgets/map_filter_button.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/search_suggestion_list.dart';
-
-const String somosCampusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-const String _openStreetMapBasemapUrl =
-    'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
-/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited"). Drawn above
-/// the campus basemap tiles but below the SOMOS markers so building names stay
-/// readable over the campus building footprints. The CampusBasemapv3 style has
-/// no label layers of its own, so this is what supplies the building names.
-const String somosCampusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 /// The SOMOS community logo, shown in a location card only when the location
 /// has no marker icon or number of its own.
@@ -211,30 +199,22 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
   void initState() {
     super.initState();
 
-    final openStreetMapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(_openStreetMapBasemapUrl),
-    );
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(somosCampusBasemapUrl),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(somosCampusLabelsStyleUrl),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
-    // The campus vector tiles draw on top of the global OpenStreetMap basemap.
-    _map =
-        ArcGISMap.withBasemap(
-            Basemap.withLayers(
-              baseLayers: [openStreetMapLayer, campusBasemapLayer],
-              referenceLayers: const [],
-            ),
-          )
-          ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: campusMapLatitude,
-            longitude: campusMapLongitude,
-            scale: _campusScale,
-          )
-          ..maxExtent = campusMapMaxExtent();
+    // The OpenStreetMap streets basemap style supplies the surrounding city
+    // context; the campus vector tiles draw above it.
+    _map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
+      ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: campusMapLatitude,
+        longitude: campusMapLongitude,
+        scale: _campusScale,
+      )
+      ..maxExtent = campusMapMaxExtent();
 
     // Start with a visible fallback marker while the art pin loads.
     _latineArtLayer =
@@ -249,8 +229,9 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
             )..outline = SimpleLineSymbol(color: Colors.white, width: 2),
           );
 
-    // The label tiles draw above the campus tiles but below the Latine art pins
-    // so the building names stay readable and the markers stay on top.
+    // The campus tiles draw above the basemap and the label tiles above them,
+    // while the Latine art pins stay on top of both.
+    _map.operationalLayers.add(campusBasemapLayer);
     _map.operationalLayers.add(campusLabelsLayer);
     _map.operationalLayers.add(_latineArtLayer);
 

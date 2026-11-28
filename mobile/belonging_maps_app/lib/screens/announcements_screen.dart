@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/community_resource.dart';
 import '../services/accessibility_theme.dart';
@@ -36,10 +37,10 @@ IconData _iconForKey(String iconKey) {
   };
 }
 
-/// Lists community resources from the backend so every device sees the same
-/// list. Admins can add, edit and delete them (P1-225).
-class CommunityResourcesScreen extends StatefulWidget {
-  const CommunityResourcesScreen({super.key});
+/// The Announcements page. Lists community resources from the backend so every
+/// device sees the same list. Admins can add, edit and delete them (P1-225).
+class AnnouncementsScreen extends StatefulWidget {
+  const AnnouncementsScreen({super.key});
 
   /// Creates the API service the screen uses. Tests swap this for a fake.
   @visibleForTesting
@@ -47,11 +48,10 @@ class CommunityResourcesScreen extends StatefulWidget {
       CommunityResourceService.new;
 
   @override
-  State<CommunityResourcesScreen> createState() =>
-      _CommunityResourcesScreenState();
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }
 
-class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   late final CommunityResourceService _service;
   final TextEditingController _searchController = TextEditingController();
   List<CommunityResource> _resources = [];
@@ -62,7 +62,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
   @override
   void initState() {
     super.initState();
-    _service = CommunityResourcesScreen.serviceFactory();
+    _service = AnnouncementsScreen.serviceFactory();
     _loadResources();
   }
 
@@ -124,6 +124,34 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       messenger?.showSnackBar(SnackBar(content: Text(successMessage)));
     } on CommunityResourceException catch (e) {
       messenger?.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Opens a resource's optional external link in the system browser.
+  Future<void> _openLink(String url) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final uri = Uri.tryParse(url.trim());
+
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        uri.host.isEmpty) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('This announcement link is not valid.')),
+      );
+      return;
+    }
+
+    var launched = false;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!launched) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text("Couldn't open the link.")),
+      );
     }
   }
 
@@ -221,6 +249,9 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                   imageId: resource.imageId,
                   height: 200,
                   semanticLabel: 'Photo for ${resource.title}',
+                  // Tapping the photo opens it full screen, where it can be
+                  // pinched to zoom (matches the info card photos).
+                  expandOnTap: true,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -239,6 +270,20 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
           ),
         ),
         actions: [
+          if (resource.link != null)
+            Semantics(
+              button: true,
+              label: 'Open link for ${resource.title}',
+              hint: 'Opens the link in your browser.',
+              onTap: () => _openLink(resource.link!),
+              child: ExcludeSemantics(
+                child: TextButton.icon(
+                  onPressed: () => _openLink(resource.link!),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open link'),
+                ),
+              ),
+            ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Close'),
@@ -255,7 +300,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
       return Center(
         child: CircularProgressIndicator(
           color: colors.primary,
-          semanticsLabel: 'Loading community resources',
+          semanticsLabel: 'Loading announcements',
         ),
       );
     }
@@ -274,7 +319,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Couldn't load community resources",
+                "Couldn't load announcements",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.primaryText,
@@ -354,7 +399,7 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
                     children: [
                       Text(
                         _resources.isEmpty && query.isEmpty
-                            ? 'No community resources yet.'
+                            ? 'No announcements yet.'
                             : 'No matches',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.secondaryText),
@@ -392,8 +437,8 @@ class _CommunityResourcesScreenState extends State<CommunityResourcesScreen> {
     final colors = AccessibilityColors.of(context);
 
     return HamburgerMenu(
-      title: 'Scholarships',
-      currentDestination: MenuDestination.communityResources,
+      title: 'Announcements',
+      currentDestination: MenuDestination.announcements,
       actions: [
         if (isAdmin)
           IconButton(
@@ -581,6 +626,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _categoryController;
+  late final TextEditingController _linkController;
   late String _selectedIcon;
   late ImageSelection _image;
   bool _isSaving = false;
@@ -595,6 +641,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
     _titleController = TextEditingController(text: existing?.title);
     _descriptionController = TextEditingController(text: existing?.description);
     _categoryController = TextEditingController(text: existing?.category);
+    _linkController = TextEditingController(text: existing?.link);
     _selectedIcon = _iconOptions.containsKey(existing?.iconKey)
         ? existing!.iconKey
         : 'food';
@@ -606,11 +653,26 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     _categoryController.dispose();
+    _linkController.dispose();
     super.dispose();
   }
 
   String? _requiredField(String? value) =>
       (value == null || value.trim().isEmpty) ? 'Required' : null;
+
+  /// Optional links must be blank or a complete http(s) URL.
+  String? _optionalUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+
+    final uri = Uri.tryParse(text);
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        uri.host.isEmpty) {
+      return 'Enter a full link starting with https://';
+    }
+    return null;
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -629,6 +691,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
         setState(() => _image = ImageSelection(existingImageId: imageId));
       }
 
+      final linkText = _linkController.text.trim();
       final draft = CommunityResource(
         id: widget.existing?.id ?? 0,
         title: _titleController.text.trim(),
@@ -636,6 +699,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
         description: _descriptionController.text.trim(),
         iconKey: _selectedIcon,
         imageId: _image.existingImageId,
+        link: linkText.isEmpty ? null : linkText,
       );
       await widget.onSave(draft);
       if (mounted) Navigator.of(context).pop(true);
@@ -678,6 +742,17 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
                 enabled: !_isSaving,
                 decoration: const InputDecoration(labelText: 'Category'),
                 validator: _requiredField,
+              ),
+              TextFormField(
+                controller: _linkController,
+                enabled: !_isSaving,
+                decoration: const InputDecoration(
+                  labelText: 'Link (optional)',
+                  hintText: 'https://',
+                ),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+                validator: _optionalUrl,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

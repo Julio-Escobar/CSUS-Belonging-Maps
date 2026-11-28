@@ -36,6 +36,7 @@ namespace BelongingMaps.API.Controllers
         public IActionResult AddCommunityResource([FromBody] CommunityResource resource)
         {
             resource.Id = 0;
+            resource.Link = NormalizeLink(resource.Link);
             if (!ImageStore.IsValidReference(_context, resource.ImageId))
                 return BadRequest("imageId does not match an uploaded image.");
 
@@ -63,6 +64,7 @@ namespace BelongingMaps.API.Controllers
             resource.Description = updated.Description;
             resource.IconKey = updated.IconKey;
             resource.ImageId = updated.ImageId;
+            resource.Link = NormalizeLink(updated.Link);
             _context.SaveChanges();
 
             return Ok(resource);
@@ -81,5 +83,9 @@ namespace BelongingMaps.API.Controllers
 
             return NoContent();
         }
+
+        /// <summary>Stores blank links as null so the API only returns real links.</summary>
+        private static string? NormalizeLink(string? link)
+            => string.IsNullOrWhiteSpace(link) ? null : link.Trim();
     }
 }

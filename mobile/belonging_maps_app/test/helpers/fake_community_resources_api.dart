@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:belonging_maps_app/screens/community_resources_screen.dart';
+import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:belonging_maps_app/services/community_resource_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -56,6 +56,7 @@ class FakeCommunityResourcesApi {
     'category': category,
     'description': description,
     'iconKey': iconKey,
+    'link': null,
   };
 
   Future<http.Response> _handle(http.Request request) async {
@@ -102,13 +103,13 @@ class FakeCommunityResourcesApi {
   );
 }
 
-/// Points CommunityResourcesScreen at a fresh fake API for the current test
+/// Points AnnouncementsScreen at a fresh fake API for the current test
 /// and restores the real service afterwards. Call from a test or setUp.
 FakeCommunityResourcesApi useFakeCommunityResourcesApi() {
   final api = FakeCommunityResourcesApi();
-  CommunityResourcesScreen.serviceFactory = api.newService;
+  AnnouncementsScreen.serviceFactory = api.newService;
   addTearDown(
-    () => CommunityResourcesScreen.serviceFactory = CommunityResourceService.new,
+    () => AnnouncementsScreen.serviceFactory = CommunityResourceService.new,
   );
   return api;
 }

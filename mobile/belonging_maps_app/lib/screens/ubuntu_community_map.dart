@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/community_layer_urls.dart';
 import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
@@ -11,6 +11,7 @@ import '/widgets/location_info_card.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
+import '/services/community_map_bounds.dart';
 import '/services/community_map_search.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
@@ -104,30 +105,25 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
         latitude: 38.56091,
         longitude: -121.42405,
         scale: 10000,
-      );
+      )
+      ..maxExtent = communityMapMaxExtent();
 
     _ubuntuBusinessesLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_BUSINESSES_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuBusinessesLayerUrl)),
     )..isVisible = _showUbuntuBusinesses;
 
     _ubuntuCommunityServicesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_COMMUNITY_SERVICES_URL'] ?? ''),
+        Uri.parse(ubuntuCommunityServicesLayerUrl),
       ),
     )..isVisible = _showUbuntuCommunityServices;
 
     _ubuntuReligiousLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_RELIGIOUS_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuReligiousLayerUrl)),
     )..isVisible = _showUbuntuReligious;
 
     _ubuntuEducationLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_EDUCATION_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuEducationLayerUrl)),
     )..isVisible = _showUbuntuEducation;
 
     _layerEntries = [

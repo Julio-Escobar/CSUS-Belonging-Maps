@@ -1,5 +1,5 @@
 import 'package:belonging_maps_app/screens/favorites_screen.dart';
-import 'package:belonging_maps_app/screens/opportunities.dart';
+import 'package:belonging_maps_app/screens/scholarships_screen.dart';
 import 'package:belonging_maps_app/services/favorites_store.dart';
 import 'package:belonging_maps_app/widgets/location_info_card.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +22,7 @@ void main() {
     expect(find.text('No favorites yet'), findsOneWidget);
     expect(
       find.bySemanticsLabel(
-        'No favorites yet. Save a location or opportunity using its star button.',
+        'No favorites yet. Save a location or scholarship using its star button.',
       ),
       findsOneWidget,
     );
@@ -150,7 +150,7 @@ void main() {
     addTearDown(client.close);
 
     await tester.pumpWidget(
-      MaterialApp(home: OpportunitiesScreen(client: client)),
+      MaterialApp(home: ScholarshipsScreen(client: client)),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Add Student Opportunity to favorites'));

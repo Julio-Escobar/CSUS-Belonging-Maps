@@ -45,6 +45,9 @@ namespace BelongingMaps.API.Migrations
                     b.Property<int?>("ImageId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Link")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -467,6 +470,71 @@ namespace BelongingMaps.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Surveys");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/56d94520eea24deaa5a1e57b3ab43e08",
+                            Title = "SOMOS Sac State"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/ffa13b155b684041ab4b4335d4ccf029",
+                            Title = "SOMOS Sac Community"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/9859d4081f2742449fcf4331ea9122f9",
+                            Title = "UMMAH Sac State"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/2d1fe1696b794a239cbdecdae736f289",
+                            Title = "UMMAH Sac Community"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Description = "",
+                            Link = "https://storymaps.arcgis.com/stories/0533e5adea024e10a69568c547544c07",
+                            Title = "Ubuntu Sac State"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/e4a218f5291f4fa9a31078cf8f067d84",
+                            Title = "Ubuntu Sac Community"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/0b9123ed6c9f4cf6a0e1f3e076ffd5ae",
+                            Title = "SOMOS Something Missing?"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/8688bd88b2e64da6bf369f4972161f2f",
+                            Title = "UMMAH Something Missing?"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Description = "",
+                            Link = "https://survey123.arcgis.com/share/b97c6c9ce15c4fa194d8aa4392d0e6c7",
+                            Title = "UBUNTU Something Missing?"
+                        });
                 });
 
             modelBuilder.Entity("BelongingMaps.API.Models.User", b =>

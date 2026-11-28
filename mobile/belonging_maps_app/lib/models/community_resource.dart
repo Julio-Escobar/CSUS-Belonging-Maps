@@ -14,6 +14,9 @@ class CommunityResource {
   /// Optional uploaded photo (P1-319). Null means no image.
   final int? imageId;
 
+  /// Optional external link. Null means the announcement has no link.
+  final String? link;
+
   const CommunityResource({
     this.id = 0,
     required this.title,
@@ -21,6 +24,7 @@ class CommunityResource {
     required this.description,
     this.iconKey = 'food',
     this.imageId,
+    this.link,
   });
 
   factory CommunityResource.fromJson(Map<String, dynamic> json) {
@@ -31,6 +35,7 @@ class CommunityResource {
       description: json['description'] as String? ?? '',
       iconKey: json['iconKey'] as String? ?? 'food',
       imageId: json['imageId'] as int?,
+      link: _optionalLink(json['link']),
     );
   }
 
@@ -41,5 +46,13 @@ class CommunityResource {
         'description': description,
         'iconKey': iconKey,
         'imageId': imageId,
+        'link': link,
       };
+
+  /// Trims the API value and treats blank links as "no link".
+  static String? _optionalLink(Object? value) {
+    if (value is! String) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 }

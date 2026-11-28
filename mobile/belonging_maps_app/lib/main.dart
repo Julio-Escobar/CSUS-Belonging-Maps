@@ -1,7 +1,8 @@
 import 'package:belonging_maps_app/screens/accessibility_settings_screen.dart';
-import 'package:belonging_maps_app/screens/opportunities.dart';
+import 'package:belonging_maps_app/screens/scholarships_screen.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
+import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
@@ -74,10 +75,12 @@ class BelongingMapsApp extends StatelessWidget {
             '/welcome': (context) => const WelcomeScreen(),
             '/campus': (context) => const CampusMapsScreen(),
             '/community': (context) => const CommunityMapsDirectory(),
-            '/opportunities': (context) => const OpportunitiesScreen(),
+            '/opportunities': (context) => const ScholarshipsScreen(),
+            '/opportunites': (context) => const ScholarshipsScreen(),
+            'opportunites': (context) => const ScholarshipsScreen(),
+            '/scholarships': (context) => const ScholarshipsScreen(),
+            '/announcements': (context) => const AnnouncementsScreen(),
             '/favorites': (context) => const FavoritesScreen(),
-            '/opportunites': (context) => const OpportunitiesScreen(),
-            'opportunites': (context) => const OpportunitiesScreen(),
             '/accessibility-settings': (context) =>
                 const AccessibilitySettingsScreen(),
             '/about': (context) => const AboutUsScreen(),

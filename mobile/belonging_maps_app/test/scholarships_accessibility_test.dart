@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:belonging_maps_app/screens/opportunities.dart';
+import 'package:belonging_maps_app/screens/scholarships_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
@@ -87,7 +87,7 @@ void main() {
               colorSafePalette: false,
               highContrast: highContrast,
             ),
-            home: OpportunitiesScreen(client: client ?? _opportunitiesClient()),
+            home: ScholarshipsScreen(client: client ?? _opportunitiesClient()),
           ),
         ),
       ),
@@ -95,7 +95,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('exposes opportunity cards and admin actions semantically', (
+  testWidgets('exposes scholarship cards and admin actions semantically', (
     tester,
   ) async {
     await pumpOpportunities(tester);
@@ -103,25 +103,49 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('SOMOS Scholarships')), findsOneWidget);
     expect(find.byTooltip('Edit SOMOS Scholarships'), findsOneWidget);
     expect(find.byTooltip('Delete SOMOS Scholarships'), findsOneWidget);
-    expect(find.byTooltip('Add opportunity'), findsOneWidget);
-    expect(find.byTooltip('View opportunity details'), findsNWidgets(3));
+    expect(find.byTooltip('Add scholarship'), findsOneWidget);
+    expect(find.byTooltip('View scholarship details'), findsNWidgets(3));
     expect(find.byTooltip('Accessibility settings'), findsNothing);
   });
 
-  testWidgets('opens the add opportunity dialog from the app bar', (
+  testWidgets('presents the Scholarships page with matching copy', (
+    tester,
+  ) async {
+    await pumpOpportunities(tester);
+
+    expect(find.widgetWithText(AppBar, 'Scholarships'), findsOneWidget);
+    expect(find.text('Search scholarships'), findsOneWidget);
+  });
+
+  testWidgets('Scholarships is the highlighted drawer destination', (
+    tester,
+  ) async {
+    await pumpOpportunities(tester);
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    ListTile tileFor(String label) =>
+        tester.widget<ListTile>(find.widgetWithText(ListTile, label));
+
+    expect(tileFor('Scholarships').selected, isTrue);
+    expect(tileFor('Announcements').selected, isFalse);
+  });
+
+  testWidgets('opens the add scholarship dialog from the app bar', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
     await pumpOpportunities(tester);
 
-    tester.semantics.tap(semanticTapByTooltip('Add opportunity'));
+    tester.semantics.tap(semanticTapByTooltip('Add scholarship'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Add Opportunity'), findsOneWidget);
+    expect(find.text('Add Scholarship'), findsOneWidget);
     semantics.dispose();
   });
 
-  testWidgets('opens opportunity details through its semantic action', (
+  testWidgets('opens scholarship details through its semantic action', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -151,7 +175,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('shows a matching suggestion and opens its opportunity', (
+  testWidgets('shows a matching suggestion and opens its scholarship', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -161,11 +185,11 @@ void main() {
     await tester.enterText(searchField, '  chicana latina  ');
     await tester.pumpAndSettle();
 
-    expect(find.text('1 opportunity found'), findsOneWidget);
+    expect(find.text('1 scholarship found'), findsOneWidget);
     expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
     expect(find.text('Ummah Scholarships'), findsNothing);
     expect(find.text('Ubuntu Scholarships'), findsNothing);
-    expect(find.byTooltip('Clear opportunity search'), findsOneWidget);
+    expect(find.byTooltip('Clear scholarship search'), findsOneWidget);
 
     tester.semantics.tap(
       semanticTapByLabel(RegExp('^Open SOMOS Scholarships, SOMOS\$')),
@@ -183,7 +207,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'scholarships');
       await tester.pumpAndSettle();
-      expect(find.text('3 opportunities found'), findsOneWidget);
+      expect(find.text('3 scholarships found'), findsOneWidget);
 
       final somosFilter = find.byWidgetPredicate(
         (widget) =>
@@ -193,25 +217,25 @@ void main() {
       );
       await tester.tap(somosFilter);
       await tester.pumpAndSettle();
-      expect(find.text('1 opportunity found'), findsOneWidget);
+      expect(find.text('1 scholarship found'), findsOneWidget);
       expect(find.text('SOMOS Scholarships'), findsNWidgets(2));
       expect(find.text('Ummah Scholarships'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'no matching opportunity');
+      await tester.enterText(find.byType(TextField), 'no matching scholarship');
       await tester.pumpAndSettle();
-      expect(find.text('No opportunities found.'), findsOneWidget);
+      expect(find.text('No scholarships found.'), findsOneWidget);
       expect(find.text('Clear filters'), findsOneWidget);
 
       await tester.tap(find.text('Clear filters'));
       await tester.pumpAndSettle();
-      expect(find.text('3 opportunities found'), findsOneWidget);
+      expect(find.text('3 scholarships found'), findsOneWidget);
       expect(find.text('SOMOS Scholarships'), findsOneWidget);
       expect(find.text('Ummah Scholarships'), findsOneWidget);
       expect(find.text('Ubuntu Scholarships'), findsOneWidget);
     },
   );
 
-  testWidgets('named edit and delete actions affect the matching opportunity', (
+  testWidgets('named edit and delete actions affect the matching scholarship', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -219,7 +243,7 @@ void main() {
 
     tester.semantics.tap(semanticTapByTooltip('Edit SOMOS Scholarships'));
     await tester.pumpAndSettle();
-    expect(find.text('Edit Opportunity'), findsOneWidget);
+    expect(find.text('Edit Scholarship'), findsOneWidget);
     expect(
       tester
           .widget<TextFormField>(find.byType(TextFormField).first)
@@ -232,11 +256,11 @@ void main() {
 
     tester.semantics.tap(semanticTapByTooltip('Delete SOMOS Scholarships'));
     await tester.pumpAndSettle();
-    expect(find.text('Delete Opportunity'), findsOneWidget);
+    expect(find.text('Delete Scholarship'), findsOneWidget);
     tester.semantics.tap(semanticTapByLabel('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('SOMOS Scholarships'), findsNothing);
-    expect(find.text('Opportunity deleted'), findsOneWidget);
+    expect(find.text('Scholarship deleted'), findsOneWidget);
     semantics.dispose();
   });
 
@@ -260,7 +284,7 @@ void main() {
     expect(find.text('Ubuntu Scholarships'), findsOneWidget);
   });
 
-  testWidgets('shows an error when opportunities cannot be loaded', (
+  testWidgets('shows an error when scholarships cannot be loaded', (
     tester,
   ) async {
     await pumpOpportunities(
@@ -269,7 +293,7 @@ void main() {
     );
 
     expect(
-      find.text('Could not load opportunities. Please try again.'),
+      find.text('Could not load scholarships. Please try again.'),
       findsOneWidget,
     );
   });
@@ -373,7 +397,7 @@ void main() {
       lessThan(tester.getTopLeft(find.text('No-deadline opportunity')).dy),
     );
 
-    await tester.tap(find.text('Include expired opportunities'));
+    await tester.tap(find.text('Include expired scholarships'));
     await tester.pumpAndSettle();
     expect(find.text('Expired opportunity'), findsOneWidget);
   });

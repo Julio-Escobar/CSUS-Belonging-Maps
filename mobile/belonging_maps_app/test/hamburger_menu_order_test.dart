@@ -1,6 +1,7 @@
 import 'package:belonging_maps_app/constants/strings.dart';
 import 'package:belonging_maps_app/screens/campus_maps_screen.dart';
 import 'package:belonging_maps_app/screens/community_maps_directory.dart';
+import 'package:belonging_maps_app/screens/scholarships_screen.dart';
 import 'package:belonging_maps_app/services/accessibility_settings.dart';
 import 'package:belonging_maps_app/services/accessibility_theme.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
@@ -22,7 +23,7 @@ const _expectedOrder = [
   'Scholarships',
   'Job Opportunities',
   'Favorites',
-  'Feedback',
+  'Contact Us',
   'Accessibility Settings',
   'About Us',
   'Administrator Login',
@@ -134,6 +135,18 @@ void main() {
     await tester.tap(find.text('Community Maps'));
     await tester.pumpAndSettle();
     expect(find.byType(CommunityMapsDirectory), findsOneWidget);
+  });
+
+  testWidgets('Scholarships opens the scholarships page', (tester) async {
+    await _pumpMenu(tester);
+
+    await tester.ensureVisible(find.text('Scholarships'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scholarships'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ScholarshipsScreen), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Scholarships'), findsOneWidget);
   });
 
   testWidgets('Job Opportunities opens the Handshake job board', (
