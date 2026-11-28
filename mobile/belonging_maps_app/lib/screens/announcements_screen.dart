@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/community_resource.dart';
 import '../services/accessibility_theme.dart';
@@ -126,6 +127,34 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     }
   }
 
+  /// Opens a resource's optional external link in the system browser.
+  Future<void> _openLink(String url) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final uri = Uri.tryParse(url.trim());
+
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        uri.host.isEmpty) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text('This announcement link is not valid.')),
+      );
+      return;
+    }
+
+    var launched = false;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!launched) {
+      messenger?.showSnackBar(
+        const SnackBar(content: Text("Couldn't open the link.")),
+      );
+    }
+  }
+
   Future<void> _addResource() async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final saved = await showDialog<bool>(
@@ -241,6 +270,20 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           ),
         ),
         actions: [
+          if (resource.link != null)
+            Semantics(
+              button: true,
+              label: 'Open link for ${resource.title}',
+              hint: 'Opens the link in your browser.',
+              onTap: () => _openLink(resource.link!),
+              child: ExcludeSemantics(
+                child: TextButton.icon(
+                  onPressed: () => _openLink(resource.link!),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open link'),
+                ),
+              ),
+            ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Close'),
@@ -583,6 +626,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _categoryController;
+  late final TextEditingController _linkController;
   late String _selectedIcon;
   late ImageSelection _image;
   bool _isSaving = false;
@@ -597,6 +641,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
     _titleController = TextEditingController(text: existing?.title);
     _descriptionController = TextEditingController(text: existing?.description);
     _categoryController = TextEditingController(text: existing?.category);
+    _linkController = TextEditingController(text: existing?.link);
     _selectedIcon = _iconOptions.containsKey(existing?.iconKey)
         ? existing!.iconKey
         : 'food';
@@ -608,11 +653,26 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     _categoryController.dispose();
+    _linkController.dispose();
     super.dispose();
   }
 
   String? _requiredField(String? value) =>
       (value == null || value.trim().isEmpty) ? 'Required' : null;
+
+  /// Optional links must be blank or a complete http(s) URL.
+  String? _optionalUrl(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+
+    final uri = Uri.tryParse(text);
+    if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https') ||
+        uri.host.isEmpty) {
+      return 'Enter a full link starting with https://';
+    }
+    return null;
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -631,6 +691,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
         setState(() => _image = ImageSelection(existingImageId: imageId));
       }
 
+      final linkText = _linkController.text.trim();
       final draft = CommunityResource(
         id: widget.existing?.id ?? 0,
         title: _titleController.text.trim(),
@@ -638,6 +699,7 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
         description: _descriptionController.text.trim(),
         iconKey: _selectedIcon,
         imageId: _image.existingImageId,
+        link: linkText.isEmpty ? null : linkText,
       );
       await widget.onSave(draft);
       if (mounted) Navigator.of(context).pop(true);
@@ -680,6 +742,17 @@ class _ResourceFormDialogState extends State<_ResourceFormDialog> {
                 enabled: !_isSaving,
                 decoration: const InputDecoration(labelText: 'Category'),
                 validator: _requiredField,
+              ),
+              TextFormField(
+                controller: _linkController,
+                enabled: !_isSaving,
+                decoration: const InputDecoration(
+                  labelText: 'Link (optional)',
+                  hintText: 'https://',
+                ),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+                validator: _optionalUrl,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

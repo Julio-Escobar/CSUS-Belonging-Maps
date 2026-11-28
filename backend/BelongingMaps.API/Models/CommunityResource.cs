@@ -18,5 +18,8 @@ namespace BelongingMaps.API.Models
 
         // Optional photo uploaded through /api/images (P1-319).
         public int? ImageId { get; set; }
+
+        // Optional external link shown in the app (e.g. event details or a website).
+        public string? Link { get; set; }
     }
 }

@@ -56,6 +56,7 @@ class FakeCommunityResourcesApi {
     'category': category,
     'description': description,
     'iconKey': iconKey,
+    'link': null,
   };
 
   Future<http.Response> _handle(http.Request request) async {

@@ -11,12 +11,38 @@ import 'helpers/fake_community_resources_api.dart';
 import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+class _RecordingUrlLauncher extends UrlLauncherPlatform {
+  final List<String> launchedUrls = [];
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launchedUrls.add(url);
+    return true;
+  }
+}
 
 void main() {
   late FakeCommunityResourcesApi api;
+  late UrlLauncherPlatform originalLauncher;
+  late _RecordingUrlLauncher launcher;
 
-  setUp(() => api = useFakeCommunityResourcesApi());
-  tearDown(() => AuthService.isAdmin = false);
+  setUp(() {
+    api = useFakeCommunityResourcesApi();
+    originalLauncher = UrlLauncherPlatform.instance;
+    launcher = _RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
+  });
+
+  tearDown(() {
+    UrlLauncherPlatform.instance = originalLauncher;
+    AuthService.isAdmin = false;
+  });
 
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
@@ -88,6 +114,7 @@ void main() {
       ),
       findsNWidgets(2),
     );
+    expect(find.text('Open link'), findsNothing);
 
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
@@ -234,6 +261,10 @@ void main() {
 
     expect(find.text('Resource added'), findsOneWidget);
     expect(api.resources.map((r) => r['title']), contains('Book Exchange'));
+    expect(
+      api.resources.firstWhere((r) => r['title'] == 'Book Exchange')['link'],
+      isNull,
+    );
 
     await tester.drag(find.byType(ListView), const Offset(0, -2000));
     await tester.pumpAndSettle();
@@ -330,6 +361,85 @@ void main() {
     expect(find.text('Resource updated'), findsOneWidget);
     expect(api.resources.first['imageId'], isNull);
     expect(api.uploadedImages, 0);
+  });
+
+  testWidgets('admin adds a resource with an optional link', (tester) async {
+    AuthService.isAdmin = true;
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Add resource'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Food Drive');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Donate canned food for students.',
+    );
+    await tester.enterText(find.byType(TextFormField).at(2), 'Food');
+    await tester.enterText(
+      find.byType(TextFormField).at(3),
+      'https://example.edu/food-drive',
+    );
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resource added'), findsOneWidget);
+    final saved = api.resources.firstWhere((r) => r['title'] == 'Food Drive');
+    expect(saved['link'], 'https://example.edu/food-drive');
+  });
+
+  testWidgets('an invalid announcement link blocks saving', (tester) async {
+    AuthService.isAdmin = true;
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Add resource'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'Book Exchange');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Trade books.');
+    await tester.enterText(find.byType(TextFormField).at(2), 'Education');
+    await tester.enterText(find.byType(TextFormField).at(3), 'not a link');
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Enter a full link starting with https://'),
+      findsOneWidget,
+    );
+    expect(find.text('Add Resource'), findsOneWidget);
+    expect(api.resources.any((r) => r['title'] == 'Book Exchange'), isFalse);
+  });
+
+  testWidgets('an announcement link opens from the details dialog', (
+    tester,
+  ) async {
+    api.resources.first['link'] = 'https://example.edu/food-pantry';
+    await pumpScreen(tester);
+
+    await tester.tap(find.text('Food Pantry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open link'), findsOneWidget);
+    await tester.tap(find.text('Open link'));
+    await tester.pumpAndSettle();
+
+    expect(launcher.launchedUrls, ['https://example.edu/food-pantry']);
+  });
+
+  testWidgets('admin can remove an announcement link', (tester) async {
+    AuthService.isAdmin = true;
+    api.resources.first['link'] = 'https://example.edu/food-pantry';
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Edit Food Pantry'));
+    await tester.pumpAndSettle();
+    expect(find.text('https://example.edu/food-pantry'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).at(3), '');
+    await tester.tap(find.text('Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resource updated'), findsOneWidget);
+    expect(api.resources.first['link'], isNull);
   });
 
   testWidgets('a resource added on one device shows up on another', (
