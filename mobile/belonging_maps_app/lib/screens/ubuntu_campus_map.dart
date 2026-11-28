@@ -25,12 +25,10 @@ import '/widgets/map_search_bar.dart';
 import '/widgets/search_suggestion_list.dart';
 
 /// The Sacramento State campus vector basemap shared with the other Belonging
-/// maps. It draws the campus building footprints over a global OpenStreetMap
-/// basemap.
+/// maps. It draws the campus building footprints over the OpenStreetMap streets
+/// basemap style.
 const String ubuntuCampusBasemapUrl =
     'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-const String _openStreetMapBasemapUrl =
-    'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer';
 
 /// Label-only "Light Gray Reference" vector tile style that supplies the
 /// building names. The CampusBasemapv3 style has no label layers of its own,
@@ -145,9 +143,6 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
   void initState() {
     super.initState();
 
-    final openStreetMapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(_openStreetMapBasemapUrl),
-    );
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
       Uri.parse(ubuntuCampusBasemapUrl),
     );
@@ -155,23 +150,20 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
       Uri.parse(ubuntuCampusLabelsStyleUrl),
     );
 
-    // The campus vector tiles draw on top of the global OpenStreetMap basemap.
-    _map =
-        ArcGISMap.withBasemap(
-            Basemap.withLayers(
-              baseLayers: [openStreetMapLayer, campusBasemapLayer],
-              referenceLayers: const [],
-            ),
-          )
-          ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: campusMapLatitude,
-            longitude: campusMapLongitude,
-            scale: _campusScale,
-          )
-          ..maxExtent = campusMapMaxExtent();
+    // The OpenStreetMap streets basemap style supplies the surrounding city
+    // context; the campus vector tiles draw above it.
+    _map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
+      ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: campusMapLatitude,
+        longitude: campusMapLongitude,
+        scale: _campusScale,
+      )
+      ..maxExtent = campusMapMaxExtent();
 
-    // The label tiles draw above the campus tiles but below the markers so the
-    // building names stay readable and the markers stay on top.
+    // The campus tiles draw above the basemap and the label tiles above them,
+    // but both stay below the markers so the building names stay readable and
+    // the markers stay on top.
+    _map.operationalLayers.add(campusBasemapLayer);
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;

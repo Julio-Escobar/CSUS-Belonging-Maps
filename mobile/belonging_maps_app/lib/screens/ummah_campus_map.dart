@@ -31,11 +31,10 @@ import '/widgets/search_suggestion_list.dart';
 /// Campus vector tile basemap published by the Sacramento State MLRC. It is the
 /// same `CampusBasemapv3` tile service the Ummah Resource Map story map and the
 /// SOMOS campus map draw, so the Ummah map matches the story map's building
-/// footprints.
+/// footprints. The tiles draw over the OpenStreetMap streets basemap style, so
+/// the surrounding city context stays visible.
 const String ummahCampusBasemapUrl =
     'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-const String _openStreetMapBasemapUrl =
-    'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer';
 
 /// Label-only "Light Gray Reference" vector tile style (ArcGIS item
 /// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited"). Drawn above
@@ -242,9 +241,6 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
   void initState() {
     super.initState();
 
-    final openStreetMapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(_openStreetMapBasemapUrl),
-    );
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
       Uri.parse(ummahCampusBasemapUrl),
     );
@@ -252,23 +248,20 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
       Uri.parse(ummahCampusLabelsStyleUrl),
     );
 
-    // The campus vector tiles draw on top of the global OpenStreetMap basemap.
-    _map =
-        ArcGISMap.withBasemap(
-            Basemap.withLayers(
-              baseLayers: [openStreetMapLayer, campusBasemapLayer],
-              referenceLayers: const [],
-            ),
-          )
-          ..initialViewpoint = Viewpoint.withLatLongScale(
-            latitude: campusMapLatitude,
-            longitude: campusMapLongitude,
-            scale: _campusScale,
-          )
-          ..maxExtent = campusMapMaxExtent();
+    // The OpenStreetMap streets basemap style supplies the surrounding city
+    // context; the campus vector tiles draw above it.
+    _map = ArcGISMap.withBasemapStyle(BasemapStyle.openStreets)
+      ..initialViewpoint = Viewpoint.withLatLongScale(
+        latitude: campusMapLatitude,
+        longitude: campusMapLongitude,
+        scale: _campusScale,
+      )
+      ..maxExtent = campusMapMaxExtent();
 
-    // The label tiles draw above the campus tiles but below the Ummah markers
-    // so the building names stay readable and the markers stay on top.
+    // The campus tiles draw above the basemap and the label tiles above them,
+    // but both stay below the Ummah markers so the building names stay readable
+    // and the markers stay on top.
+    _map.operationalLayers.add(campusBasemapLayer);
     _map.operationalLayers.add(campusLabelsLayer);
 
     _mapController = ArcGISMapView.createController()..arcGISMap = _map;
