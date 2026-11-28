@@ -11,6 +11,7 @@ import '/widgets/location_info_card.dart';
 import '/widgets/current_location_buttons.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_layers_button.dart';
+import '/services/community_map_bounds.dart';
 import '/services/community_map_search.dart';
 import '/services/current_location.dart';
 import '/services/map_icon_renderer.dart';
@@ -112,7 +113,8 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
         latitude: 38.56091,
         longitude: -121.42405,
         scale: 10000,
-      );
+      )
+      ..maxExtent = communityMapMaxExtent();
 
     _somosBusinessesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(Uri.parse(somosBusinessesLayerUrl)),
