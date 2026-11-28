@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/ummah_campus_center.dart';
 import '/models/ummah_campus_food.dart';
 import '/models/ummah_campus_prayer.dart';
@@ -27,22 +28,6 @@ import '/widgets/map_location_browser.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/search_suggestion_list.dart';
-
-/// Campus vector tile basemap published by the Sacramento State MLRC. It is the
-/// same `CampusBasemapv3` tile service the Ummah Resource Map story map and the
-/// SOMOS campus map draw, so the Ummah map matches the story map's building
-/// footprints. The tiles draw over the OpenStreetMap streets basemap style, so
-/// the surrounding city context stays visible.
-const String ummahCampusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
-/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited"). Drawn above
-/// the campus basemap tiles but below the Ummah markers so building names stay
-/// readable over the campus building footprints. The CampusBasemapv3 style has
-/// no label layers of its own, so this is what supplies the building names.
-const String ummahCampusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 const Color _ummahMarkerColor = Color(0xFF2F5F3E);
 
@@ -242,10 +227,10 @@ class _UmmahCampusMapState extends State<UmmahCampusMap> {
     super.initState();
 
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(ummahCampusBasemapUrl),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(ummahCampusLabelsStyleUrl),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
     // The OpenStreetMap streets basemap style supplies the surrounding city

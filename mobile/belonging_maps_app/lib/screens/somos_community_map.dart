@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/community_layer_urls.dart';
 import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
@@ -115,39 +115,29 @@ class _SomosCommunityMapState extends State<SomosCommunityMap> {
       );
 
     _somosBusinessesLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_BUSINESSES_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(somosBusinessesLayerUrl)),
     );
 
     _somosReligionLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_RELIGION_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(somosReligionLayerUrl)),
     );
 
     _somosFoodLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_FOOD_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(somosFoodLayerUrl)),
     );
 
     _somosPublicArtsLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_PUBLIC_ARTS_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(somosPublicArtsLayerUrl)),
     );
 
     _somosCommunityServicesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_COMMUNITY_SERVICES_URL'] ?? ''),
+        Uri.parse(somosCommunityServicesLayerUrl),
       ),
     );
 
     _somosEducationLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['SOMOS_EDUCATION_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(somosEducationLayerUrl)),
     );
 
     _layerEntries = [

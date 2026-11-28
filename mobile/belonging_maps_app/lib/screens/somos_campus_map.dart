@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/somos_campus_center.dart';
 import '/models/somos_campus_food.dart';
 import '/models/somos_campus_resource.dart';
@@ -27,19 +28,6 @@ import '/widgets/map_filter_button.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/search_suggestion_list.dart';
-
-/// The Sacramento State campus vector basemap shared with the other Belonging
-/// maps, drawn over the OpenStreetMap streets basemap style.
-const String somosCampusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
-/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited"). Drawn above
-/// the campus basemap tiles but below the SOMOS markers so building names stay
-/// readable over the campus building footprints. The CampusBasemapv3 style has
-/// no label layers of its own, so this is what supplies the building names.
-const String somosCampusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 /// The SOMOS community logo, shown in a location card only when the location
 /// has no marker icon or number of its own.
@@ -212,10 +200,10 @@ class _SomosCampusMapState extends State<SomosCampusMap> {
     super.initState();
 
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(somosCampusBasemapUrl),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(somosCampusLabelsStyleUrl),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
     // The OpenStreetMap streets basemap style supplies the surrounding city

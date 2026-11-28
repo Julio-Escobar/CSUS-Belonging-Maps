@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/ubuntu_campus_center.dart';
 import '/models/ubuntu_campus_resource.dart';
 import '/services/accessibility_theme.dart';
@@ -23,18 +24,6 @@ import '/widgets/map_filter_button.dart';
 import '/widgets/map_location_browser.dart';
 import '/widgets/map_search_bar.dart';
 import '/widgets/search_suggestion_list.dart';
-
-/// The Sacramento State campus vector basemap shared with the other Belonging
-/// maps. It draws the campus building footprints over the OpenStreetMap streets
-/// basemap style.
-const String ubuntuCampusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style that supplies the
-/// building names. The CampusBasemapv3 style has no label layers of its own,
-/// so this draws the labels above the campus tiles and below the markers.
-const String ubuntuCampusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 const Color _ubuntuMarkerColor = Color(0xFF2F5F3E);
 
@@ -144,10 +133,10 @@ class _UbuntuCampusMapState extends State<UbuntuCampusMap> {
     super.initState();
 
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(ubuntuCampusBasemapUrl),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(ubuntuCampusLabelsStyleUrl),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
     // The OpenStreetMap streets basemap style supplies the surrounding city

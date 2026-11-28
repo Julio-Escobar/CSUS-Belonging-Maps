@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/community_layer_urls.dart';
 import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
@@ -107,32 +107,28 @@ class _UmmahCommunityMapState extends State<UmmahCommunityMap> {
 
     _ummahBusinessServicesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UMMAH_BUSINESS_SERVICES_URL'] ?? ''),
+        Uri.parse(ummahBusinessServicesLayerUrl),
       ),
     )..isVisible = _showUmmahBusinessServices;
 
     _ummahCommunityServicesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UMMAH_COMMUNITY_SERVICES_URL'] ?? ''),
+        Uri.parse(ummahCommunityServicesLayerUrl),
       ),
     )..isVisible = _showUmmahCommunityServices;
 
     _ummahHalalFoodsLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UMMAH_HALAL_FOODS_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ummahHalalFoodsLayerUrl)),
     )..isVisible = _showUmmahHalalFoods;
 
     _ummahReligiousCulturalLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UMMAH_RELIGIOUS_CULTURAL_URL'] ?? ''),
+        Uri.parse(ummahReligiousCulturalLayerUrl),
       ),
     )..isVisible = _showUmmahReligiousCultural;
 
     _ummahEducationLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UMMAH_EDUCATION_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ummahEducationLayerUrl)),
     )..isVisible = _showUmmahEducation;
 
     _layerEntries = [

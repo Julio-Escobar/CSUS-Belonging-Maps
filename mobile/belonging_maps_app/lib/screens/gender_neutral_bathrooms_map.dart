@@ -1,6 +1,7 @@
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter/material.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
@@ -21,19 +22,6 @@ const String genderNeutralBathroomsLayerUrl =
 /// neutral bathrooms. The layer is filtered to GenderNeutralBathrooms = 1.
 const String genderNeutralBathroomsBuildingsLayerUrl =
     'https://services5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/BuildingsV2/FeatureServer/0';
-
-/// Sacramento State campus vector basemap, drawn above the OpenStreetMap
-/// streets basemap style so campus buildings and walking paths stay legible at
-/// close zoom levels.
-const String campusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/CampusBasemapv3/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
-/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited") applied over
-/// the basemap. Drawn between the building footprints and the restroom markers
-/// so building names stay readable over the campus basemap tiles.
-const String campusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 /// Bundled gender neutral restroom pictogram used for the point markers.
 const String genderNeutralBathroomIconAsset =

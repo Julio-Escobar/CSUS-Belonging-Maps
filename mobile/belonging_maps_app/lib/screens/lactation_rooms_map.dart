@@ -1,6 +1,7 @@
 import 'package:arcgis_maps/arcgis_maps.dart';
 import 'package:flutter/material.dart';
 
+import '/constants/campus_map_urls.dart';
 import '/models/location_attributes.dart';
 import '/services/accessibility_theme.dart';
 import '/services/campus_map_bounds.dart';
@@ -16,19 +17,6 @@ import '/widgets/map_zoom_controls.dart';
 const String lactationRoomsLayerUrl =
     'https://services5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/services/'
     'SacStateMothersRooms/FeatureServer/0';
-
-/// Sacramento State campus vector basemap shared with the other Belonging
-/// maps, drawn over the OpenStreetMap streets basemap style.
-const String lactationCampusBasemapUrl =
-    'https://vectortileservices5.arcgis.com/nXNRC1vdZsFxBgaG/arcgis/rest/'
-    'services/CampusBasemapv3/VectorTileServer';
-
-/// Label-only "Light Gray Reference" vector tile style (ArcGIS item
-/// a8416e7b45034be7b748071e10dde506, "LightGreyReferenceEdited") that supplies
-/// the building names above the campus tiles.
-const String lactationCampusLabelsStyleUrl =
-    'https://www.arcgis.com/sharing/rest/content/items/'
-    'a8416e7b45034be7b748071e10dde506/resources/styles/root.json';
 
 const double _campusScale = 8500;
 
@@ -58,10 +46,10 @@ class _LactationRoomsMapState extends State<LactationRoomsMap> {
     super.initState();
 
     final campusBasemapLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(lactationCampusBasemapUrl),
+      Uri.parse(campusBasemapUrl),
     );
     final campusLabelsLayer = ArcGISVectorTiledLayer.withUri(
-      Uri.parse(lactationCampusLabelsStyleUrl),
+      Uri.parse(campusLabelsStyleUrl),
     );
 
     // The OpenStreetMap streets basemap style supplies the surrounding city

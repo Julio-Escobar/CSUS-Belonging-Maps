@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:arcgis_maps/arcgis_maps.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '/constants/community_layer_urls.dart';
 import '/constants/map_icon_config.dart';
 import '/widgets/map_zoom_controls.dart';
 import '/widgets/hamburger_menu.dart';
@@ -107,27 +107,21 @@ class _UbuntuCommunityMapState extends State<UbuntuCommunityMap> {
       );
 
     _ubuntuBusinessesLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_BUSINESSES_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuBusinessesLayerUrl)),
     )..isVisible = _showUbuntuBusinesses;
 
     _ubuntuCommunityServicesLayer = FeatureLayer.withFeatureTable(
       ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_COMMUNITY_SERVICES_URL'] ?? ''),
+        Uri.parse(ubuntuCommunityServicesLayerUrl),
       ),
     )..isVisible = _showUbuntuCommunityServices;
 
     _ubuntuReligiousLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_RELIGIOUS_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuReligiousLayerUrl)),
     )..isVisible = _showUbuntuReligious;
 
     _ubuntuEducationLayer = FeatureLayer.withFeatureTable(
-      ServiceFeatureTable.withUri(
-        Uri.parse(dotenv.env['UBUNTU_EDUCATION_URL'] ?? ''),
-      ),
+      ServiceFeatureTable.withUri(Uri.parse(ubuntuEducationLayerUrl)),
     )..isVisible = _showUbuntuEducation;
 
     _layerEntries = [
