@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:belonging_maps_app/screens/announcements_screen.dart';
 import 'package:belonging_maps_app/services/auth_service.dart';
+import 'package:belonging_maps_app/widgets/full_screen_image_viewer.dart';
 import 'package:belonging_maps_app/widgets/hamburger_menu.dart';
+import 'package:belonging_maps_app/widgets/resource_image.dart';
 import 'package:belonging_maps_app/widgets/resource_image_field.dart';
+import 'helpers/fake_api.dart';
 import 'helpers/fake_community_resources_api.dart';
 import 'helpers/semantics_finders.dart';
 import 'package:flutter/material.dart';
@@ -90,6 +93,60 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Resource information'), findsNothing);
+  });
+
+  testWidgets('tapping the photo in the resource dialog opens it full screen', (
+    tester,
+  ) async {
+    loadTestEnv();
+    api.resources.first['imageId'] = 42;
+    await pumpScreen(tester);
+
+    await tester.tap(find.text('Food Pantry'));
+    await tester.pumpAndSettle();
+
+    final dialogPhoto = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(ResourceImage),
+    );
+    expect(dialogPhoto, findsOneWidget);
+
+    await tester.tap(dialogPhoto);
+    await tester.pumpAndSettle();
+
+    // The photo opens in the same zoomable viewer the info cards use.
+    expect(find.byKey(fullScreenImageViewerKey), findsOneWidget);
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+
+    await tester.tap(find.byKey(fullScreenImageCloseKey));
+    await tester.pumpAndSettle();
+
+    // Closing the viewer leaves the resource dialog open behind it.
+    expect(find.byKey(fullScreenImageViewerKey), findsNothing);
+    expect(find.text('Resource information'), findsOneWidget);
+  });
+
+  testWidgets('tapping a card photo still opens the resource information', (
+    tester,
+  ) async {
+    loadTestEnv();
+    api.resources.first['imageId'] = 42;
+    await pumpScreen(tester);
+
+    await tester.tap(find.byType(ResourceImage).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resource information'), findsOneWidget);
+    expect(find.byKey(fullScreenImageViewerKey), findsNothing);
+  });
+
+  testWidgets('a resource without a photo shows no photo to tap', (
+    tester,
+  ) async {
+    loadTestEnv();
+    await pumpScreen(tester);
+
+    expect(find.byType(ResourceImage), findsNothing);
   });
 
   testWidgets('search filters by title and description and can be cleared', (

@@ -220,6 +220,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   imageId: resource.imageId,
                   height: 200,
                   semanticLabel: 'Photo for ${resource.title}',
+                  // Tapping the photo opens it full screen, where it can be
+                  // pinched to zoom (matches the info card photos).
+                  expandOnTap: true,
                 ),
                 const SizedBox(height: 12),
               ],
